@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 7 — Compliance & Risk | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Module 7 — Compliance & Risk</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num">7</div>
+        <div class="module-header-info">
+          <h2>Compliance & Risk</h2>
+          <p>Restricted countries, KYC requirements, prohibited trading practices, and special rules</p>
+        </div>
+      </div>
+
+      <!-- Restricted Countries -->
+      <div class="content-section">
+        <h3>🌍 Restricted Countries</h3>
+        <p>WeMasterTrade cannot offer services to residents of certain countries due to legal, regulatory, and sanctions requirements.</p>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-content">
+            <strong>Do NOT Onboard Clients From These Countries</strong>
+            <p>Accepting clients from restricted countries violates compliance rules and can result in account termination for both the client AND the referring affiliate.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Restricted Country / Region</th><th>Reason</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>🇺🇸 USA</td><td>Regulatory / compliance restriction</td></tr>
+              <tr><td>🇦🇫 Afghanistan</td><td>US/UN Sanctions</td></tr>
+              <tr><td>🇨🇺 Cuba</td><td>US Sanctions / OFAC</td></tr>
+              <tr><td>🇱🇧 Lebanon</td><td>Financial risk / sanctions</td></tr>
+              <tr><td>🇸🇾 Syria</td><td>US/UN Sanctions</td></tr>
+              <tr><td>🇰🇵 North Korea</td><td>US/UN Sanctions</td></tr>
+              <tr><td>🇷🇺 Russia</td><td>International sanctions</td></tr>
+              <tr><td>Other OFAC-sanctioned regions</td><td>Regulatory compliance</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-content">
+            <strong>When in Doubt, Ask Compliance</strong>
+            <p>If a prospective client is from a country not on this list but you're unsure, escalate to the compliance team before proceeding. Never take risks with restricted-country clients.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- KYC Requirements -->
+      <div class="content-section">
+        <h3>🪪 KYC (Know Your Customer) Requirements</h3>
+
+        <div class="callout gold">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>KYC is Mandatory for All Clients</strong>
+            <p>Every trader must complete KYC verification before they can withdraw profits. Encourage clients to complete KYC early to avoid delays when requesting payouts.</p>
+          </div>
+        </div>
+
+        <h4>KYC Requirements</h4>
+        <ul>
+          <li><strong>Legal age requirement</strong> — Clients must be of legal age (18+) in their country of residence</li>
+          <li><strong>Government-issued ID</strong> — Passport, national ID, or driver's license</li>
+          <li><strong>Proof of address</strong> — Utility bill or bank statement (not older than 3 months)</li>
+          <li>KYC must be completed before the first payout request</li>
+          <li>Some countries may require additional documentation</li>
+        </ul>
+      </div>
+
+      <!-- Prohibited Practices -->
+      <div class="content-section">
+        <h3>🚫 Prohibited Trading Practices</h3>
+        <p>Certain trading strategies are strictly prohibited because they exploit platform vulnerabilities rather than demonstrating real trading skill.</p>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>These Practices = Immediate Account Termination</strong>
+            <p>If detected, the trader's account will be closed immediately with no refund and no appeal. There are NO warnings for most of these violations.</p>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Prohibited Practice</th><th>Description</th><th>Consequence</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Tick Scalping</strong></td>
+                <td>Opening and closing trades in seconds to exploit quote latency</td>
+                <td>Immediate termination</td>
+              </tr>
+              <tr>
+                <td><strong>Large Hedging</strong></td>
+                <td>Placing opposite positions across multiple accounts to guarantee profit</td>
+                <td>Immediate termination</td>
+              </tr>
+              <tr>
+                <td><strong>Arbitrage</strong></td>
+                <td>Exploiting price differences between brokers/feeds</td>
+                <td>Immediate termination</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Other Prohibited Activities</h4>
+        <ul>
+          <li>Using any third-party service that guarantees passing the challenge</li>
+          <li>Account sharing or allowing others to trade the funded account</li>
+          <li>Copy trading from an external signal provider designed to exploit the evaluation</li>
+          <li>Coordinated group trading to manipulate evaluation results</li>
+        </ul>
+      </div>
+
+      <!-- Special Country Rules -->
+      <div class="content-section">
+        <h3>⚡ Special Rules: Indonesia & Thailand</h3>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚨</span>
+          <div class="callout-content">
+            <strong>Zero Tolerance: First Violation = Termination</strong>
+            <p>For clients in <strong>Indonesia</strong> and <strong>Thailand</strong>, the first violation of any trading rule results in immediate account termination. There are NO second chances or warnings for these regions.</p>
+          </div>
+        </div>
+
+        <ul>
+          <li>This applies to all rule violations, not just prohibited practices</li>
+          <li>Applies to Challenge, Instant Funding, and Funded accounts</li>
+          <li>When onboarding Indonesian or Thai clients, emphasize this zero-tolerance policy</li>
+          <li>Ensure these clients fully understand ALL rules before they start trading</li>
+        </ul>
+      </div>
+
+      <!-- Compliance Best Practices -->
+      <div class="content-section">
+        <h3>✅ Compliance Best Practices for Sales Partners</h3>
+
+        <div class="callout success">
+          <span class="callout-icon">💼</span>
+          <div class="callout-content">
+            <strong>Your Role in Compliance</strong>
+            <p>As a sales partner, you are the first point of contact for clients. Proper client education about rules protects both the client's investment and your commission.</p>
+          </div>
+        </div>
+
+        <ul>
+          <li><strong>Always verify country eligibility</strong> before helping a client sign up</li>
+          <li><strong>Communicate the refund policy</strong> clearly before purchase</li>
+          <li><strong>Explain prohibited practices</strong> — don't assume clients know</li>
+          <li><strong>Emphasize KYC</strong> — early verification prevents payout delays</li>
+          <li><strong>Indonesia/Thailand clients</strong> — provide extra briefing on zero-tolerance rules</li>
+          <li><strong>Never promise</strong> guaranteed profits or specific results</li>
+          <li><strong>Report suspicious behavior</strong> to the compliance team immediately</li>
+        </ul>
+      </div>
+
+      <!-- Mark Complete -->
+      <div class="mark-complete-bar">
+        <div class="mark-complete-text">
+          <h4>🎉 Final Module!</h4>
+          <p>Complete the quiz below to finish all modules and unlock the Final Exam.</p>
+        </div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(7)">✓ Mark as Complete</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+      </div>
+
+      <!-- Mini Quiz -->
+      <div class="quiz-section">
+        <div class="quiz-header">
+          <h3>📝 Module 7 Quiz</h3>
+          <span class="quiz-counter">5 Questions</span>
+        </div>
+        <div class="quiz-progress-dots" id="quizDots"></div>
+        <div id="quizContainer"></div>
+        <div id="quizNavBottom"></div>
+        <div class="quiz-result" id="quizResult">
+          <div class="result-score" id="quizScore"></div>
+          <p id="quizResultMsg"></p>
+          <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <a href="index.html" class="btn btn-secondary">← Dashboard</a>
+            <a href="exam.html" class="btn btn-primary">Take Final Exam →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML(7);
+updateSidebarProgress();
+checkCompleted(7);
+
+const questions = [
+  {
+    q: "Which of the following was RECENTLY ADDED to WeMasterTrade's restricted countries list?",
+    opts: ["India", "USA", "Vietnam", "Philippines"],
+    correct: 1
+  },
+  {
+    q: "What is the consequence of Tick Scalping if detected?",
+    opts: [
+      "A written warning",
+      "A 7-day account suspension",
+      "Immediate account termination with no refund",
+      "A 10% penalty fee"
+    ],
+    correct: 2
+  },
+  {
+    q: "For clients in Indonesia and Thailand, how many rule violations are allowed before termination?",
+    opts: ["3 violations", "2 violations", "1 violation — immediate termination", "Depends on severity"],
+    correct: 2
+  },
+  {
+    q: "Which of these is a PROHIBITED trading practice?",
+    opts: [
+      "Using stop losses",
+      "Trading Gold (XAUUSD)",
+      "Hedging across multiple accounts to guarantee profit",
+      "Using MT5 with EAs"
+    ],
+    correct: 2
+  },
+  {
+    q: "When must KYC be completed?",
+    opts: [
+      "Before the first trade",
+      "Within 7 days of signing up",
+      "Before the first payout request",
+      "KYC is optional"
+    ],
+    correct: 2
+  }
+];
+
+const quiz = new ModuleQuiz(7, questions);
+quiz.render();
+</script>
+</body>
+</html>

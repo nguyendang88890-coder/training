@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 4 — Financial Products | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Module 4 — Financial Products</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num">4</div>
+        <div class="module-header-info">
+          <h2>Financial Products</h2>
+          <p>Leverage, trading instruments, commission fees, and supported platforms</p>
+        </div>
+      </div>
+
+      <!-- Leverage -->
+      <div class="content-section">
+        <h3>⚡ Leverage by Account Type</h3>
+        <p>Leverage allows traders to control larger positions with less capital. Different account types have different leverage limits based on risk profile.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account Type</th><th>Leverage</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr class="highlight-row"><td>Challenge (Phase 1 & 2)</td><td>1:100</td><td>Full leverage during evaluation</td></tr>
+              <tr><td>Instant Funding — 51010</td><td>1:100</td><td>Standard leverage</td></tr>
+              <tr><td>Instant Funding — 51010</td><td>1:100</td><td>Standard leverage</td></tr>
+              <tr><td>Instant Funding — 510zero</td><td>1:33</td><td>Lower leverage, more conservative</td></tr>
+              <tr><td>Funded (Challenge graduates)</td><td>1:100</td><td>Maintained from evaluation</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-content">
+            <strong>Why 510zero has Lower Leverage?</strong>
+            <p>The 510zero plan is designed for traders who prefer frequent withdrawals without profit targets. Lower leverage (1:33) encourages more conservative position sizing, balancing the flexibility of no profit targets with reduced risk exposure.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commission Fees -->
+      <div class="content-section">
+        <h3>💲 Commission Fees (Per Trade)</h3>
+        <p>WeMasterTrade charges commission fees based on the instruments traded. These are deducted from the account per round-turn lot.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Instrument</th><th>Commission</th><th>Unit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Forex (all pairs)</td><td>$5.00</td><td>Per lot (round turn)</td></tr>
+              <tr class="highlight-row"><td>XAUUSD (Gold)</td><td>$4.00</td><td>Per lot (round turn)</td></tr>
+              <tr><td>Cryptocurrency</td><td>0.035%</td><td>Per trade value</td></tr>
+              <tr><td>Stocks / Equities</td><td>$0.07</td><td>Per lot</td></tr>
+              <tr><td>Indices (US30, NAS100, SPX500)</td><td>$1.00</td><td>Per lot</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout gold">
+          <span class="callout-icon">📌</span>
+          <div class="callout-content">
+            <strong>Commission Impact on Profit Calculation</strong>
+            <p>Commissions are part of trading costs and are factored into profit/loss calculations. Sales partners should help clients understand total cost of trading including spreads + commissions.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tradeable Assets -->
+      <div class="content-section">
+        <h3>📊 Tradeable Assets</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Available Instruments</th><th>Commission</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Forex</strong></td>
+                <td>Major, Minor, Exotic pairs (EUR/USD, GBP/USD, USD/JPY, etc.)</td>
+                <td>$5/lot</td>
+              </tr>
+              <tr>
+                <td><strong>Commodities</strong></td>
+                <td>Gold (XAUUSD), Silver (XAGUSD), Oil (WTI, Brent)</td>
+                <td>$4/lot (Gold), varies</td>
+              </tr>
+              <tr>
+                <td><strong>Indices</strong></td>
+                <td>US30 (Dow Jones), NAS100 (Nasdaq), SPX500 (S&P 500)</td>
+                <td>$1/lot</td>
+              </tr>
+              <tr>
+                <td><strong>Cryptocurrency</strong></td>
+                <td>Bitcoin (BTC), Ethereum (ETH), selected altcoins</td>
+                <td>0.035%</td>
+              </tr>
+              <tr>
+                <td><strong>Stocks</strong></td>
+                <td>US stocks (selected symbols)</td>
+                <td>$0.07/lot</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Trading Platforms -->
+      <div class="content-section">
+        <h3>💻 Trading Platforms</h3>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="callout gold">
+            <span class="callout-icon">📱</span>
+            <div class="callout-content">
+              <strong>MetaTrader 5 (MT5)</strong>
+              <p>Industry-standard platform. Available on Desktop (Windows/Mac), Web, iOS, and Android. Full EA support, advanced charting, multi-timeframe analysis.</p>
+            </div>
+          </div>
+          <div class="callout info">
+            <span class="callout-icon">🖥️</span>
+            <div class="callout-content">
+              <strong>MatchTrader</strong>
+              <p>Modern web-based platform. Clean UI, fast execution, perfect for prop traders. Accessible via browser without installation. Mobile-friendly.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>Platform Selection Tip for Clients</strong>
+            <p>Recommend MT5 for clients who use automated trading (EAs) or need advanced technical analysis. Recommend MatchTrader for clients who prefer simplicity and web-based access without downloads.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mark Complete -->
+      <div class="mark-complete-bar">
+        <div class="mark-complete-text">
+          <h4>Ready to move on?</h4>
+          <p>Complete the quiz below before advancing to Module 5.</p>
+        </div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(4)">✓ Mark as Complete</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+      </div>
+
+      <!-- Mini Quiz -->
+      <div class="quiz-section">
+        <div class="quiz-header">
+          <h3>📝 Module 4 Quiz</h3>
+          <span class="quiz-counter">5 Questions</span>
+        </div>
+        <div class="quiz-progress-dots" id="quizDots"></div>
+        <div id="quizContainer"></div>
+        <div id="quizNavBottom"></div>
+        <div class="quiz-result" id="quizResult">
+          <div class="result-score" id="quizScore"></div>
+          <p id="quizResultMsg"></p>
+          <a href="module5.html" class="btn btn-primary mt-16">Next Module →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML(4);
+updateSidebarProgress();
+checkCompleted(4);
+
+const questions = [
+  {
+    q: "What leverage is offered for the 510zero Instant Funding plan?",
+    opts: ["1:100", "1:50", "1:33", "1:200"],
+    correct: 2
+  },
+  {
+    q: "What is the commission for trading XAUUSD (Gold)?",
+    opts: ["$5 per lot", "$4 per lot", "0.035%", "$1 per lot"],
+    correct: 1
+  },
+  {
+    q: "Which index is NOT listed as a tradeable instrument on WeMasterTrade?",
+    opts: ["US30", "NAS100", "SPX500", "DAX40"],
+    correct: 3
+  },
+  {
+    q: "What commission applies to cryptocurrency trades?",
+    opts: ["$5 per lot", "$4 per lot", "0.035% per trade", "$1 per lot"],
+    correct: 2
+  },
+  {
+    q: "Which trading platform does NOT require installation and is browser-based?",
+    opts: ["MetaTrader 4", "MetaTrader 5", "MatchTrader", "cTrader"],
+    correct: 2
+  }
+];
+
+const quiz = new ModuleQuiz(4, questions);
+quiz.render();
+</script>
+</body>
+</html>

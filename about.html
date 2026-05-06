@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About WeMasterTrade | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+.hero{position:relative;background:linear-gradient(135deg,#050510 0%,#0a0a20 40%,#0d0520 100%);min-height:400px;display:flex;align-items:center;overflow:hidden;padding:48px 40px;border-radius:12px;margin-bottom:24px}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(255,215,0,.08) 0%,transparent 60%),radial-gradient(ellipse at 20% 80%,rgba(100,50,255,.06) 0%,transparent 50%)}
+.hero-content{position:relative;z-index:1;max-width:560px}
+.hero-eyebrow{font-size:11px;font-weight:800;letter-spacing:3px;color:#FFD700;text-transform:uppercase;margin-bottom:16px;opacity:.8}
+.hero-title{font-size:clamp(28px,4vw,44px);font-weight:900;color:#fff;line-height:1.1;margin-bottom:16px}
+.hero-title span{color:#FFD700}
+.hero-sub{font-size:15px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:24px}
+.hero-badges{display:flex;gap:10px;flex-wrap:wrap}
+.badge{padding:6px 14px;border-radius:50px;font-size:11px;font-weight:700;border:1px solid rgba(255,215,0,.3);color:#FFD700;background:rgba(255,215,0,.07)}
+.hero-img{position:absolute;right:0;top:0;bottom:0;width:40%;object-fit:cover;opacity:.15}
+.stats-bar{background:linear-gradient(90deg,#0f0f1e,#141428,#0f0f1e);border:1px solid rgba(255,215,0,.15);border-radius:12px;margin-bottom:24px}
+.stats-inner{display:grid;grid-template-columns:repeat(4,1fr)}
+.stat-item{padding:24px 16px;text-align:center;border-right:1px solid rgba(255,255,255,.06)}
+.stat-item:last-child{border-right:none}
+.stat-number{font-size:30px;font-weight:900;color:#FFD700;line-height:1}
+.stat-label{font-size:11px;color:#666;margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.about-block{background:#0f0f1e;border:1px solid #1e1e3a;border-radius:12px;padding:32px 36px;margin-bottom:20px}
+.section-eyebrow{font-size:10px;font-weight:800;color:#FFD700;letter-spacing:3px;text-transform:uppercase;margin-bottom:8px}
+.section-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:12px}
+.section-desc{font-size:14px;color:#888;line-height:1.8}
+.vm-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.vm-card{border-radius:12px;padding:24px;position:relative;overflow:hidden}
+.vm-card.vision{background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.2)}
+.vm-card.mission{background:rgba(100,80,255,.04);border:1px solid rgba(100,80,255,.2)}
+.vm-icon{font-size:28px;margin-bottom:12px}
+.vm-label{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.vm-card.vision .vm-label{color:#FFD700}
+.vm-card.mission .vm-label{color:#a080ff}
+.vm-text{font-size:13px;color:#ccc;line-height:1.8}
+.offices-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.office-card{background:#08081a;border:1px solid #1e1e3a;border-radius:12px;padding:20px 14px;text-align:center;transition:all .25s}
+.office-card:hover{border-color:rgba(255,215,0,.3);transform:translateY(-3px)}
+.office-flag{font-size:36px;margin-bottom:10px}
+.office-city{font-size:15px;font-weight:800;color:#FFD700;margin-bottom:3px}
+.office-country{font-size:11px;color:#555;font-weight:600;text-transform:uppercase;letter-spacing:.8px}
+.office-hq{display:inline-block;margin-top:6px;font-size:9px;color:#FFD700;background:rgba(255,215,0,.1);border:1px solid rgba(255,215,0,.2);padding:2px 8px;border-radius:50px;font-weight:700}
+.vfc-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;margin-top:0}
+.vfc-img{border-radius:12px;overflow:hidden;background:#111}
+.vfc-img img{width:100%;display:block;filter:brightness(.9)}
+.vfc-pill{display:inline-flex;align-items:center;gap:8px;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:50px;padding:8px 16px;margin-bottom:16px}
+.vfc-pill span{font-size:11px;font-weight:700;color:#FFD700}
+.vfc-tagline{font-size:clamp(22px,3vw,32px);font-weight:900;color:#fff;line-height:1.2;margin-bottom:14px}
+.vfc-tagline em{color:#FFD700;font-style:normal}
+.vfc-values{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.vfc-val{background:rgba(255,255,255,.03);border:1px solid #1e1e3a;border-radius:8px;padding:14px}
+.vfc-val-icon{font-size:18px;margin-bottom:6px}
+.vfc-val-title{font-size:12px;font-weight:700;color:#FFD700;margin-bottom:3px}
+.vfc-val-desc{font-size:11px;color:#666;line-height:1.5}
+.awards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.award-card{background:linear-gradient(135deg,#0f0f1e,#111128);border:1px solid rgba(255,215,0,.12);border-radius:12px;padding:20px 18px}
+.award-icon{font-size:28px;margin-bottom:10px}
+.award-title{font-size:13px;font-weight:800;color:#FFD700;margin-bottom:6px;line-height:1.4}
+.award-org{font-size:11px;color:#555}
+.timeline{position:relative;padding-left:28px;margin-top:20px}
+.timeline::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:2px;background:linear-gradient(to bottom,#FFD700,rgba(255,215,0,.1))}
+.tl-item{position:relative;padding-bottom:24px;padding-left:20px}
+.tl-item::before{content:'';position:absolute;left:-28px;top:6px;width:10px;height:10px;border-radius:50%;background:#FFD700;box-shadow:0 0 0 3px rgba(255,215,0,.15)}
+.tl-year{font-size:11px;font-weight:800;color:#FFD700;letter-spacing:1px;margin-bottom:4px}
+.tl-text{font-size:13px;color:#aaa;line-height:1.6}
+@media(max-width:768px){.vm-grid,.offices-grid,.vfc-grid,.awards-grid{grid-template-columns:1fr}.stats-inner{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">About WeMasterTrade</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+<section class="hero">
+  <img class="hero-img" src="https://wemastertrade.com/wp-content/themes/flatsome/uk-template/images/mainvs_element_football3.png" alt="">
+  <div class="hero-content">
+    <div class="hero-eyebrow">🏢 About WeMasterTrade</div>
+    <h1 class="hero-title">Built for Traders.<br><span>Trusted Worldwide.</span></h1>
+    <p class="hero-sub">A global prop trading firm headquartered in Vancouver, Canada — empowering disciplined traders to access institutional-level capital and build lasting wealth.</p>
+    <div class="hero-badges">
+      <span class="badge">🏆 Best Instant Funding 2025</span>
+      <span class="badge">🌍 4 Global Offices</span>
+      <span class="badge">📅 Founded 2021</span>
+      <span class="badge">🇨🇦 Vancouver HQ</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-number">2021</div>
+      <div class="stat-label">Year Founded</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">4</div>
+      <div class="stat-label">Global Offices</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">90%</div>
+      <div class="stat-label">Profit Share</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">Top 5</div>
+      <div class="stat-label">Instant Funding Target</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── VISION & MISSION ── -->
+<div class="about-block">
+  <div class="section-eyebrow">Our Purpose</div>
+  <h2 class="section-title">Vision & Mission</h2>
+  <p class="section-desc">WeMasterTrade exists to bridge the gap between talented traders and institutional capital — creating a performance-first ecosystem built on discipline, trust, and results.</p>
+
+  <div class="vm-grid">
+    <div class="vm-card vision">
+      <div class="vm-icon" style="font-size:32px">🔭</div>
+      <div class="vm-label">Our Vision</div>
+      <div class="vm-text">
+        To become a <strong style="color:#FFD700">Top 5 Prop Firm</strong> providing Instant Funding globally — recognized for transparency, innovation, and creating real opportunities for traders worldwide.
+      </div>
+    </div>
+    <div class="vm-card mission">
+      <div class="vm-icon" style="font-size:32px">🎯</div>
+      <div class="vm-label">Our Mission</div>
+      <div class="vm-text">
+        To instill discipline in traders and identify exceptional trading talent — enabling WeMasterTrade to <strong style="color:#c0a0ff">copy their trades effectively</strong> into the firm's capital accounts, creating a true win-win partnership between traders and the company.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── GLOBAL OFFICES ── -->
+<div style="background:#060612;border-top:1px solid #1e1e3a;border-bottom:1px solid #1e1e3a">
+  <div class="about-block">
+    <div class="section-eyebrow">Global Presence</div>
+    <h2 class="section-title">4 Offices Worldwide</h2>
+    <p class="section-desc">With a strong footprint across 4 continents, WeMasterTrade delivers local support with a global mindset.</p>
+
+    <div class="offices-grid">
+        <div class="office-card">
+          <div style="font-size:44px;line-height:1;margin-bottom:12px;text-align:center;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">🇨🇦</div>
+          <div class="office-city">Vancouver</div>
+          <div class="office-country">Canada</div>
+          <div class="office-hq">⭐ Headquarters</div>
+        </div>
+        <div class="office-card">
+          <div style="font-size:44px;line-height:1;margin-bottom:12px;text-align:center;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">🇦🇪</div>
+          <div class="office-city">Dubai</div>
+          <div class="office-country">United Arab Emirates</div>
+          
+        </div>
+        <div class="office-card">
+          <div style="font-size:44px;line-height:1;margin-bottom:12px;text-align:center;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">🇺🇾</div>
+          <div class="office-city">Montevideo</div>
+          <div class="office-country">Uruguay</div>
+          
+        </div>
+      </div>
+      </div>
+      
+      
+      
+    </div>
+  </div>
+</div>
+
+<!-- ── COMPANY TIMELINE ── -->
+<div class="about-block">
+  <div class="section-eyebrow">Official Sponsorships</div>
+        <div class="section-title">⚽ Football Club Partnerships</div>
+        <p class="section-desc" style="margin-bottom:28px">WeMasterTrade partners with professional football clubs that share our values: discipline, performance, and a winning mindset.</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+          <!-- Vancouver FC -->
+          <div style="background:#08081a;border:1px solid rgba(255,215,0,.2);border-radius:14px;overflow:hidden">
+            <div style="padding:20px 20px 0">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <span style="font-size:28px">🇨🇦</span>
+                <div>
+                  <div style="font-weight:800;color:#FFD700;font-size:15px">Vancouver Football Club</div>
+                  <div style="font-size:11px;color:#666">Canadian Premier League · Season 2026 Official Partner</div>
+                </div>
+              </div>
+              <p style="font-size:13px;color:#888;line-height:1.7;margin-bottom:16px">
+                WeMasterTrade is the <strong style="color:#FFD700">Season 2026 Official Partner</strong> of Vancouver FC — a Canadian Premier League club based in Langley, British Columbia. Together, we inspire a performance-first mindset on and off the pitch.
+              </p>
+            </div>
+            <div style="position:relative;padding-top:56.25%;background:#000">
+              <iframe
+                src="https://www.youtube.com/embed/LVWpLzZtNys"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+              </iframe>
+            </div>
+            <div style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:#FFD700;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">🇨🇦 Canada</span>
+              <span style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:#FFD700;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">CPL Season 2026</span>
+              <span style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);color:#FFD700;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">Play Bold · Win Together</span>
+            </div>
+          </div>
+
+          <!-- Lamphun Warrior -->
+          <div style="background:#08081a;border:1px solid rgba(255,100,50,.2);border-radius:14px;overflow:hidden">
+            <div style="padding:20px 20px 0">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                <span style="font-size:28px">🇹🇭</span>
+                <div>
+                  <div style="font-weight:800;color:#FF8C50;font-size:15px">Lamphun Warrior FC</div>
+                  <div style="font-size:11px;color:#666">Thai Football League · Official Sponsor</div>
+                </div>
+              </div>
+              <p style="font-size:13px;color:#888;line-height:1.7;margin-bottom:16px">
+                WeMasterTrade is proud to sponsor <strong style="color:#FF8C50">Lamphun Warrior FC</strong> in Thailand — reflecting our deep commitment to the Thai trading community and our belief that champions are built through discipline and consistency.
+              </p>
+            </div>
+            <div style="position:relative;padding-top:56.25%;background:#000">
+              <iframe
+                src="https://www.youtube.com/embed/SLSulum9TFg"
+                style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen>
+              </iframe>
+            </div>
+            <div style="padding:14px 20px;display:flex;gap:8px;flex-wrap:wrap">
+              <span style="background:rgba(255,100,50,.08);border:1px solid rgba(255,100,50,.2);color:#FF8C50;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">🇹🇭 Thailand</span>
+              <span style="background:rgba(255,100,50,.08);border:1px solid rgba(255,100,50,.2);color:#FF8C50;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">Thai Football League</span>
+              <span style="background:rgba(255,100,50,.08);border:1px solid rgba(255,100,50,.2);color:#FF8C50;padding:3px 10px;border-radius:50px;font-size:10px;font-weight:700">Official Sponsor</span>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="margin-top:20px;padding:16px;background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.1);border-radius:10px;text-align:center;font-size:13px;color:#888">
+          💬 <em>"Trading and football share the same DNA — strategy, discipline, execution, and the will to win."</em>
+          <div style="margin-top:6px;font-size:12px;color:#555">— WeMasterTrade</div>
+        </div>
+      </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('about');
+updateSidebarProgress();
+</script>
+</body>
+</html>

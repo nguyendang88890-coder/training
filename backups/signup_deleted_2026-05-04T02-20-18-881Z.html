@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Signup — WeMasterTrade Training</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#0a0a16;color:#e0e0e0;min-height:100vh;padding:40px 20px}
+.container{max-width:900px;margin:0 auto}h1{color:#FFD700;font-size:28px;margin-bottom:24px;text-align:center}
+.form-wrapper{background:#1a1a24;border:1px solid #FFD700;border-radius:8px;padding:40px;max-width:500px;margin:0 auto}
+.form-group{margin-bottom:20px}label{display:block;color:#FFD700;font-weight:600;margin-bottom:8px;font-size:14px}input[type="text"],input[type="email"],input[type="password"]{width:100%;padding:12px;background:#0f0f14;border:1px solid #444;border-radius:4px;color:#e0e0e0;font-size:14px;transition:border-color 0.3s}input[type="text"]:focus,input[type="email"]:focus,input[type="password"]:focus{outline:none;border-color:#FFD700;box-shadow:0 0 8px rgba(255,215,0,0.3)}
+.form-actions{display:flex;gap:12px;margin-top:30px}button{flex:1;padding:12px;border:none;border-radius:4px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.3s}
+.btn-submit{background:#FFD700;color:#0a0a16}
+.btn-submit:hover{background:#FFC700;box-shadow:0 4px 12px rgba(255,215,0,0.4)}
+.btn-cancel{background:#444;color:#e0e0e0}
+.btn-cancel:hover{background:#555}
+.form-description{text-align:center;color:#888;margin-bottom:30px;font-size:14px}
+</style></head><body>
+<div class="container">
+<h1>Đăng Ký Nhân Viên</h1>
+<p class="form-description">Vui lòng điền đầy đủ thông tin để tạo tài khoản</p>
+
+<div class="form-wrapper">
+<form id="signupForm">
+<div class="form-group">
+<label for="fullname">Họ và Tên</label>
+<input type="text" id="fullname" name="fullname" placeholder="Nhập họ và tên" required>
+</div>
+
+<div class="form-group">
+<label for="email">Email</label>
+<input type="email" id="email" name="email" placeholder="Nhập địa chỉ email" required>
+</div>
+
+<div class="form-group">
+<label for="username">Tên Tài Khoản</label>
+<input type="text" id="username" name="username" placeholder="Nhập tên tài khoản" required>
+</div>
+
+<div class="form-group">
+<label for="password">Mật Khẩu</label>
+<input type="password" id="password" name="password" placeholder="Nhập mật khẩu" required>
+</div>
+
+<div class="form-actions">
+<button type="submit" class="btn-submit">Đăng Ký</button>
+<button type="reset" class="btn-cancel">Hủy</button>
+</div>
+</form>
+</div>
+</div>
+
+<script>
+document.getElementById('signupForm').addEventListener('submit', function(e) {
+e.preventDefault();
+const fullname = document.getElementById('fullname').value;
+const email = document.getElementById('email').value;
+const username = document.getElementById('username').value;
+const password = document.getElementById('password').value;
+alert('Đăng ký thành công!\nHọ và tên: ' + fullname + '\nEmail: ' + email + '\nTên tài khoản: ' + username);
+this.reset();
+});
+</script>
+</body></html>

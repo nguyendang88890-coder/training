@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Exam | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Final Exam</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- Blocked: Disqualified -->
+      <div id="disqualifiedView" class="hidden">
+        <div class="result-hero">
+          <div class="result-icon">🚫</div>
+          <h2 class="disqualified">You Have Been Disqualified</h2>
+          <p>You have failed the Final Exam twice. You are no longer eligible to retake the exam. Please contact your trainer for further guidance.</p>
+          <div style="margin-top:24px;">
+            <a href="mailto:training@wemastertrade.com" class="btn btn-secondary">📧 Contact Trainer</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Blocked: Lockout -->
+      <div id="lockoutView" class="hidden">
+        <div class="result-hero">
+          <div class="result-icon">⏳</div>
+          <h2 class="fail">Exam Locked</h2>
+          <p>You failed the first attempt. You can retake the exam after the 5-day waiting period.</p>
+          <div class="countdown-display" id="countdownDisplay">—</div>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;">Time remaining until retry is available</p>
+          <div style="margin-top:24px;">
+            <a href="index.html" class="btn btn-secondary">← Back to Dashboard</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Intro View -->
+      <div id="introView">
+        <div class="exam-header">
+          <h2>📝 WeMasterTrade Final Exam</h2>
+          <p>Test your knowledge across all 7 training modules. Answer 30 randomized questions.</p>
+          <div class="exam-stats">
+            <div class="exam-stat">
+              <div class="exam-stat-value">30</div>
+              <div class="exam-stat-label">Questions</div>
+            </div>
+            <div class="exam-stat">
+              <div class="exam-stat-value">70%</div>
+              <div class="exam-stat-label">Pass Score</div>
+            </div>
+            <div class="exam-stat">
+              <div class="exam-stat-value">2</div>
+              <div class="exam-stat-label">Max Attempts</div>
+            </div>
+            <div class="exam-stat">
+              <div class="exam-stat-value">No</div>
+              <div class="exam-stat-label">Time Limit</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="content-section">
+          <h3>📋 Before You Start</h3>
+          <ul>
+            <li>30 questions will be selected randomly from a large question bank</li>
+            <li>Minimum pass score: <strong>70%</strong> (21 out of 30 correct)</li>
+            <li>You have <strong>2 attempts</strong> total</li>
+            <li>If you fail attempt 1, you must wait <strong>5 days</strong> before retrying</li>
+            <li>If you fail attempt 2, you will be <strong>permanently disqualified</strong></li>
+            <li>Make sure you have completed all 7 modules before taking this exam</li>
+          </ul>
+          <div class="callout gold" style="margin-top:16px;">
+            <span class="callout-icon">⭐</span>
+            <div class="callout-content">
+              <strong>On Passing:</strong>
+              <p>You will be directed to schedule your video interview with a WeMasterTrade trainer. You will receive your Affiliate Partner Certificate after the interview.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center;margin-top:28px;">
+          <button class="btn btn-primary" id="startExamBtn" onclick="startExam()" style="padding:14px 40px;font-size:1rem;">
+            🚀 Start Final Exam
+          </button>
+          <div id="moduleWarning" class="hidden" style="color:var(--warning);margin-top:12px;font-size:0.88rem;">
+            ⚠️ Complete all 7 modules first for best results. You can still attempt the exam.
+          </div>
+        </div>
+      </div>
+
+      <!-- Exam View -->
+      <div id="examView" class="hidden">
+        <div class="exam-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h2 style="font-size:1.3rem;">Final Exam in Progress</h2>
+              <p style="font-size:0.85rem;">Answer all questions, then submit.</p>
+            </div>
+            <div class="exam-stat">
+              <div class="exam-stat-value" id="attemptLabel">Attempt 1</div>
+              <div class="exam-stat-label">Current</div>
+            </div>
+          </div>
+          <div class="exam-progress-bar" style="margin-top:16px;">
+            <div class="exam-progress-fill" id="examProgressFill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="exam-content">
+          <div class="exam-question-num" id="examQuestionNum">Question 1 of 30</div>
+          <div id="examQuestionText" class="question-text" style="font-size:1.05rem;margin-bottom:20px;"></div>
+          <ul class="options-list" id="examOptions"></ul>
+          <div class="feedback-box" id="examFeedback"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;gap:12px;flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="examPrevBtn" onclick="examNav(-1)">← Previous</button>
+          <span style="color:var(--text-muted);font-size:0.82rem;" id="examNavInfo">Navigate questions freely</span>
+          <button class="btn btn-secondary" id="examNextBtn" onclick="examNav(1)">Next →</button>
+        </div>
+
+        <div style="text-align:center;margin-top:28px;padding-top:20px;border-top:1px solid var(--border);">
+          <div id="unansweredWarn" style="color:var(--warning);font-size:0.85rem;margin-bottom:12px;display:none;"></div>
+          <button class="btn btn-primary" onclick="submitExam()" style="padding:14px 40px;font-size:1rem;">
+            ✅ Submit Exam
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+// ===== QUESTION BANK (55 questions) =====
+const QUESTION_BANK = [
+  // MODULE 1 — Products
+  { q: "What is the profit target for Challenge Phase 1?", opts: ["5%","8%","10%","6%"], correct: 1, module: 1 },
+  { q: "What is the profit target for Challenge Phase 2?", opts: ["8%","10%","5%","6%"], correct: 3, module: 1 },
+  { q: "The Challenge Package has how many evaluation phases?", opts: ["1","2","3","4"], correct: 1, module: 1 },
+  { q: "Is there a time limit for the Challenge Package?", opts: ["30 days","60 days","90 days","No time limit"], correct: 3, module: 1 },
+  { q: "What is the maximum profit share available to funded traders?", opts: ["50%","75%","80%","90%"], correct: 3, module: 1 },
+  { q: "Which Instant Funding plan has NO profit target requirement for withdrawal?", opts: ["51010","51010","510zero","Challenge Funded"], correct: 2, module: 1 },
+  { q: "What is the fee for a $50K 51010 Instant account?", opts: ["$370","$175","$288","$552"], correct: 2, module: 1 },
+  { q: "What is the fee for the NEW $5K 51010 Instant account?", opts: ["$52","$44","$78","$35"], correct: 1, module: 1 },
+  { q: "Which plan does NOT apply the Profit Consistency Rule?", opts: ["Challenge Phase 2","51010","51010","None of the above"], correct: 2, module: 1 },
+  { q: "The Customize plan allows accounts up to what maximum size?", opts: ["$200,000","$500,000","$750,000","$1,000,000"], correct: 3, module: 1 },
+  { q: "The 510zero plan has what leverage?", opts: ["1:100","1:50","1:33","1:200"], correct: 2, module: 1 },
+  { q: "What are the customizable Daily Loss options for the Customizable Instant plan?", opts: ["1–3%","2–5%","3–8%","5–10%"], correct: 1, module: 1 },
+
+  // MODULE 2 — Affiliate
+  { q: "What commission does Level 1 earn on a client's first purchase?", opts: ["10%","15%","25%","30%"], correct: 2, module: 2 },
+  { q: "How long is the affiliate cookie tracking window?", opts: ["7 days","14 days","30 days","60 days"], correct: 2, module: 2 },
+  { q: "What is the standard minimum balance to withdraw affiliate commissions?", opts: ["$50","$100","$150","$200"], correct: 3, module: 2 },
+  { q: "How many days after client payment before commission is withdrawable?", opts: ["7","14","31","60"], correct: 2, module: 2 },
+  { q: "What commission rate does Level 2 earn?", opts: ["1%","5%","10%","25%"], correct: 2, module: 2 },
+  { q: "What commission rate does Level 3 earn?", opts: ["1%","5%","10%","25%"], correct: 0, module: 2 },
+  { q: "What is the minimum withdrawal balance for affiliates in Bangladesh?", opts: ["$50","$100","$200","$300"], correct: 1, module: 2 },
+  { q: "WeMasterTrade's affiliate commission on upsells for Level 1 ranges from?", opts: ["1–5%","5–10%","10–15%","15–20%"], correct: 1, module: 2 },
+
+  // MODULE 3 — Trading Rules
+  { q: "What is the Profit Consistency Rule formula?", opts: ["Total Profit ÷ Best Day × 100","Best Day ÷ Total Profit × 100 ≤ 20%","Best Day × Total Profit ÷ 100","Daily Loss ÷ Balance × 100"], correct: 1, module: 3 },
+  { q: "What is the maximum risk per trade for 51010 accounts?", opts: ["2%","5%","1%","3%"], correct: 2, module: 3 },
+  { q: "What is the maximum risk per trade for standard Challenge accounts?", opts: ["1%","2%","5%","3%"], correct: 1, module: 3 },
+  { q: "The Daily Loss Limit is calculated from which baseline?", opts: ["Initial balance only","Current balance","The HIGHER of yesterday's close or current equity","The LOWER of balance or equity"], correct: 2, module: 3 },
+  { q: "Hitting the Daily Loss Limit causes what?", opts: ["Account closure","A daily pause (not a violation)","Failed challenge","$50 penalty"], correct: 1, module: 3 },
+  { q: "What is the Daily Loss Limit for all account types?", opts: ["3%","5%","8%","10%"], correct: 1, module: 3 },
+  { q: "What is the Max Loss Limit?", opts: ["5%","8%","10%","15%"], correct: 2, module: 3 },
+  { q: "How long must a trader wait after closing a losing position before reopening the same symbol?", opts: ["30 minutes","60 minutes","4 hours","24 hours"], correct: 1, module: 3 },
+  { q: "The Scale-Up plan eventually allows accounts to grow to?", opts: ["$500,000","$750,000","$1,000,000","$2,000,000"], correct: 2, module: 3 },
+  { q: "The Max Loss Limit includes which of the following?", opts: ["Closed trades only","Open floating positions","Commission fees only","Withdrawals"], correct: 1, module: 3 },
+
+  // MODULE 4 — Financial Products
+  { q: "What leverage is available for the Challenge account?", opts: ["1:33","1:50","1:100","1:500"], correct: 2, module: 4 },
+  { q: "What is the commission for trading Forex?", opts: ["$4/lot","$5/lot","0.035%","$1/lot"], correct: 1, module: 4 },
+  { q: "What is the commission for trading XAUUSD (Gold)?", opts: ["$5/lot","$4/lot","0.035%","$1/lot"], correct: 1, module: 4 },
+  { q: "What commission applies to trading Indices (US30, NAS100)?", opts: ["$5/lot","$4/lot","0.035%","$1/lot"], correct: 3, module: 4 },
+  { q: "Which platform supports Expert Advisors (EAs) for automated trading?", opts: ["MatchTrader","MetaTrader 5","TradingView","cTrader"], correct: 1, module: 4 },
+  { q: "Which cryptocurrencies are tradeable on WeMasterTrade?", opts: ["Only BTC","Only ETH","BTC and ETH","BTC, ETH, and XRP"], correct: 2, module: 4 },
+  { q: "What is the crypto trading commission?", opts: ["$5 per trade","$4 per lot","0.035% per trade","$1 per lot"], correct: 2, module: 4 },
+
+  // MODULE 5 — Payments
+  { q: "Which crypto stablecoin is accepted for international deposits?", opts: ["BTC","ETH","USDT","BNB"], correct: 2, module: 5 },
+  { q: "What is the US ACH/Wire routing number?", opts: ["021000021","026073150","011000138","063100277"], correct: 1, module: 5 },
+  { q: "Which local bank is used for Vietnam transfers?", opts: ["VietcomBank","BIDV","ACB","Techcombank"], correct: 2, module: 5 },
+  { q: "Which of the following is a withdrawal method?", opts: ["PayNow","Deel Card","M-Pesa","GCash"], correct: 1, module: 5 },
+  { q: "Singapore clients can use which local payment method?", opts: ["DBS Bank","ACB","RBC Interac","BIDV"], correct: 0, module: 5 },
+  { q: "Which Canadian bank is listed for local transfers?", opts: ["TD Bank","CIBC","RBC Interac","Scotiabank"], correct: 2, module: 5 },
+
+  // MODULE 6 — Profit & Payouts
+  { q: "What is the payout percentage for the 1st withdrawal?", opts: ["90%","75%","50%","60%"], correct: 2, module: 6 },
+  { q: "What profit share on the 2nd payout (Challenge/51010)?", opts: ["50%","75%","90%","60%"], correct: 1, module: 6 },
+  { q: "From which payout number do traders receive 90% (Challenge/51010)?", opts: ["1st","2nd","3rd","5th"], correct: 2, module: 6 },
+  { q: "When was the 24-hour payout SLA made effective?", opts: ["January 1, 2026","March 12, 2026","April 10, 2026","February 28, 2026"], correct: 1, module: 6 },
+  { q: "In 510zero, what profit share when DLB < 1%?", opts: ["50%","75%","80%","90%"], correct: 3, module: 6 },
+  { q: "In 510zero, what profit share when DLB ≥ 2%?", opts: ["50%","30%","20%","10%"], correct: 2, module: 6 },
+  { q: "When is a refund allowed?", opts: ["Any time","Within 30 days","Only if no trades placed","Never"], correct: 2, module: 6 },
+  { q: "Which certificate is awarded to active sales affiliates?", opts: ["Profit Split Certificate","Challenge Certificate","Affiliate Partner Certificate","Academy Certificate"], correct: 2, module: 6 },
+
+  // MODULE 7 — Compliance
+  { q: "Which country is on WeMasterTrade's restricted list?", opts: ["Vietnam","Indonesia","Russia","Malaysia"], correct: 2, module: 7 },
+  { q: "Which of the following countries was RECENTLY ADDED to the restricted list?", opts: ["India","USA","Vietnam","Philippines"], correct: 1, module: 7 },
+  { q: "What is the consequence of Tick Scalping?", opts: ["Warning letter","7-day suspension","Immediate termination","10% penalty"], correct: 2, module: 7 },
+  { q: "For Indonesia and Thailand, first rule violation results in?", opts: ["Warning","2-week suspension","Immediate termination","50% profit reduction"], correct: 2, module: 7 },
+  { q: "Which of these is a prohibited trading practice?", opts: ["Using stop losses","Hedging across accounts for guaranteed profit","Trading Gold","Using MT5 EAs"], correct: 1, module: 7 },
+  { q: "When must KYC be completed?", opts: ["Before first trade","Within 7 days of signup","Before first payout request","KYC is optional"], correct: 2, module: 7 },
+  { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], correct: 2, module: 7 },
+  { q: "How long after failing attempt 1 can a trainee retry the final exam?", opts: ["1 day","3 days","5 days","7 days"], correct: 2, module: 7 },
+  { q: "What happens if a trainee fails the final exam a second time?", opts: ["They can retry in 30 days","They are permanently disqualified","They need to redo all modules","They get a third attempt"], correct: 1, module: 7 }
+];
+
+// ===== EXAM STATE =====
+let examQuestions = [];
+let examAnswers = [];
+let examCurrent = 0;
+let examAttempt = 0;
+
+function getUser() {
+  return localStorage.getItem('wmt_user') || 'trainee';
+}
+function getExamState() {
+  return JSON.parse(localStorage.getItem('wmt_exam_' + getUser()) || '{}');
+}
+function saveExamState(data) {
+  localStorage.setItem('wmt_exam_' + getUser(), JSON.stringify(data));
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// ===== INIT =====
+window.addEventListener('load', function() {
+  document.getElementById('sidebar').innerHTML = getSidebarHTML(0);
+  updateSidebarProgress();
+
+  // Check module completion
+  const p = getProgress();
+  let allDone = true;
+  for (let i = 1; i <= 7; i++) {
+    if (!p[`module${i}_done`]) { allDone = false; break; }
+  }
+  if (!allDone) {
+    document.getElementById('moduleWarning').classList.remove('hidden');
+  }
+
+  const es = getExamState();
+
+  // Check disqualified
+  if (es.disqualified) {
+    document.getElementById('introView').classList.add('hidden');
+    document.getElementById('disqualifiedView').classList.remove('hidden');
+    return;
+  }
+
+  // Check lockout
+  if (es.fail1Date && !es.fail2Date && !es.passed) {
+    const fail1 = new Date(es.fail1Date);
+    const unlockDate = new Date(fail1.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    if (now < unlockDate) {
+      document.getElementById('introView').classList.add('hidden');
+      document.getElementById('lockoutView').classList.remove('hidden');
+      startCountdown(unlockDate);
+      return;
+    }
+    // Lockout expired — allow attempt 2
+    examAttempt = 2;
+    document.getElementById('startExamBtn').textContent = '🔄 Start Final Exam (Attempt 2/2)';
+  } else if (es.passed) {
+    // Already passed — redirect to results
+    window.location.href = 'results.html';
+  } else if (!es.fail1Date) {
+    examAttempt = 1;
+  }
+});
+
+function startCountdown(unlockDate) {
+  function update() {
+    const now = new Date();
+    const diff = unlockDate - now;
+    if (diff <= 0) {
+      document.getElementById('countdownDisplay').textContent = 'Retry is now available! Refresh the page.';
+      return;
+    }
+    const days = Math.floor(diff / (1000*60*60*24));
+    const hours = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const mins = Math.floor((diff % (1000*60*60)) / (1000*60));
+    const secs = Math.floor((diff % (1000*60)) / 1000);
+    document.getElementById('countdownDisplay').textContent =
+      `${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+  }
+  update();
+  setInterval(update, 1000);
+}
+
+function startExam() {
+  // Select 30 random questions
+  examQuestions = shuffle(QUESTION_BANK).slice(0, 30);
+  examAnswers = new Array(30).fill(null);
+  examCurrent = 0;
+
+  document.getElementById('attemptLabel').textContent = `Attempt ${examAttempt}/2`;
+  document.getElementById('introView').classList.add('hidden');
+  document.getElementById('examView').classList.remove('hidden');
+  renderExamQuestion(0);
+}
+
+function renderExamQuestion(idx) {
+  examCurrent = idx;
+  const q = examQuestions[idx];
+  const answered = examAnswers[idx] !== null;
+
+  document.getElementById('examQuestionNum').textContent = `Question ${idx+1} of ${examQuestions.length}`;
+  document.getElementById('examProgressFill').style.width = `${((idx+1)/examQuestions.length)*100}%`;
+  document.getElementById('examQuestionText').textContent = q.q;
+
+  const optsList = document.getElementById('examOptions');
+  optsList.innerHTML = q.opts.map((opt, oi) => {
+    let cls = '';
+    if (answered) {
+      if (oi === q.correct) cls = 'correct';
+      else if (oi === examAnswers[idx]) cls = 'wrong';
+    } else if (oi === examAnswers[idx]) cls = 'selected';
+    return `<li class="option-item ${cls}" onclick="${answered ? '' : `selectExamOption(${oi})`}">
+      <span class="option-letter">${String.fromCharCode(65+oi)}</span>
+      ${opt}
+    </li>`;
+  }).join('');
+
+  const fb = document.getElementById('examFeedback');
+  if (answered) {
+    fb.className = `feedback-box show ${examAnswers[idx] === q.correct ? 'correct' : 'wrong'}`;
+    fb.textContent = examAnswers[idx] === q.correct
+      ? '✓ Correct!'
+      : `✗ Incorrect. Correct answer: ${q.opts[q.correct]}`;
+  } else {
+    fb.className = 'feedback-box';
+    fb.textContent = '';
+  }
+
+  document.getElementById('examPrevBtn').disabled = idx === 0;
+  document.getElementById('examNextBtn').disabled = idx === examQuestions.length - 1;
+  document.getElementById('examNavInfo').textContent = `${examAnswers.filter(a => a !== null).length} of ${examQuestions.length} answered`;
+}
+
+function selectExamOption(optIdx) {
+  if (examAnswers[examCurrent] !== null) return;
+  examAnswers[examCurrent] = optIdx;
+  renderExamQuestion(examCurrent);
+}
+
+function examNav(dir) {
+  const next = examCurrent + dir;
+  if (next >= 0 && next < examQuestions.length) {
+    renderExamQuestion(next);
+  }
+}
+
+function submitExam() {
+  const unanswered = examAnswers.filter(a => a === null).length;
+  if (unanswered > 0) {
+    const warn = document.getElementById('unansweredWarn');
+    warn.style.display = 'block';
+    warn.textContent = `⚠️ You have ${unanswered} unanswered question(s). Please answer all before submitting.`;
+    return;
+  }
+
+  // Calculate score
+  let correct = 0;
+  examAnswers.forEach((a, i) => { if (a === examQuestions[i].correct) correct++; });
+  const score = Math.round((correct / examQuestions.length) * 100);
+  const passed = score >= 70;
+
+  // Save results
+  const es = getExamState();
+  const now = new Date().toISOString();
+
+  const rawCorrect = examAnswers.filter(function(a,i){ return a === examQuestions[i].correct; }).length;
+  es.score = rawCorrect;
+  es.total = examQuestions.length;
+  es.attempts = (es.attempts || 0) + 1;
+  if (passed) {
+    es.passed = true;
+    es.passScore = score;
+    es.passDate = now;
+  } else {
+    if (!es.failDate) {
+      es.failDate = now;
+      es.fail1Score = score;
+    } else {
+      es.fail2Date = now;
+      es.fail2Score = score;
+      es.disqualified = true;
+    }
+  }
+  saveExamState(es);
+
+  // Save score to progress
+  const p = getProgress();
+  p.examScore = score;
+  p.examPassed = passed;
+  saveProgress(p);
+
+  // Redirect to results
+  window.location.href = `results.html?score=${score}&passed=${passed}`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 3 — Trading Rules | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Module 3 — Trading Rules</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num">3</div>
+        <div class="module-header-info">
+          <h2>Trading Rules</h2>
+          <p>Master all trading rules that traders must follow to maintain their funded accounts</p>
+        </div>
+      </div>
+
+      <!-- Profit Consistency Rule -->
+      <div class="content-section">
+        <h3>📈 Profit Consistency Rule (PCR)</h3>
+        <p>The Profit Consistency Rule ensures traders demonstrate consistent, professional trading behavior rather than relying on a single lucky day.</p>
+
+        <div class="callout gold">
+          <span class="callout-icon">📐</span>
+          <div class="callout-content">
+            <strong>Formula: Best Day ÷ Total Profit × 100 ≤ 20%</strong>
+            <p>A single trading day cannot contribute more than 20% of the total profit earned during the evaluation.</p>
+          </div>
+        </div>
+
+        <h4>When It Applies</h4>
+        <ul>
+          <li><strong>Challenge Phase 2</strong> — PCR is enforced</li>
+          <li><strong>51010 Instant Funding</strong> — PCR applies</li>
+          <li><strong>51010</strong> — PCR does NOT apply</li>
+          <li><strong>510zero</strong> — No profit target, PCR not applicable</li>
+          <li>Challenge Phase 1 — PCR is NOT enforced</li>
+        </ul>
+
+        <h4>Worked Example</h4>
+        <div class="callout info">
+          <span class="callout-icon">🧮</span>
+          <div class="callout-content">
+            <strong>Example Calculation</strong>
+            <p>
+              Total profit earned: $6,000<br>
+              Best single day profit: $1,000<br>
+              PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit)<br><br>
+              If best day was $1,500:<br>
+              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — violation)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Consistency Rule -->
+      <div class="content-section">
+        <h3>⚠️ Risk Consistency Rule (RCR)</h3>
+        <p>The Risk Consistency Rule limits the maximum risk exposure per trade idea to protect capital and ensure professional risk management.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account Type</th><th>Max Risk Per Trade Idea</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Challenge (Phase 1 & 2)</td><td>2% of account balance</td></tr>
+              <tr><td>51010 (Instant Funded)</td><td>2% of account balance</td></tr>
+              <tr class="highlight-row"><td>51010 (Instant Funded)</td><td>1% of account balance</td></tr>
+              <tr class="highlight-row"><td>Funded Accounts</td><td>1% of account balance</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Trade Idea Definition</strong>
+            <p>A "trade idea" can span multiple positions, instruments, or accounts. If a trader opens correlated positions as part of the same directional view, the combined risk counts toward the 2% (or 1%) limit.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">📢</span>
+          <div class="callout-content">
+            <strong>Temporary Update — Effective April 10, 2026 (Trial)</strong>
+            <p>The Risk Consistency Rule has been <strong>temporarily removed for small accounts</strong> as part of a trial program starting April 10, 2026. Verify current applicability with the compliance team for specific account sizes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Max Loss Limit -->
+      <div class="content-section">
+        <h3>🛑 Max Loss Limit (MLL)</h3>
+
+        <div class="callout gold">
+          <span class="callout-icon">📊</span>
+          <div class="callout-content">
+            <strong>10% of Initial Account Balance</strong>
+            <p>The account equity (or balance including open positions) must never fall below 90% of the initial account balance. This is a balance-based calculation.</p>
+          </div>
+        </div>
+
+        <h4>How It's Calculated</h4>
+        <ul>
+          <li>Based on the <strong>initial account balance</strong> (not current balance)</li>
+          <li>Includes <strong>open floating positions</strong> in the calculation</li>
+          <li>If account = $100,000, then equity must stay above <strong>$90,000</strong></li>
+          <li>Breaching this limit results in immediate account closure</li>
+        </ul>
+
+        <div class="callout info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-content">
+            <strong>Example</strong>
+            <p>Account size: $50,000 | Max Loss = 10% = $5,000<br>
+            Account cannot drop below: $50,000 - $5,000 = <strong>$45,000</strong> (including open P&L)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Loss Limit -->
+      <div class="content-section">
+        <h3>📅 Daily Loss Limit (DLL)</h3>
+
+        <div class="callout gold">
+          <span class="callout-icon">📉</span>
+          <div class="callout-content">
+            <strong>5% Daily Loss Limit</strong>
+            <p>Calculated from the <strong>higher of: yesterday's closing balance OR current equity</strong>. Ensures that each day has its own risk ceiling.</p>
+          </div>
+        </div>
+
+        <h4>Daily Pause vs. Violation</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Event</th><th>Outcome</th><th>Effect on Account</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Daily Loss Limit Hit</td><td>Daily Pause</td><td>Trading suspended for that day only — NOT a failure</td></tr>
+              <tr><td>Max Loss Limit Hit</td><td>Account Closed</td><td>Challenge/funded account terminated</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>Daily Pause is NOT a Violation</strong>
+            <p>Hitting the daily loss limit only pauses trading for that calendar day. Trading resumes the next day. The account is NOT failed for this.</p>
+          </div>
+        </div>
+
+        <h4>Calculation Example</h4>
+        <ul>
+          <li>Starting balance: $100,000</li>
+          <li>Daily Loss Limit = 5% = <strong>$5,000</strong></li>
+          <li>If current equity is $102,000 (in profit), the daily limit is calculated from $102,000 = <strong>$5,100</strong></li>
+          <li>Always calculated from the HIGHER of balance or equity</li>
+        </ul>
+      </div>
+
+      <!-- Trading Interval Restriction -->
+      <div class="content-section">
+        <h3>⏱️ Trading Interval Restriction</h3>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-content">
+            <strong>1-Hour Wait Rule</strong>
+            <p>After closing a <strong>losing position</strong> on a specific symbol, the trader must wait <strong>1 hour</strong> before opening another trade on the same symbol — across ALL their accounts.</p>
+          </div>
+        </div>
+
+        <ul>
+          <li>Applies across all accounts owned by the same trader</li>
+          <li>Only triggered by <strong>losing positions</strong> — winning trades don't activate the wait</li>
+          <li>Symbol-specific: closing a losing EUR/USD trade triggers a 1hr wait on EUR/USD only</li>
+          <li>Designed to prevent emotional revenge trading</li>
+        </ul>
+      </div>
+
+      <!-- Prohibited Behaviors -->
+      <div class="content-section">
+        <h3>🚫 Prohibited Behaviors</h3>
+        <p>The following trading behaviors are strictly forbidden and will result in immediate account termination and potential legal action:</p>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Hedging & Arbitrage</strong>
+            <p>Opening offsetting positions (long and short on the same instrument simultaneously) or attempting to exploit price discrepancies across platforms is prohibited. This includes using multiple accounts to hedge positions.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>News Trading During High-Impact Events</strong>
+            <p>Trading within 2 minutes before or after major economic announcements (NFP, FOMC, CPI, etc.) is forbidden. Traders must avoid positions that are open during these critical windows.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Scalping & Rapid Position Flipping</strong>
+            <p>Opening and closing positions within seconds or minutes purely for commission/spread manipulation is prohibited. Trades must demonstrate genuine trading intent with reasonable holding periods.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Account Sharing & Unauthorized Access</strong>
+            <p>Sharing login credentials, allowing others to trade on your account, or using someone else's account is strictly forbidden. Each account is personal and non-transferable.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Manipulation & Collusion</strong>
+            <p>Coordinating trades with other traders to manipulate prices, pump-and-dump schemes, or any form of market manipulation is illegal and will result in account closure and legal prosecution.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Excessive Leverage & Margin Abuse</strong>
+            <p>Using leverage beyond platform limits or intentionally creating margin calls to exploit system vulnerabilities is prohibited.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Withdrawal Before Completion</strong>
+            <p>Attempting to withdraw funds before completing the challenge requirements or during the evaluation period is not permitted and will result in account termination.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>Suspicious Activity & Fraud</strong>
+            <p>Any form of fraud, identity misrepresentation, using stolen payment methods, or suspicious account activity will trigger immediate investigation and account closure.</p>
+          </div>
+        </div>
+
+        <h4>Consequences of Prohibited Behavior</h4>
+        <ul>
+          <li><strong>Immediate Account Closure</strong> — No refund of any deposits or fees</li>
+          <li><strong>Permanent Ban</strong> — Blacklisted from all WeMasterTrade programs</li>
+          <li><strong>Legal Action</strong> — Potential prosecution for fraud or market manipulation</li>
+          <li><strong>Reporting to Authorities</strong> — Suspicious activity reported to financial regulators</li>
+        </ul>
+      </div>
+
+      <!-- Scale-Up Plan -->
+      <div class="content-section">
+        <h3>🚀 Scale-Up Plan</h3>
+        <p>Successful traders can scale their funded account progressively up to $1,000,000.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Stage</th><th>Account Size</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Start</td><td>100% of initial</td></tr>
+              <tr><td>Scale 1</td><td>150%</td></tr>
+              <tr><td>Scale 2</td><td>300%</td></tr>
+              <tr><td>Scale 3</td><td>600%</td></tr>
+              <tr><td>Scale 4</td><td>1,200%</td></tr>
+              <tr><td>Scale 5</td><td>2,400%</td></tr>
+              <tr class="highlight-row"><td>Maximum</td><td>$1,000,000</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mark Complete -->
+      <div class="mark-complete-bar">
+        <div class="mark-complete-text">
+          <h4>Ready to move on?</h4>
+          <p>Complete the quiz below before advancing to Module 4.</p>
+        </div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(3)">✓ Mark as Complete</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+      </div>
+
+      <!-- Mini Quiz -->
+      <div class="quiz-section">
+        <div class="quiz-header">
+          <h3>📝 Module 3 Quiz</h3>
+          <span class="quiz-counter">6 Questions</span>
+        </div>
+        <div class="quiz-progress-dots" id="quizDots"></div>
+        <div id="quizContainer"></div>
+        <div id="quizNavBottom"></div>
+        <div class="quiz-result" id="quizResult">
+          <div class="result-score" id="quizScore"></div>
+          <p id="quizResultMsg"></p>
+          <a href="module4.html" class="btn btn-primary mt-16">Next Module →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML(3);
+updateSidebarProgress();
+checkCompleted(3);
+
+const questions = [
+  {
+    q: "What is the Profit Consistency Rule formula?",
+    opts: [
+      "Total Profit ÷ Best Day × 100",
+      "Best Day ÷ Total Profit × 100 ≤ 20%",
+      "Best Day × Total Profit ÷ 100",
+      "Daily Loss ÷ Balance × 100"
+    ],
+    correct: 1
+  },
+  {
+    q: "What is the maximum risk per trade for 51010 and Funded accounts?",
+    opts: ["2%", "5%", "1%", "3%"],
+    correct: 2
+  },
+  {
+    q: "The Daily Loss Limit is calculated from which value?",
+    opts: [
+      "Initial account balance only",
+      "Current balance only",
+      "The HIGHER of yesterday's closing balance or current equity",
+      "The LOWER of balance or equity"
+    ],
+    correct: 2
+  },
+  {
+    q: "When a trader hits the Daily Loss Limit, what happens?",
+    opts: [
+      "The account is permanently closed",
+      "The challenge is failed",
+      "Trading is paused for the rest of that day only (not a violation)",
+      "A $50 penalty is charged"
+    ],
+    correct: 2
+  },
+  {
+    q: "How long must a trader wait before re-trading the same symbol after a losing position?",
+    opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
+    correct: 1
+  },
+  {
+    q: "Which of the following is a prohibited behavior?",
+    opts: [
+      "Trading during normal market hours",
+      "Using stop-loss orders",
+      "Opening offsetting long and short positions on the same instrument",
+      "Using technical analysis for trading decisions"
+    ],
+    correct: 2
+  }
+];
+
+const quiz = new ModuleQuiz(3, questions);
+quiz.render();
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 1 — Products | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Module 1 — WeMasterTrade Products</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num">1</div>
+        <div class="module-header-info">
+          <h2>WeMasterTrade Products</h2>
+          <p>Understand all product offerings: Challenge Package and Instant Funding</p>
+        </div>
+      </div>
+
+      <!-- 1.1 Challenge Package -->
+      <div class="content-section">
+        <h3>📦 1.1 Challenge Package</h3>
+        <p>The Challenge Package is a <strong>two-phase evaluation</strong> program designed to assess a trader's skills before granting funded status. There is <strong>no time limit</strong> — traders can take as long as they need.</p>
+
+        <div class="callout gold">
+          <span class="callout-icon">⭐</span>
+          <div class="callout-content">
+            <strong>Key Benefits</strong>
+            <p>Unlimited time to complete phases • Up to 90% profit share after funding • Reset discount 30%</p>
+          </div>
+        </div>
+
+        <h4>Challenge Phases &amp; Conditions</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Condition</th>
+                <th>Phase 1</th>
+                <th>Phase 2</th>
+                <th>Funded</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Profit Target</td><td class="highlight">8%</td><td class="highlight">6%</td><td>None</td></tr>
+              <tr><td>Daily Loss Limit</td><td>5%</td><td>5%</td><td>5%</td></tr>
+              <tr><td>Max Loss Limit</td><td>10%</td><td>10%</td><td>10%</td></tr>
+              <tr><td>Profit Share</td><td>N/A</td><td>30%</td><td class="highlight">90%</td></tr>
+              <tr><td>Profit Consistency</td><td>N/A</td><td>20%</td><td>N/A</td></tr>
+              <tr><td>Risk Consistency</td><td>N/A</td><td>2%</td><td>1%</td></tr>
+              <tr><td>Time Limit</td><td>Unlimited</td><td>Unlimited</td><td>Unlimited</td></tr>
+              <tr><td>Reset Discount</td><td>30%</td><td>30%</td><td>N/A</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Challenge Package Pricing</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account Size</th><th>One-Time Fee</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>$10,000</td><td class="highlight">$45</td></tr>
+              <tr><td>$25,000</td><td class="highlight">$100</td></tr>
+              <tr><td>$50,000</td><td class="highlight">$175</td></tr>
+              <tr><td>$100,000</td><td class="highlight">$320</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 1.2 Instant Funding -->
+      <div class="content-section">
+        <h3>⚡ 1.2 Instant Funding</h3>
+        <p>Instant Funding gives traders <strong>immediate access to a live trading account</strong> — no evaluation phase required. Perfect for experienced traders who want to start trading right away.</p>
+
+        <!-- 51010 -->
+        <h4>51010 Plan</h4>
+        <p>The standard Instant Funding account — balanced rules with profit target and consistency requirements.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Account Size</th><th>One-Time Fee</th></tr></thead>
+            <tbody>
+              <tr><td>$5,000 <span class="badge badge-new">NEW</span></td><td class="highlight">$44</td></tr>
+              <tr><td>$10,000</td><td class="highlight">$74</td></tr>
+              <tr><td>$25,000</td><td class="highlight">$185</td></tr>
+              <tr><td>$50,000</td><td class="highlight">$288</td></tr>
+              <tr><td>$100,000</td><td class="highlight">$552</td></tr>
+              <tr><td>$200,000</td><td class="highlight">$1,072</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-content">
+            <strong>51010 Key Rules:</strong> Daily Loss 5% · Max Loss 10% · Profit Target 10% · Profit Consistency: Yes · Up to 90% profit share
+          </div>
+        </div>
+
+        <!-- 510zero -->
+        <h4>510zero Plan</h4>
+        <p>No profit target and no profit consistency rule — maximum flexibility for experienced traders. Profit share is based on Daily Loss Breached (DLB).</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Account Size</th><th>One-Time Fee</th></tr></thead>
+            <tbody>
+              <tr><td>$5,000 <span class="badge badge-new">NEW</span></td><td class="highlight">$52</td></tr>
+              <tr><td>$10,000</td><td class="highlight">$78</td></tr>
+              <tr><td>$25,000</td><td class="highlight">$195</td></tr>
+              <tr><td>$50,000</td><td class="highlight">$389</td></tr>
+              <tr><td>$100,000</td><td class="highlight">$750</td></tr>
+              <tr><td>$200,000</td><td class="highlight">$1,467</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div class="callout-content">
+            <strong>510zero Profit Share based on DLB:</strong><br>
+            &lt;1% → 90% · ≥1% → 50% · ≥1.5% → 30% · ≥2% → 20%
+          </div>
+        </div>
+
+        <!-- Customizable -->
+        <h4>Customizable Instant Plan <span class="badge badge-new">NEW</span></h4>
+        <p>Fully customizable parameters — choose your Daily Loss and Max Loss limits. Accounts up to $400,000.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Parameter</th><th>Range</th></tr></thead>
+            <tbody>
+              <tr><td>Daily Loss Limit</td><td>2% – 5% (customizable)</td></tr>
+              <tr><td>Max Loss Limit</td><td>4% – 10% (customizable)</td></tr>
+              <tr><td>Account Size</td><td>Up to $400,000</td></tr>
+              <tr><td>Starting Fee</td><td class="highlight">From $35</td></tr>
+              <tr><td>Profit Share</td><td>Up to 90%</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Product Comparison -->
+        <h4>Product Comparison Summary</h4>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Challenge</th>
+                <th>51010</th>
+                <th>510zero</th>
+                <th>Customizable</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Evaluation Required</td><td>Yes (2 phases)</td><td>No</td><td>No</td><td>No</td></tr>
+              <tr><td>Daily Loss Limit</td><td>5%</td><td>5%</td><td>5%</td><td>2–5%</td></tr>
+              <tr><td>Max Loss Limit</td><td>10%</td><td>10%</td><td>10%</td><td>4–10%</td></tr>
+              <tr><td>Profit Target</td><td>8% / 6%</td><td>10%</td><td>None</td><td>Customizable</td></tr>
+              <tr><td>Profit Consistency</td><td>Phase 2 only</td><td>Yes</td><td>No</td><td>Customizable</td></tr>
+              <tr><td>Risk per Trade</td><td>2%</td><td>2%</td><td>2%</td><td>Customizable</td></tr>
+              <tr><td>Leverage</td><td>1:100</td><td>1:100</td><td>1:33</td><td>Customizable</td></tr>
+              <tr class="highlight-row"><td>Max Profit Share</td><td>90%</td><td>90%</td><td>90%</td><td>90%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mark Complete -->
+      <div class="mark-complete-bar">
+        <div class="mark-complete-text">
+          <h4>Ready to move on?</h4>
+          <p>Mark this module complete after reading all content and taking the quiz below.</p>
+        </div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(1)">✓ Mark as Complete</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+      </div>
+
+      <!-- Mini Quiz -->
+      <div class="quiz-section">
+        <div class="quiz-header">
+          <h3>📝 Module 1 Quiz</h3>
+          <span class="quiz-counter" id="quizCounterTop">5 Questions</span>
+        </div>
+        <div class="quiz-progress-dots" id="quizDots"></div>
+        <div id="quizContainer"></div>
+        <div id="quizNavBottom"></div>
+        <div class="quiz-result" id="quizResult">
+          <div class="result-score" id="quizScore"></div>
+          <p id="quizResultMsg"></p>
+          <a href="module3.html" class="btn btn-primary mt-16">Next Module →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML(1);
+updateSidebarProgress();
+checkCompleted(1);
+
+const questions = [
+  {
+    q: "What is the profit target for Challenge Phase 1?",
+    opts: ["5%", "8%", "10%", "6%"],
+    correct: 1
+  },
+  {
+    q: "What is the fee for a $50K 51010 Instant account?",
+    opts: ["$370", "$175", "$288", "$552"],
+    correct: 2
+  },
+  {
+    q: "Which Instant plan has NO Profit Consistency Rule and NO Profit Target?",
+    opts: ["51010", "510zero", "Challenge", "Customizable"],
+    correct: 1
+  },
+  {
+    q: "What is the fee for the NEW $5K 51010 Instant account?",
+    opts: ["$52", "$44", "$78", "$35"],
+    correct: 1
+  },
+  {
+    q: "What is the Daily Loss range for the Customizable Instant plan?",
+    opts: ["1–3%", "2–5%", "3–8%", "5–10%"],
+    correct: 1
+  }
+];
+
+const quiz = new ModuleQuiz(1, questions);
+quiz.render();
+</script>
+</body>
+</html>

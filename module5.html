@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Module 5 — Payment Methods | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Module 5 — Payment Methods</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num">5</div>
+        <div class="module-header-info">
+          <h2>Payment Methods</h2>
+          <p>How to purchase packages and receive profit withdrawals at WeMasterTrade</p>
+        </div>
+      </div>
+
+      <div class="content-section">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+
+          <!-- Package Purchase -->
+          <div style="background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:24px">
+            <h3 style="color:#FFD700;margin-bottom:6px;font-size:15px">📦 Package Purchase Methods</h3>
+            <p style="color:#888;font-size:13px;margin-bottom:16px">Accepted payment methods when purchasing any WeMasterTrade account package:</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">💳</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Visa / Mastercard / AMEX / JCB</div>
+                  <div style="font-size:11px;color:#666">All major credit &amp; debit cards accepted globally</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">🅿️</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">PayPal</div>
+                  <div style="font-size:11px;color:#666">Available in most countries via paypal.me/wecopytrade</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">₿</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Cryptocurrency</div>
+                  <div style="font-size:11px;color:#666">USDT and other stablecoins accepted</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">🏦</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Local Bank Transfers</div>
+                  <div style="font-size:11px;color:#666">Available in Singapore, Australia, USA, Canada, HK, NZ and more</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">📱</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Local Wallets</div>
+                  <div style="font-size:11px;color:#666">GCash, TNG, GoPay, UPI, PromptPay and more by country</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profit Withdrawal -->
+          <div style="background:rgba(76,175,80,.05);border:1px solid rgba(76,175,80,.2);border-radius:12px;padding:24px">
+            <h3 style="color:#4CAF50;margin-bottom:6px;font-size:15px">💰 Profit Withdrawal (Payout) Methods</h3>
+            <p style="color:#888;font-size:13px;margin-bottom:16px">How traders receive their profit share from WeMasterTrade:</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">🌐</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Riseworks</div>
+                  <div style="font-size:11px;color:#666">Global payroll &amp; contractor payments platform</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">₿</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Cryptocurrency</div>
+                  <div style="font-size:11px;color:#666">BTC, USDT and other stablecoins — free of charge</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">🏦</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Local Bank Transfers</div>
+                  <div style="font-size:11px;color:#666">Direct to your bank account in your country</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
+                <span style="font-size:20px">📱</span>
+                <div>
+                  <div style="font-weight:700;color:#eee;font-size:14px">Local Wallets</div>
+                  <div style="font-size:11px;color:#666">Available in select countries — contact support to confirm</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;padding:14px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.25);border-radius:8px;display:flex;align-items:center;gap:12px">
+              <span style="font-size:22px">⚡</span>
+              <div>
+                <div style="font-weight:800;color:#FFD700;font-size:14px">Average Payout Speed: 24 Business Hours</div>
+                <div style="font-size:12px;color:#888;margin-top:2px">Submit your request anytime — processed within 1 business day</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Mark Complete -->
+      <div class="mark-complete-bar">
+        <div class="mark-complete-text">
+          <h4>Ready to move on?</h4>
+          <p>Mark this module complete after reading all content.</p>
+        </div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(5)">✓ Mark as Complete</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+      </div>
+
+      <!-- Quiz -->
+      <div class="quiz-section">
+        <div class="quiz-header">
+          <h3>📝 Module 5 Quiz</h3>
+          <span class="quiz-counter" id="quizCounterTop">5 Questions</span>
+        </div>
+        <div class="quiz-progress-dots" id="quizDots"></div>
+        <div id="quizContainer"></div>
+      </div>
+
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML(5);
+updateSidebarProgress();
+checkCompleted(5);
+
+const questions = [
+  {
+    q: "Which cryptocurrency stablecoin is accepted for international deposits?",
+    opts: ["Bitcoin (BTC)", "Ethereum (ETH)", "USDT (Tether)", "BNB"],
+    correct: 2
+  },
+  {
+    q: "What is the ACH/Wire routing number for US bank transfers?",
+    opts: ["021000021", "026073150", "011000138", "063100277"],
+    correct: 1
+  },
+  {
+    q: "Which local bank is specified for Vietnam clients?",
+    opts: ["VietcomBank", "BIDV", "ACB", "Techcombank"],
+    correct: 2
+  },
+  {
+    q: "Which of the following is NOT listed as a withdrawal method?",
+    opts: ["Wise", "Coinbase", "Western Union", "Deel Card"],
+    correct: 2
+  },
+  {
+    q: "What is the Canadian local payment method available?",
+    opts: ["TD e-Transfer", "RBC Interac", "CIBC Direct", "Scotiabank Pay"],
+    correct: 1
+  }
+];
+
+const quiz = new ModuleQuiz(5, questions);
+quiz.render();
+</script>
+</body>
+</html>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeMasterTrade — Sales Training Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Extra dashboard-specific styles */
+    .exam-ready-card {
+      background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.03));
+      border: 1px solid var(--border-gold);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .exam-ready-text h4 { font-size: 1rem; color: var(--gold); margin-bottom: 4px; }
+    .exam-ready-text p { font-size: 0.85rem; color: var(--text-secondary); }
+    .locked-msg { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-box animate-in">
+    <div class="login-logo">
+      <h1>WeMasterTrade</h1>
+      <p>Sales Training Portal</p>
+    </div>
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" placeholder="Enter your username" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboardPage" class="app-layout hidden">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">WeMasterTrade</div>
+      <div class="sidebar-subtitle">Sales Training Portal</div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="user-avatar" id="userAvatar">T</div>
+      <div class="user-info">
+        <div class="user-name" id="sidebarUserName">Trainee</div>
+        <div class="user-role">Sales Trainee</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Training Modules</div>
+      <a href="#" class="nav-item active" onclick="showDashboard()">
+        <span class="nav-icon">🏠</span> Dashboard
+      </a>
+      <a href="about.html" class="nav-item">
+        <span class="nav-icon">🏢</span> About WMT
+      </a>
+      <a href="module1.html" class="nav-item" id="nav-m1">
+        <span class="nav-icon">📦</span> <span>Products</span>
+        <span class="nav-badge" id="badge-m1">M1</span>
+      </a>
+      <a href="module3.html" class="nav-item" id="nav-m3">
+        <span class="nav-icon">📋</span> <span>Trading Rules</span>
+        <span class="nav-badge" id="badge-m3">M3</span>
+      </a>
+      <a href="module4.html" class="nav-item" id="nav-m4">
+        <span class="nav-icon">💰</span> <span>Financial Products</span>
+        <span class="nav-badge" id="badge-m4">M4</span>
+      </a>
+      <a href="module6.html" class="nav-item" id="nav-m6">
+        <span class="nav-icon">🏆</span> <span>Profit & Payouts</span>
+        <span class="nav-badge" id="badge-m6">M6</span>
+      </a>
+      <a href="module5.html" class="nav-item" id="nav-m5">
+        <span class="nav-icon">💳</span> <span>Payment Methods</span>
+        <span class="nav-badge" id="badge-m5">M5</span>
+      </a>
+      <a href="module2.html" class="nav-item" id="nav-m2">
+        <span class="nav-icon">🤝</span> <span>Affiliate & Partners</span>
+        <span class="nav-badge" id="badge-m2">M2</span>
+      </a>
+      <a href="module7.html" class="nav-item" id="nav-m7">
+        <span class="nav-icon">⚖️</span> <span>Compliance & Risk</span>
+        <span class="nav-badge" id="badge-m7">M7</span>
+      </a>
+
+      <div class="nav-section-title">Assessment</div>
+      <a href="exam.html" class="nav-item" id="nav-exam">
+        <span class="nav-icon">📝</span> Final Exam
+        <span class="nav-badge">EXAM</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Dashboard</span>
+      <div class="top-bar-actions">
+        <div class="progress-pill" id="topProgressPill">0 / 7 Modules</div>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <!-- Welcome Banner -->
+      <div class="welcome-banner">
+        <h2>Welcome back, <span id="welcomeName">Trainee</span>! 👋</h2>
+        <p>Complete all 7 modules and pass the final exam to become a certified WeMasterTrade Sales Partner.</p>
+        <div class="overall-progress">
+          <div class="progress-stats">
+            <div class="stat-item">
+              <span class="stat-value" id="statCompleted">0</span>
+              <span class="stat-label">Modules Done</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statTotal">7</span>
+              <span class="stat-label">Total Modules</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statAvgScore">—</span>
+              <span class="stat-label">Avg Quiz Score</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-value" id="statPercent">0%</span>
+              <span class="stat-label">Overall Progress</span>
+            </div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar" id="overallProgressBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modules Grid -->
+      <div class="section-title">Training Modules</div>
+      <div class="modules-grid" id="modulesGrid"></div>
+
+      <!-- Exam Section -->
+      <div class="section-title">Final Exam</div>
+      <div class="exam-ready-card" id="examCard">
+        <div class="exam-ready-text">
+          <h4>📝 Final Exam — 30 Questions</h4>
+          <p>Covers all 7 modules. Pass score: 70%. You have 2 attempts.</p>
+          <div class="locked-msg" id="examLockMsg">Complete all modules to unlock the exam.</div>
+        </div>
+        <a href="exam.html" class="btn btn-primary" id="examBtn" style="display:none">Start Exam →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== AUTH =====
+const USERS = {
+  admin: 'wmt2026',
+  test: 'test123',
+  trainee: 'train123'
+};
+
+const MODULES = [
+  { id: 1, title: 'WeMasterTrade Products', icon: '📦', file: 'module1.html' },
+  { id: 2, title: 'Affiliate & Partner Policies', icon: '🤝', file: 'module2.html' },
+  { id: 3, title: 'Trading Rules', icon: '📋', file: 'module3.html' },
+  { id: 4, title: 'Financial Products', icon: '💰', file: 'module4.html' },
+  { id: 5, title: 'Payment Methods', icon: '💳', file: 'module5.html' },
+  { id: 6, title: 'Profit Sharing & Payouts', icon: '🏆', file: 'module6.html' },
+  { id: 7, title: 'Compliance & Risk', icon: '⚖️', file: 'module7.html' }
+];
+
+function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('loginError');
+
+  if (USERS[u] && USERS[u] === p) {
+    localStorage.setItem('wmt_user', u);
+    err.textContent = '';
+    showDashboard();
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('dashboardPage').classList.remove('hidden');
+    initDashboard(u);
+  } else {
+    err.textContent = 'Invalid username or password. Please try again.';
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    if (!document.getElementById('loginPage').classList.contains('hidden')) doLogin();
+  }
+});
+
+function doLogout() {
+  localStorage.removeItem('wmt_user');
+  document.getElementById('dashboardPage').classList.add('hidden');
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+}
+
+function showDashboard() { /* no-op, already on dashboard */ }
+
+// ===== INIT =====
+function getProgress() {
+  return JSON.parse(localStorage.getItem('wmt_progress') || '{}');
+}
+
+function initDashboard(user) {
+  document.getElementById('sidebarUserName').textContent = user;
+  document.getElementById('welcomeName').textContent = user;
+  document.getElementById('userAvatar').textContent = user[0].toUpperCase();
+
+  const progress = getProgress();
+  let completedCount = 0;
+  let totalScore = 0;
+  let scoredModules = 0;
+
+  const grid = document.getElementById('modulesGrid');
+  grid.innerHTML = '';
+
+  MODULES.forEach(m => {
+    const key = `module${m.id}`;
+    const completed = progress[key + '_done'];
+    const score = progress[key + '_score'];
+
+    if (completed) completedCount++;
+    if (score !== undefined) { totalScore += score; scoredModules++; }
+
+    // Update nav badge
+    const badge = document.getElementById(`badge-m${m.id}`);
+    const navItem = document.getElementById(`nav-m${m.id}`);
+    if (completed && badge) {
+      badge.textContent = '✓';
+      badge.style.background = 'rgba(0,214,143,0.15)';
+      badge.style.color = 'var(--success)';
+      navItem.classList.add('completed');
+    }
+
+    const status = completed ? 'completed' : (score !== undefined ? 'inprogress' : 'pending');
+    const statusLabel = completed ? '✓ Completed' : (score !== undefined ? '● In Progress' : '○ Not Started');
+
+    grid.innerHTML += `
+      <a href="${m.file}" class="module-card ${completed ? 'completed' : ''}">
+        <div class="module-card-header">
+          <div class="module-number">${completed ? '✓' : m.id}</div>
+          <div>
+            <div class="module-title">${m.title}</div>
+            <div class="module-meta">
+              <span class="status-badge ${status}">${statusLabel}</span>
+            </div>
+          </div>
+        </div>
+        ${score !== undefined ? `<div class="quiz-score">Quiz Score: ${score}%</div>` : ''}
+      </a>`;
+  });
+
+  // Stats
+  const pct = Math.round((completedCount / 7) * 100);
+  document.getElementById('statCompleted').textContent = completedCount;
+  document.getElementById('statPercent').textContent = pct + '%';
+  document.getElementById('overallProgressBar').style.width = pct + '%';
+  document.getElementById('topProgressPill').textContent = `${completedCount} / 7 Modules`;
+  document.getElementById('statAvgScore').textContent = scoredModules > 0 ? Math.round(totalScore / scoredModules) + '%' : '—';
+
+  // Exam unlock
+  if (completedCount === 7) {
+    document.getElementById('examLockMsg').textContent = '🎉 All modules complete! You can now take the final exam.';
+    document.getElementById('examBtn').style.display = 'inline-flex';
+  }
+}
+
+// Check session on load
+window.addEventListener('load', function() {
+  const user = localStorage.getItem('wmt_user');
+  if (user && USERS[user]) {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('dashboardPage').classList.remove('hidden');
+    initDashboard(user);
+  }
+});
+</script>
+</body>
+</html>

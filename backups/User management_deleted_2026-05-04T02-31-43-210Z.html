@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>User Management — WeMasterTrade Training</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#0a0a16;color:#e0e0e0;min-height:100vh;padding:40px 20px}
+.container{max-width:1200px;margin:0 auto}h1{color:#FFD700;font-size:28px;margin-bottom:24px;text-align:center}
+.access-denied{text-align:center;padding:60px 20px;color:#ff6b6b}.access-denied h2{color:#FFD700;margin-bottom:16px}
+.table-wrapper{background:#1a1a2e;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,0.3);margin-top:24px}
+table{width:100%;border-collapse:collapse}th{background:#2a2a3e;color:#FFD700;padding:16px;text-align:left;font-weight:600;border-bottom:2px solid #FFD700}
+td{padding:14px 16px;border-bottom:1px solid #333}tr:hover{background:#252540}
+.status-badge{display:inline-block;padding:6px 12px;border-radius:4px;font-size:12px;font-weight:600}
+.status-pass{background:#2d5016;color:#4ade80}.status-fail{background:#5a1a1a;color:#ff6b6b}.status-pending{background:#3a3a1a;color:#fbbf24}
+.action-buttons{display:flex;gap:8px}.btn{padding:8px 12px;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;transition:all 0.3s ease}
+.btn-edit{background:#FFD700;color:#0a0a16}.btn-edit:hover{background:#ffd700cc;transform:translateY(-2px)}
+.btn-delete{background:#ff6b6b;color:#fff}.btn-delete:hover{background:#ff5252;transform:translateY(-2px)}
+.btn-pass{background:#4ade80;color:#0a0a16}.btn-pass:hover{background:#22c55e;transform:translateY(-2px)}
+.btn-fail{background:#ef4444;color:#fff}.btn-fail:hover{background:#dc2626;transform:translateY(-2px)}
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.8);animation:fadeIn 0.3s ease}
+.modal-content{background:#1a1a2e;margin:5% auto;padding:30px;border:2px solid #FFD700;border-radius:8px;width:90%;max-width:500px;animation:slideIn 0.3s ease}
+.modal-header{color:#FFD700;font-size:20px;font-weight:600;margin-bottom:20px}
+.modal-body{margin-bottom:20px}.form-group{margin-bottom:16px}label{display:block;color:#FFD700;margin-bottom:8px;font-weight:600}input,select{width:100%;padding:10px;background:#0a0a16;border:1px solid #FFD700;border-radius:4px;color:#e0e0e0;font-size:14px}input:focus,select:focus{outline:none;border-color:#ffd700cc;box-shadow:0 0 8px rgba(255,215,0,0.3)}
+.modal-footer{display:flex;gap:12px;justify-content:flex-end}.btn-cancel{background:#555;color:#fff}.btn-cancel:hover{background:#666}
+.search-filter{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.search-filter input{flex:1;min-width:200px;padding:10px;background:#1a1a2e;border:1px solid #FFD700;border-radius:4px;color:#e0e0e0}
+.search-filter select{min-width:150px;padding:10px;background:#1a1a2e;border:1px solid #FFD700;border-radius:4px;color:#e0e0e0}
+.btn-add{background:#FFD700;color:#0a0a16;padding:10px 20px;margin-bottom:20px}.btn-add:hover{background:#ffd700cc}
+.empty-state{text-align:center;padding:40px;color:#888}
+.empty-state-icon{font-size:48px;margin-bottom:16px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideIn{from{transform:translateY(-50px);opacity:0}to{transform:translateY(0);opacity:1}}
+.close{color:#FFD700;float:right;font-size:28px;font-weight:bold;cursor:pointer}.close:hover{color:#ffd700cc}
+.success-message{background:#2d5016;color:#4ade80;padding:12px 16px;border-radius:4px;margin-bottom:16px;display:none}
+.error-message{background:#5a1a1a;color:#ff6b6b;padding:12px 16px;border-radius:4px;margin-bottom:16px;display:none}
+</style></head><body>
+<div class="container">
+<h1>User Management</h1>
+<div id="accessDenied" class="access-denied" style="display:none">
+<h2>⛔ Truy cập bị từ chối</h2>
+<p>Bạn không có quyền truy cập trang này. Chỉ user:trainee hoặc user:editor mới có thể quản lý tài khoản.</p>
+</div>
+<div id="managementPanel" style="display:none">
+<div id="successMessage" class="success-message"></div>
+<div id="errorMessage" class="error-message"></div>
+<div class="search-filter">
+<input type="text" id="searchInput" placeholder="Tìm kiếm theo tên hoặc email...">
+<select id="statusFilter">
+<option value="">Tất cả trạng thái</option>
+<option value="PASS">PASS</option>
+<option value="FAIL">FAIL</option>
+<option value="PENDING">PENDING</option>
+</select>
+</div>
+<button class="btn btn-add" onclick="openAddUserModal()">+ Thêm tài khoản mới</button>
+<div class="table-wrapper">
+<table id="usersTable">
+<thead>
+<tr>
+<th>Tên đăng nhập</th>
+<th>Email</th>
+<th>Họ và tên</th>
+<th>Ngày tạo</th>
+<th>Trạng thái</th>
+<th>Hành động</th>
+</tr>
+</thead>
+<tbody id="usersTableBody">
+</tbody>
+</table>
+<div id="emptyState" class="empty-state" style="display:none">
+<div class="empty-state-icon">📋</div>
+<p>Chưa có tài khoản nào được tạo</p>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Modal Thêm/Sửa Tài Khoản -->
+<div id="userModal" class="modal">
+<div class="modal-content">
+<span class="close" onclick="closeUserModal()">&times;</span>
+<div class="modal-header" id="modalTitle">Thêm tài khoản mới</div>
+<div class="modal-body">
+<div class="form-group">
+<label for="username">Tên đăng nhập:</label>
+<input type="text" id="username" placeholder="Nhập tên đăng nhập">
+</div>
+<div class="form-group">
+<label for="email">Email:</label>
+<input type="email" id="email" placeholder="Nhập email">
+</div>
+<div class="form-group">
+<label for="fullname">Họ và tên:</label>
+<input type="text" id="fullname" placeholder="Nhập họ và tên">
+</div>
+<div class="form-group">
+<label for="password">Mật khẩu:</label>
+<input type="password" id="password" placeholder="Nhập mật khẩu">
+</div>
+<div class="form-group">
+<label for="userStatus">Trạng thái:</label>
+<select id="userStatus">
+<option value="PENDING">PENDING</option>
+<option value="PASS">PASS</option>
+<option value="FAIL">FAIL</option>
+</select>
+</div>
+</div>
+<div class="modal-footer">
+<button class="btn btn-cancel" onclick="closeUserModal()">Hủy</button>
+<button class="btn btn-edit" onclick="saveUser()">Lưu</button>
+</div>
+</div>
+</div>
+
+<!-- Modal Xác nhận xóa -->
+<div id="deleteModal" class="modal">
+<div class="modal-content">
+<div class="modal-header">Xác nhận xóa tài khoản</div>
+<div class="modal-body">
+<p>Bạn có chắc chắn muốn xóa tài khoản <strong id="deleteUsername"></strong>? Hành động này không thể hoàn tác.</p>
+</div>
+<div class="modal-footer">
+<button class="btn btn-cancel" onclick="closeDeleteModal()">Hủy</button>
+<button class="btn btn-delete" onclick="confirmDelete()">Xóa</button>
+</div>
+</div>
+</div>
+
+<script>
+// Kiểm tra quyền truy cập
+function checkAccess(){const userRole=localStorage.getItem('userRole');if(userRole!=='trainee'&&userRole!=='editor'){document.getElementById('accessDenied').style.display='block';document.getElementById('managementPanel').style.display='none';return false}document.getElementById('managementPanel').style.display='block';return true}
+
+// Lấy dữ liệu người dùng từ localStorage
+function getUsers(){const users=localStorage.getItem('registeredUsers');return users?JSON.parse(users):[]}
+
+// Lưu dữ liệu người dùng vào localStorage
+function saveUsers(users){localStorage.setItem('registeredUsers',JSON.stringify(users))}
+
+// Hiển thị bảng người dùng
+function displayUsers(usersToDisplay=null){const users=usersToDisplay||getUsers();const tbody=document.getElementById('usersTableBody');const emptyState=document.getElementById('emptyState');tbody.innerHTML='';if(users.length===0){emptyState.style.display='block';return}emptyState.style.display='none';users.forEach((user,index)=>{const row=document.createElement('tr');const createdDate=new Date(user.createdAt).toLocaleDateString('vi-VN');const statusClass=user.status==='PASS'?'status-pass':user.status==='FAIL'?'status-fail':'status-pending';row.innerHTML=`<td>${user.username}</td><td>${user.email}</td><td>${user.fullname||'-'}</td><td>${createdDate}</td><td><span class="status-badge ${statusClass}">${user.status}</span></td><td><div class="action-buttons"><button class="btn btn-edit" onclick="editUser(${index})">Sửa</button><button class="btn btn-pass" onclick="updateStatus(${index},'PASS')">PASS</button><button class="btn btn-fail" onclick="updateStatus(${index},'FAIL')">FAIL</button><button class="btn btn-delete" onclick="openDeleteModal(${index})">Xóa</button></div></td>`;tbody.appendChild(row)})}
+
+// Mở modal thêm tài khoản
+function openAddUserModal(){document.getElementById('modalTitle').textContent='Thêm tài khoản mới';document.getElementById('username').value='';document.getElementById('email').value='';document.getElementById('fullname').value='';document.getElementById('password').value='';document.getElementById('userStatus').value='PENDING';document.getElementById('username').disabled=false;document.getElementById('email').disabled=false;document.getElementById('password').style.display='block';document.getElementById('userModal').style.display='block';window.currentEditIndex=null}
+
+// Mở modal sửa tài khoản
+function editUser(index){const users=getUsers();const user=users[index];document.getElementById('modalTitle').textContent='Sửa tài khoản';document.getElementById('username').value=user.username;document.getElementById('email').value=user.email;document.getElementById('fullname').value=user.fullname||'';document.getElementById('password').value='';document.getElementById('userStatus').value=user.status;document.getElementById('username').disabled=true;document.getElementById('email').disabled=true;document.getElementById('password').placeholder='Để trống nếu không muốn thay đổi mật khẩu';document.getElementById('userModal').style.display='block';window.currentEditIndex=index}
+
+// Đóng modal tài khoản
+function closeUserModal(){document.getElementById('userModal').style.display='none';window.currentEditIndex=null}
+
+// Lưu tài khoản
+function saveUser(){const username=document.getElementById('username').value.trim();const email=document.getElementById('email').value.trim();const fullname=document.getElementById('fullname').value.trim();const password=document.getElementById('password').value.trim();const status=document.getElementById('userStatus').value;if(!username||!email){showError('Vui lòng nhập tên đăng nhập và email');return}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showError('Email không hợp lệ');return}const users=getUsers();if(window.currentEditIndex===null){if(users.some(u=>u.username===username)){showError('Tên đăng nhập đã tồn tại');return}if(users.some(u=>u.email===email)){showError('Email đã tồn tại');return}if(!password){showError('Vui lòng nhập mật khẩu');return}const newUser={username,email,fullname,password:btoa(password),status,createdAt:new Date().toISOString()};users.push(newUser);showSuccess('Tài khoản đã được tạo thành công')}else{const user=users[window.currentEditIndex];user.fullname=fullname;user.status=status;if(password){user.password=btoa(password)}users[window.currentEditIndex]=user;showSuccess('Tài khoản đã được cập nhật thành công')}saveUsers(users);displayUsers();closeUserModal()}
+
+// Cập nhật trạng thái
+function updateStatus(index,newStatus){const users=getUsers();users[index].status=newStatus;saveUsers(users);displayUsers();showSuccess(`Trạng thái đã được cập nhật thành ${newStatus}`)}
+
+// Mở modal xác nhận xóa
+function openDeleteModal(index){document.getElementById('deleteUsername').textContent=getUsers()[index].username;window.deleteIndex=index;document.getElementById('deleteModal').style.display='block'}
+
+// Đóng modal xóa
+function closeDeleteModal(){document.getElementById('deleteModal').style.display='none';window.deleteIndex=null}
+
+// Xác nhận xóa
+function confirmDelete(){const users=getUsers();const deletedUsername=users[window.deleteIndex].username;users.splice(window.deleteIndex,1);saveUsers(users);displayUsers();closeDeleteModal();showSuccess(`Tài khoản ${deletedUsername} đã được xóa`)}
+
+// Tìm kiếm và lọc
+function filterUsers(){const searchTerm=document.getElementById('searchInput').value.toLowerCase();const statusFilter=document.getElementById('statusFilter').value;const users=getUsers();const filtered=users.filter(user=>(user.username.toLowerCase().includes(searchTerm)||user.email.toLowerCase().includes(searchTerm))&&(!statusFilter||user.status===statusFilter));displayUsers(filtered)}
+
+// Hiển thị thông báo thành công
+function showSuccess(message){const successMsg=document.getElementById('successMessage');successMsg.textContent=message;successMsg.style.display='block';setTimeout(()=>{successMsg.style.display='none'},3000)}
+
+// Hiển thị thông báo lỗi
+function showError(message){const errorMsg=document.getElementById('errorMessage');errorMsg.textContent=message;errorMsg.style.display='block';setTimeout(()=>{errorMsg.style.display='none'},3000)}
+
+// Đóng modal khi click bên ngoài
+window.onclick=function(event){const userModal=document.getElementById('userModal');const deleteModal=document.getElementById('deleteModal');if(event.target===userModal){closeUserModal()}if(event.target===deleteModal){closeDeleteModal()}}
+
+// Khởi tạo trang
+document.addEventListener('DOMContentLoaded',function(){if(checkAccess()){displayUsers();document.getElementById('searchInput').addEventListener('keyup',filterUsers);document.getElementById('statusFilter').addEventListener('change',filterUsers)}})
+</script>
+</body></html>

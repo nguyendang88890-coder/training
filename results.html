@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Results — WeMasterTrade Training</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.results-card { background: #0f0f1e; border: 1px solid #1e1e3a; border-radius: 16px; max-width: 640px; width: 100%; padding: 48px 40px; text-align: center; }
+.logo { font-size: 22px; font-weight: 800; color: #FFD700; letter-spacing: 1px; margin-bottom: 32px; }
+.result-icon { font-size: 72px; margin-bottom: 16px; }
+.result-title { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+.result-title.pass { color: #FFD700; }
+.result-title.fail { color: #ff4d4d; }
+.result-title.disqualified { color: #888; }
+.score-display { background: rgba(255,215,0,0.07); border: 1px solid rgba(255,215,0,0.2); border-radius: 12px; padding: 20px; margin: 24px 0; }
+.score-number { font-size: 48px; font-weight: 800; color: #FFD700; }
+.score-label { font-size: 14px; color: #888; margin-top: 4px; }
+.result-msg { color: #aaa; font-size: 15px; line-height: 1.7; margin: 20px 0; }
+/* Interview Form */
+.interview-section { background: rgba(255,215,0,0.04); border: 1px solid rgba(255,215,0,0.15); border-radius: 12px; padding: 28px; margin-top: 28px; text-align: left; }
+.interview-section h3 { color: #FFD700; font-size: 17px; margin-bottom: 16px; text-align: center; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 13px; color: #aaa; margin-bottom: 6px; font-weight: 600; }
+.form-group input, .form-group select { width: 100%; padding: 10px 14px; background: #0a0a16; border: 1px solid #2a2a4a; border-radius: 8px; color: #e0e0e0; font-size: 14px; box-sizing: border-box; }
+.form-group input:focus, .form-group select:focus { outline: none; border-color: #FFD700; }
+.btn-submit { width: 100%; padding: 13px; background: linear-gradient(135deg, #FFD700, #FFA500); color: #0a0a16; font-weight: 800; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; margin-top: 8px; transition: opacity .2s; }
+.btn-submit:hover { opacity: 0.88; }
+.submitted-msg { background: rgba(76,175,80,0.12); border: 1px solid rgba(76,175,80,0.3); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: center; color: #4caf50; font-weight: 600; display: none; }
+/* Retry section */
+.retry-section { background: rgba(255,77,77,0.06); border: 1px solid rgba(255,77,77,0.2); border-radius: 12px; padding: 24px; margin-top: 24px; }
+.countdown-box { font-size: 32px; font-weight: 800; color: #ff6b6b; margin: 12px 0; }
+.countdown-label { font-size: 13px; color: #888; }
+/* Disqualified */
+.disq-section { background: rgba(100,100,100,0.06); border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; margin-top: 24px; }
+.btn-back { display: inline-block; margin-top: 24px; padding: 11px 28px; border: 1px solid rgba(255,215,0,0.3); border-radius: 8px; color: #FFD700; text-decoration: none; font-size: 14px; font-weight: 600; transition: background .2s; }
+.btn-back:hover { background: rgba(255,215,0,0.08); }
+</style>
+</head>
+<body>
+<div class="results-card" id="resultsCard">
+  <div class="logo">🎓 WeMasterTrade Training</div>
+  <div id="resultContent">Loading...</div>
+</div>
+
+<script>
+const user = localStorage.getItem('wmt_user') || 'trainee';
+const examData = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+const score = examData.score || 0;
+const total = examData.total || 30;
+const attempts = examData.attempts || 0;
+const failDate = examData.failDate || null;
+const passed = examData.passed || false;
+const pct = Math.round((score / total) * 100);
+
+function getDaysLeft() {
+  if (!failDate) return 0;
+  const diff = Date.now() - new Date(failDate).getTime();
+  const daysElapsed = diff / (1000 * 60 * 60 * 24);
+  return Math.max(0, Math.ceil(5 - daysElapsed));
+}
+
+function renderPass() {
+  return `
+    <div class="result-icon">🏆</div>
+    <div class="result-title pass">Congratulations! You Passed!</div>
+    <div class="score-display">
+      <div class="score-number">${pct}%</div>
+      <div class="score-label">${score} / ${total} correct answers</div>
+    </div>
+    <div class="result-msg">
+      Outstanding! You have successfully completed the WeMasterTrade training examination.<br>
+      The next step is a <strong>live video interview</strong> with our training team to finalize your onboarding.
+    </div>
+    <div class="interview-section">
+      <h3>📹 Book Your Video Interview</h3>
+      <p style="font-size:13px;color:#888;margin-bottom:20px;text-align:center">Our trainer will contact you at the selected time. Interview will be recorded and evaluated.</p>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="iName" placeholder="Your full name">
+      </div>
+      <div class="form-group">
+        <label>Email Address *</label>
+        <input type="email" id="iEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Preferred Interview Slot *</label>
+        <select id="iSlot">
+          <option value="">-- Select a time slot --</option>
+          <option>Monday 9:00 AM UTC</option>
+          <option>Monday 2:00 PM UTC</option>
+          <option>Tuesday 9:00 AM UTC</option>
+          <option>Tuesday 2:00 PM UTC</option>
+          <option>Wednesday 9:00 AM UTC</option>
+          <option>Wednesday 2:00 PM UTC</option>
+          <option>Thursday 9:00 AM UTC</option>
+          <option>Thursday 2:00 PM UTC</option>
+          <option>Friday 9:00 AM UTC</option>
+          <option>Friday 2:00 PM UTC</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Additional Notes</label>
+        <input type="text" id="iNotes" placeholder="Any questions or notes for the trainer?">
+      </div>
+      <button class="btn-submit" onclick="submitInterview()">📅 Submit Interview Request</button>
+      <div class="submitted-msg" id="submittedMsg">
+        ✅ Request submitted! Our trainer will reach out via email within 24 hours.<br>
+        <small style="color:#aaa;margin-top:8px;display:block">Trainer contact: training@wemastertrade.com</small>
+      </div>
+    </div>
+    <a href="index.html" class="btn-back">← Back to Dashboard</a>
+  `;
+}
+
+function renderFail1() {
+  const daysLeft = getDaysLeft();
+  const hoursLeft = Math.ceil(getDaysLeft() * 24);
+  return `
+    <div class="result-icon">😔</div>
+    <div class="result-title fail">Not Quite There Yet</div>
+    <div class="score-display">
+      <div class="score-number" style="color:#ff6b6b">${pct}%</div>
+      <div class="score-label">${score} / ${total} correct — Need 70% to pass</div>
+    </div>
+    <div class="result-msg">
+      You didn't pass this time, but don't worry! Review the training materials carefully and try again after the lockout period.
+    </div>
+    <div class="retry-section">
+      <div style="color:#ff6b6b;font-weight:700;font-size:15px">⏳ Retry Available In:</div>
+      <div class="countdown-box" id="countdown">${daysLeft}d</div>
+      <div class="countdown-label">You may retake the exam in <strong>${daysLeft} days</strong><br>
+        <small>Attempt 1 of 2 used • 1 attempt remaining</small>
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:16px;background:rgba(255,215,0,0.04);border-radius:10px;font-size:13px;color:#aaa;line-height:1.8">
+      💡 <strong style="color:#FFD700">Tips for your retry:</strong><br>
+      • Re-read all 7 modules thoroughly<br>
+      • Pay special attention to Trading Rules (Module 3)<br>
+      • Review Profit Sharing percentages (Module 6)<br>
+      • Practice the Profit Consistency formula with examples
+    </div>
+    <a href="index.html" class="btn-back">← Back to Dashboard</a>
+  `;
+}
+
+function renderDisqualified() {
+  return `
+    <div class="result-icon">🚫</div>
+    <div class="result-title disqualified">Disqualified</div>
+    <div class="score-display" style="border-color:rgba(100,100,100,0.3)">
+      <div class="score-number" style="color:#666">${pct}%</div>
+      <div class="score-label">${score} / ${total} correct — 2 attempts used</div>
+    </div>
+    <div class="result-msg">
+      You have used both exam attempts without achieving the passing score of 70%.<br>
+      Your candidacy for this onboarding cycle has been closed.
+    </div>
+    <div class="disq-section">
+      <div style="color:#888;font-size:14px;line-height:1.8">
+        If you believe there was an error or wish to appeal, please contact:<br>
+        <strong style="color:#aaa">training@wemastertrade.com</strong>
+      </div>
+    </div>
+    <a href="index.html" class="btn-back">← Back to Dashboard</a>
+  `;
+}
+
+function submitInterview() {
+  const name = document.getElementById('iName').value.trim();
+  const email = document.getElementById('iEmail').value.trim();
+  const slot = document.getElementById('iSlot').value;
+  const notes = document.getElementById('iNotes').value.trim();
+  if (!name || !email || !slot) { alert('Please fill in your name, email, and preferred time slot.'); return; }
+  // Save to localStorage
+  const submission = { name, email, slot, notes, user, submittedAt: new Date().toISOString(), score: pct };
+  const subs = JSON.parse(localStorage.getItem('wmt_interview_submissions') || '[]');
+  subs.push(submission);
+  localStorage.setItem('wmt_interview_submissions', JSON.stringify(subs));
+  localStorage.setItem('wmt_interview_booked_' + user, JSON.stringify(submission));
+  document.getElementById('submittedMsg').style.display = 'block';
+  document.querySelector('.btn-submit').style.display = 'none';
+  document.getElementById('iName').disabled = true;
+  document.getElementById('iEmail').disabled = true;
+  document.getElementById('iSlot').disabled = true;
+  document.getElementById('iNotes').disabled = true;
+}
+
+// Render based on state
+if (!examData.score && !passed) {
+  // No exam data — redirect
+  document.getElementById('resultContent').innerHTML = '<div class="result-msg">No exam data found. Please complete the final exam first.</div><a href="exam.html" class="btn-back">Go to Exam →</a>';
+} else if (passed) {
+  document.getElementById('resultContent').innerHTML = renderPass();
+  // Check if already booked
+  const booked = localStorage.getItem('wmt_interview_booked_' + user);
+  if (booked) {
+    const b = JSON.parse(booked);
+    setTimeout(() => {
+      if (document.getElementById('submittedMsg')) {
+        document.getElementById('submittedMsg').style.display = 'block';
+        document.getElementById('submittedMsg').innerHTML = `✅ Interview already booked for <strong>${b.slot}</strong><br><small style="color:#aaa">Submitted on ${new Date(b.submittedAt).toLocaleDateString()}</small>`;
+        document.querySelector('.btn-submit').style.display = 'none';
+      }
+    }, 100);
+  }
+} else if (attempts >= 2) {
+  document.getElementById('resultContent').innerHTML = renderDisqualified();
+} else {
+  document.getElementById('resultContent').innerHTML = renderFail1();
+}
+</script>
+</body>
+</html>
