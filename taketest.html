@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Test | WMT Training</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* ===== TEST PAGE STYLES ===== */
+.test-header {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px 28px; margin-bottom: 24px; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 14px; position: sticky; top: 0; z-index: 50;
+}
+.test-header-info h2 { font-size: 1.1rem; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+.test-header-info p  { font-size: 0.8rem; color: var(--text-muted); margin: 0; }
+
+.test-timer { display: flex; align-items: center; gap: 8px; }
+.timer-box  {
+  background: rgba(255,61,113,0.08); border: 1px solid rgba(255,61,113,0.25);
+  border-radius: 10px; padding: 8px 16px; display: flex; align-items: center; gap: 8px;
+}
+.timer-box.ok  { background: rgba(0,214,143,0.06); border-color: rgba(0,214,143,0.25); }
+.timer-box.warn{ background: rgba(255,165,0,0.08); border-color: rgba(255,165,0,0.3); }
+.timer-val { font-size: 1.3rem; font-weight: 800; color: var(--danger); font-variant-numeric: tabular-nums; }
+.timer-val.ok   { color: var(--success); }
+.timer-val.warn { color: #FFA500; }
+.timer-lbl { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+
+.progress-bar-wrap { background: var(--bg-secondary); border-radius: 4px; height: 5px; margin-bottom: 20px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #FFA500); border-radius: 4px; transition: width .3s; }
+
+/* Question card */
+.q-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 22px 24px; margin-bottom: 16px; transition: border-color .2s;
+}
+.q-card.answered { border-color: rgba(0,214,143,0.3); }
+.q-card.essay-card { border-color: rgba(100,150,255,0.25); }
+
+.q-num { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.q-tag { border-radius: 4px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; }
+.q-tag.mcq   { background: rgba(255,215,0,0.1); color: var(--gold); }
+.q-tag.essay { background: rgba(100,150,255,0.12); color: #6496ff; }
+.q-tag.liet  { background: rgba(255,61,113,0.1); color: var(--danger); }
+.q-tag.pts   { background: rgba(90,90,120,0.15); color: var(--text-muted); }
+
+.q-text { font-size: 0.92rem; color: var(--text-primary); line-height: 1.55; margin-bottom: 16px; font-weight: 500; }
+
+/* MCQ options */
+.q-opts { display: flex; flex-direction: column; gap: 8px; }
+.q-opt  {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: 9px; cursor: pointer; transition: all .15s;
+}
+.q-opt:hover { border-color: rgba(255,215,0,0.4); background: rgba(255,215,0,0.03); }
+.q-opt.selected { border-color: var(--gold); background: rgba(255,215,0,0.07); }
+.q-opt input[type="radio"] { display: none; }
+.q-opt-letter {
+  width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+  font-weight: 700; color: var(--text-muted); flex-shrink: 0; transition: all .15s;
+}
+.q-opt.selected .q-opt-letter { border-color: var(--gold); background: rgba(255,215,0,0.15); color: var(--gold); }
+.q-opt-text { font-size: 0.88rem; color: var(--text-secondary); }
+
+/* Essay */
+.q-essay-area {
+  width: 100%; min-height: 140px; padding: 12px 14px; background: var(--bg-primary);
+  border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary);
+  font-size: 0.88rem; line-height: 1.5; resize: vertical; font-family: inherit;
+  transition: border-color .15s; box-sizing: border-box;
+}
+.q-essay-area:focus { outline: none; border-color: #6496ff; }
+.q-essay-hint { font-size: 0.73rem; color: var(--text-muted); margin-top: 6px; }
+
+/* Submit zone */
+.submit-zone {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 24px 28px; margin-top: 10px; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.submit-info { font-size: 0.84rem; color: var(--text-muted); }
+.submit-info strong { color: var(--text-primary); }
+
+/* Result screen */
+.result-hero {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 36px 32px; text-align: center; margin-bottom: 24px;
+}
+.result-icon  { font-size: 3rem; margin-bottom: 12px; }
+.result-score { font-size: 3rem; font-weight: 900; color: var(--gold); line-height: 1; }
+.result-max   { font-size: 1rem; color: var(--text-muted); font-weight: 400; }
+.result-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; margin: 12px 0 16px; }
+.result-badge.pass { background: rgba(0,214,143,0.15); color: var(--success); }
+.result-badge.fail { background: rgba(255,61,113,0.1); color: var(--danger); }
+.result-details { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+.result-detail { background: var(--bg-secondary); border-radius: 10px; padding: 10px 18px; font-size: 0.82rem; }
+.result-detail strong { display: block; font-size: 1.2rem; color: var(--text-primary); }
+.result-detail span   { color: var(--text-muted); font-size: 0.72rem; }
+
+.answered-count { font-weight: 700; color: var(--text-primary); }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title" id="pageTitle">Monthly Test</span>
+    </div>
+    <div class="page-content animate-in" id="pageContent">
+      <div class="empty-state" style="padding:60px 24px;color:var(--text-muted);">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+// ===== DATA HELPERS =====
+function getMC()          { return JSON.parse(localStorage.getItem('wmt_monthly_config')||'{}'); }
+function getMS()          { return JSON.parse(localStorage.getItem('wmt_monthly_scores')||'{}'); }
+function saveMS(d)        { localStorage.setItem('wmt_monthly_scores', JSON.stringify(d)); }
+function getQBank(g)         { return JSON.parse(localStorage.getItem('wmt_qbank_'+g)||'null'); }
+function getGenTest(g, m)    { return JSON.parse(localStorage.getItem(`wmt_gentest_${g}_${m}`)||'null'); }
+function getSubmission(u,m){ return JSON.parse(localStorage.getItem('wmt_sub_'+u+'_'+m)||'null'); }
+function saveSubmission(u,m,d){ localStorage.setItem('wmt_sub_'+u+'_'+m, JSON.stringify(d)); }
+
+function isBDCS(dept) {
+  if (!dept) return false;
+  const d = dept.toLowerCase().trim();
+  return d.includes('bd') || d.includes('business dev') || d.includes('cs') || d.includes('customer serv');
+}
+function fmtDT(s) {
+  if (!s) return '—';
+  return new Date(s).toLocaleString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+// ===== INIT =====
+const CUR_USER  = localStorage.getItem('wmt_user') || '';
+const ALL_USERS = getUsersDB();
+const USER_DATA = ALL_USERS[CUR_USER] || {};
+const MY_DEPT   = USER_DATA.department || '';
+const IS_BDCS   = isBDCS(MY_DEPT);
+const MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
+
+let _timer = null;
+let _answers = {};   // { qid: 'A' | essay text }
+let _currentMonth = null;
+let _currentCfg   = null;
+let _qbank        = null;
+
+// Parse ?month= from URL
+const urlMonth = new URLSearchParams(location.search).get('month');
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (!CUR_USER) { location.href = 'index.html'; return; }
+  if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
+
+  // Build sidebar
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
+
+  // Find test
+  const cfgs = getMC();
+  _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
+
+  if (!_currentMonth) {
+    renderError('Không tìm thấy bài thi đang mở. Quay lại <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
+    return;
+  }
+
+  _currentCfg = cfgs[_currentMonth];
+
+  // Check group-specific status
+  const startD = IS_BDCS ? _currentCfg.startDateBDCS : _currentCfg.startDateOthers;
+  const endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
+  const now    = Date.now();
+
+  if (!startD || !endD) {
+    renderError('Bài thi chưa được cấu hình cho bộ phận của bạn.');
+    return;
+  }
+
+  // Check if already submitted
+  const sub = getSubmission(CUR_USER, _currentMonth);
+  if (sub && sub.submittedAt) {
+    renderResult(sub, _currentCfg);
+    return;
+  }
+
+  if (now < new Date(startD).getTime()) {
+    renderError(`Bài thi chưa bắt đầu. Thời gian mở: <strong>${fmtDT(startD)}</strong>`);
+    return;
+  }
+  if (now > new Date(endD).getTime()) {
+    renderError('Thời gian làm bài đã kết thúc.');
+    return;
+  }
+
+  // Load generated test for this month (falls back to qbank if not generated yet)
+  _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
+  if (!_qbank || !_qbank.questions || !_qbank.questions.length) {
+    renderError('Chưa có đề thi cho nhóm của bạn tháng này. Vui lòng liên hệ admin.');
+    return;
+  }
+
+  document.getElementById('pageTitle').textContent = _currentCfg.title || 'Monthly Test';
+  renderTest(new Date(endD).getTime());
+});
+
+function findActiveMonth(cfgs) {
+  const months = Object.keys(cfgs).sort().reverse();
+  for (const m of months) {
+    const c = cfgs[m];
+    const s = IS_BDCS ? c.startDateBDCS : c.startDateOthers;
+    const e = IS_BDCS ? c.deadlineBDCS  : c.deadlineOthers;
+    if (s && e && Date.now() >= new Date(s).getTime() && Date.now() <= new Date(e).getTime()) return m;
+  }
+  return null;
+}
+
+// ===== RENDER TEST =====
+function renderTest(deadlineTs) {
+  const qs = _qbank.questions;
+  const mc = _currentCfg;
+
+  const html = `
+    <div class="test-header" id="testHeader">
+      <div class="test-header-info">
+        <h2>${mc.title || 'Monthly Test'}</h2>
+        <p>${_qbank.questions.length} câu &nbsp;·&nbsp; Tổng ${_qbank.totalPoints} điểm
+          ${IS_BDCS ? '&nbsp;·&nbsp; Pass: '+(mc.passBDCS??250)+'/300, Liệt max: '+(mc.lietMax??2) : '&nbsp;·&nbsp; Pass: '+(mc.passOthers??70)+'/100'}
+        </p>
+      </div>
+      <div class="test-timer">
+        <div class="timer-box ok" id="timerBox">
+          <div>
+            <div class="timer-lbl">⏰ Còn lại</div>
+            <div class="timer-val ok" id="timerVal">--:--:--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+
+    <div id="questionsWrap">
+      ${qs.map((q, idx) => renderQuestion(q, idx)).join('')}
+    </div>
+
+    <div class="submit-zone">
+      <div class="submit-info">
+        Đã trả lời: <span class="answered-count" id="answeredCount">0</span> / ${qs.length} câu
+        ${IS_BDCS ? '<br><span style="font-size:0.78rem;color:var(--text-muted);">Câu tự luận sẽ được admin chấm sau.</span>' : ''}
+      </div>
+      <button class="btn btn-primary" onclick="submitTest()" style="padding:12px 32px;font-size:0.95rem;">
+        📤 Nộp bài
+      </button>
+    </div>`;
+
+  document.getElementById('pageContent').innerHTML = html;
+  startTimer(deadlineTs);
+  updateProgress();
+}
+
+function renderQuestion(q, idx) {
+  if (q.type === 'Essay') {
+    return `<div class="q-card essay-card" id="qcard_${q.id}">
+      <div class="q-num">
+        Câu ${idx+1}
+        <span class="q-tag essay">Tự luận</span>
+        ${q.isLiet ? '<span class="q-tag liet">⚠ Điểm liệt</span>' : ''}
+        <span class="q-tag pts">${q.points}đ</span>
+      </div>
+      <div class="q-text">${q.text}</div>
+      ${q.rubric ? `<div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.78rem;color:var(--text-muted);">
+        📋 Tiêu chí: ${q.rubric}</div>` : ''}
+      <textarea class="q-essay-area" id="ans_${q.id}" placeholder="Nhập câu trả lời của bạn..."
+        oninput="onEssayInput(${q.id}, this.value)"></textarea>
+      <div class="q-essay-hint">Trình bày đầy đủ, rõ ràng. Câu trả lời sẽ được admin xem xét và chấm điểm.</div>
+    </div>`;
+  }
+
+  // MCQ
+  const opts = Object.entries(q.opts || {}).filter(([,v])=>v);
+  return `<div class="q-card" id="qcard_${q.id}">
+    <div class="q-num">
+      Câu ${idx+1}
+      <span class="q-tag mcq">Trắc nghiệm</span>
+      ${q.isLiet ? '<span class="q-tag liet">⚠ Điểm liệt</span>' : ''}
+      <span class="q-tag pts">${q.points}đ</span>
+    </div>
+    <div class="q-text">${q.text}</div>
+    <div class="q-opts">
+      ${opts.map(([letter, text]) => `
+        <label class="q-opt" id="opt_${q.id}_${letter}" onclick="selectOpt(${q.id},'${letter}')">
+          <input type="radio" name="q_${q.id}" value="${letter}">
+          <div class="q-opt-letter">${letter}</div>
+          <div class="q-opt-text">${text}</div>
+        </label>`).join('')}
+    </div>
+  </div>`;
+}
+
+function selectOpt(qid, letter) {
+  _answers[qid] = letter;
+  // Update visual
+  const q = _qbank.questions.find(q=>q.id===qid);
+  if (!q) return;
+  Object.keys(q.opts).forEach(l => {
+    const el = document.getElementById(`opt_${qid}_${l}`);
+    if (el) el.classList.toggle('selected', l===letter);
+  });
+  document.getElementById(`qcard_${qid}`)?.classList.add('answered');
+  updateProgress();
+}
+
+function onEssayInput(qid, val) {
+  _answers[qid] = val;
+  const card = document.getElementById(`qcard_${qid}`);
+  if (card) card.classList.toggle('answered', val.trim().length > 0);
+  updateProgress();
+}
+
+function updateProgress() {
+  const qs  = _qbank.questions;
+  const answered = qs.filter(q => {
+    const a = _answers[q.id];
+    return q.type === 'MCQ' ? !!a : (a && a.trim().length > 0);
+  }).length;
+  const pct = qs.length > 0 ? Math.round(answered / qs.length * 100) : 0;
+  const fill = document.getElementById('progressFill');
+  const cnt  = document.getElementById('answeredCount');
+  if (fill) fill.style.width = pct + '%';
+  if (cnt)  cnt.textContent  = answered;
+}
+
+// ===== TIMER =====
+function startTimer(deadlineTs) {
+  function tick() {
+    const diff = deadlineTs - Date.now();
+    const box = document.getElementById('timerBox');
+    const val = document.getElementById('timerVal');
+    if (!box || !val) { clearInterval(_timer); return; }
+    if (diff <= 0) {
+      clearInterval(_timer);
+      val.textContent = '00:00:00';
+      autoSubmit();
+      return;
+    }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor(diff % 3600000 / 60000);
+    const s = Math.floor(diff % 60000 / 1000);
+    val.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const cls = diff < 300000 ? 'warn' : diff < 3600000 ? '' : 'ok';
+    val.className  = 'timer-val ' + cls;
+    box.className  = 'timer-box ' + cls;
+  }
+  tick();
+  _timer = setInterval(tick, 1000);
+}
+
+// ===== SUBMIT =====
+function autoSubmit() {
+  alert('⏰ Hết giờ! Bài của bạn sẽ được tự động nộp.');
+  doSubmit(true);
+}
+
+function submitTest() {
+  const qs  = _qbank.questions;
+  const mcq = qs.filter(q=>q.type==='MCQ');
+  const unansweredMCQ = mcq.filter(q=>!_answers[q.id]);
+
+  if (unansweredMCQ.length > 0) {
+    const proceed = confirm(`Bạn còn ${unansweredMCQ.length} câu trắc nghiệm chưa trả lời.\n\nBạn có muốn nộp bài không?`);
+    if (!proceed) return;
+  } else {
+    if (!confirm('Xác nhận nộp bài? Bạn sẽ không thể chỉnh sửa sau khi nộp.')) return;
+  }
+  doSubmit(false);
+}
+
+function doSubmit(auto) {
+  clearInterval(_timer);
+  const qs = _qbank.questions;
+  const mc = _currentCfg;
+
+  // Grade MCQ
+  let mcqScore = 0, lietWrong = 0;
+  const mcqResults = {};
+  qs.forEach(q => {
+    if (q.type !== 'MCQ') return;
+    const ans = _answers[q.id];
+    const correct = ans && q.correct && ans.toUpperCase() === q.correct.toUpperCase();
+    mcqResults[q.id] = { ans: ans||null, correct };
+    if (correct) mcqScore += q.points;
+    else if (q.isLiet) lietWrong++;
+  });
+
+  // Essay answers
+  const essayAnswers = {};
+  qs.forEach(q => {
+    if (q.type === 'Essay') essayAnswers[q.id] = _answers[q.id] || '';
+  });
+  const hasEssay = Object.keys(essayAnswers).length > 0;
+
+  // Determine provisional pass for MCQ-only (Others)
+  let provisionalPassed = null;
+  if (!IS_BDCS) {
+    const passOthers = mc.passOthers ?? 70;
+    provisionalPassed = mcqScore >= passOthers;
+  }
+  // For BD/CS: pass determined after essay grading — save as pending
+
+  const submission = {
+    submittedAt:   new Date().toISOString(),
+    month:         _currentMonth,
+    group:         MY_GROUP,
+    mcqScore,
+    lietWrong,
+    essayAnswers,
+    mcqResults,
+    essayPending:  hasEssay,
+    provisionalPassed
+  };
+  saveSubmission(CUR_USER, _currentMonth, submission);
+
+  // Auto-populate MCQ score in monthly scores (Others only, BD/CS waits for essay)
+  if (!IS_BDCS) {
+    const passOthers = mc.passOthers ?? 70;
+    const allScores = getMS();
+    if (!allScores[_currentMonth]) allScores[_currentMonth] = {};
+    allScores[_currentMonth][CUR_USER] = {
+      score:   mcqScore,
+      passed:  mcqScore >= passOthers,
+      gradedAt: new Date().toISOString(),
+      autoGraded: true
+    };
+    saveMS(allScores);
+  }
+
+  renderResult(submission, mc);
+}
+
+// ===== RESULT SCREEN =====
+function renderResult(sub, mc) {
+  clearInterval(_timer);
+  const qs       = _qbank ? _qbank.questions : [];
+  const isBDCSU  = sub.group === 'bdcs';
+  const passScore = isBDCSU ? (mc.passBDCS??250) : (mc.passOthers??70);
+  const maxScore  = isBDCSU ? 300 : 100;
+  const lietMax   = mc.lietMax ?? 2;
+
+  let statusHTML = '';
+  if (isBDCSU && sub.essayPending) {
+    statusHTML = `<div class="result-badge" style="background:rgba(255,165,0,0.1);color:#FFA500;">⏳ Đang chờ chấm tự luận</div>
+      <p style="color:var(--text-muted);font-size:0.84rem;margin-top:4px;">
+        Điểm MCQ của bạn: <strong style="color:var(--gold)">${sub.mcqScore}</strong> đ.<br>
+        Admin sẽ chấm phần tự luận và cập nhật điểm cuối cùng.
+      </p>`;
+  } else {
+    const passed = sub.provisionalPassed;
+    statusHTML = `<div class="result-badge ${passed?'pass':'fail'}">${passed?'✓ PASS':'✗ FAIL'}</div>`;
+  }
+
+  // Count answered for result details
+  const mcqCount   = qs.filter(q=>q.type==='MCQ').length;
+  const essayCount = qs.filter(q=>q.type==='Essay').length;
+  const correctMCQ = sub.mcqResults ? Object.values(sub.mcqResults).filter(r=>r.correct).length : '—';
+
+  document.getElementById('pageTitle').textContent = 'Kết quả bài thi';
+  document.getElementById('pageContent').innerHTML = `
+    <div class="result-hero">
+      <div class="result-icon">${isBDCSU&&sub.essayPending ? '📝' : (sub.provisionalPassed?'🏆':'📋')}</div>
+      <div class="result-score">${sub.mcqScore}<span class="result-max">/${maxScore}${isBDCSU&&sub.essayPending?' (MCQ)':''}</span></div>
+      ${statusHTML}
+      <div class="result-details">
+        <div class="result-detail"><strong>${correctMCQ}/${mcqCount}</strong><span>MCQ đúng</span></div>
+        ${isBDCSU ? `<div class="result-detail"><strong style="color:${sub.lietWrong>lietMax?'var(--danger)':'var(--success)'}">${sub.lietWrong}</strong><span>Liệt sai (max ${lietMax})</span></div>` : ''}
+        ${essayCount > 0 ? `<div class="result-detail"><strong style="color:#6496ff">${essayCount}</strong><span>Câu tự luận</span></div>` : ''}
+        <div class="result-detail"><strong>${new Date(sub.submittedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</strong><span>Giờ nộp</span></div>
+      </div>
+    </div>
+
+    ${isBDCSU && sub.essayPending ? `
+    <div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <div style="font-weight:700;color:#6496ff;margin-bottom:12px;">📝 Câu trả lời tự luận của bạn</div>
+      ${Object.entries(sub.essayAnswers).map(([qid,ans])=>{
+        const q = qs.find(q=>String(q.id)===String(qid));
+        return `<div style="margin-bottom:14px;">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">${q?q.text.slice(0,80):'Câu hỏi'}</div>
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text-secondary);white-space:pre-wrap;">${ans||'(Không có câu trả lời)'}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+
+    <div style="text-align:center;margin-top:10px;">
+      <a href="monthlytest.html" class="btn btn-secondary" style="text-decoration:none;padding:10px 24px;">
+        ← Quay lại Monthly Test
+      </a>
+    </div>`;
+}
+
+function renderError(msg) {
+  document.getElementById('pageContent').innerHTML = `
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:40px 32px;text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:14px;">🔒</div>
+      <div style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;">${msg}</div>
+      <a href="monthlytest.html" class="btn btn-secondary" style="text-decoration:none;margin-top:20px;display:inline-block;padding:10px 24px;">
+        ← Quay lại Monthly Test
+      </a>
+    </div>`;
+}
+</script>
+</body>
+</html>

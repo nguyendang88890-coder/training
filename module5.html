@@ -157,27 +157,32 @@ const questions = [
   {
     q: "Which cryptocurrency stablecoin is accepted for international deposits?",
     opts: ["Bitcoin (BTC)", "Ethereum (ETH)", "USDT (Tether)", "BNB"],
-    correct: 2
+    correct: 2,
+    explain: "USDT (Tether) is the accepted stablecoin for international transfers. Its value is pegged 1:1 to the USD, eliminating cryptocurrency volatility risk during payment processing."
   },
   {
     q: "What is the ACH/Wire routing number for US bank transfers?",
     opts: ["021000021", "026073150", "011000138", "063100277"],
-    correct: 1
+    correct: 1,
+    explain: "The US ACH/Wire routing number is 026073150, which belongs to JP Morgan Chase. Always verify routing numbers directly with support before initiating transfers."
   },
   {
     q: "Which local bank is specified for Vietnam clients?",
     opts: ["VietcomBank", "BIDV", "ACB", "Techcombank"],
-    correct: 2
+    correct: 2,
+    explain: "ACB (Asia Commercial Bank) is the designated local bank for Vietnam clients. Using the correct local bank ensures faster processing and lower transfer fees."
   },
   {
     q: "Which of the following is NOT listed as a withdrawal method?",
     opts: ["Wise", "Coinbase", "Western Union", "Deel Card"],
-    correct: 2
+    correct: 2,
+    explain: "Western Union is not a listed withdrawal method. Available options include Wise, Deel Card, and Binance Pay. Always use official supported channels to avoid delays."
   },
   {
     q: "What is the Canadian local payment method available?",
     opts: ["TD e-Transfer", "RBC Interac", "CIBC Direct", "Scotiabank Pay"],
-    correct: 1
+    correct: 1,
+    explain: "RBC Interac is the Canadian local payment option. Interac is widely used across Canada for fast domestic bank-to-bank transfers with no international fees."
   }
 ];
 

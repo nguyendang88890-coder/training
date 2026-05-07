@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Final Exam | WMT Training</title>
   <link rel="stylesheet" href="style.css">
+<style>
+.exam-mod-hdr { font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border); }
+.exam-q-item  { background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px; }
+.exam-q-hdr   { display:flex;align-items:flex-start;justify-content:space-between;gap:12px; }
+.exam-q-num   { font-size:0.7rem;font-weight:700;color:var(--text-muted);flex-shrink:0;margin-top:2px; }
+.exam-q-text  { font-size:0.88rem;color:var(--text-primary);flex:1;line-height:1.5; }
+.exam-q-opts  { display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-top:10px; }
+.exam-q-opt   { font-size:0.8rem;color:var(--text-muted);padding:2px 0; }
+.exam-q-opt.correct { color:var(--success);font-weight:700; }
+.btn-xs { padding:4px 11px;font-size:0.74rem;border-radius:6px;font-weight:600;cursor:pointer;border:1px solid;transition:all .15s;white-space:nowrap; }
+.btn-xs.eq-edit   { background:rgba(255,215,0,0.08);border-color:rgba(255,215,0,0.3);color:var(--gold); }
+.btn-xs.eq-edit:hover { background:rgba(255,215,0,0.16); }
+.btn-xs.eq-del    { background:rgba(255,61,113,0.1);border-color:rgba(255,61,113,0.4);color:var(--danger); }
+.btn-xs.eq-del:hover  { background:rgba(255,61,113,0.2); }
+.btn-xs.eq-add    { background:rgba(0,214,143,0.08);border-color:rgba(0,214,143,0.35);color:var(--success); }
+.btn-xs.eq-add:hover  { background:rgba(0,214,143,0.18); }
+.btn-xs.eq-reset  { background:rgba(255,170,0,0.1);border-color:rgba(255,170,0,0.4);color:var(--warning); }
+.btn-xs.eq-reset:hover { background:rgba(255,170,0,0.2); }
+</style>
 </head>
 <body>
 <div class="app-layout">
@@ -21,6 +40,37 @@
     </div>
 
     <div class="page-content animate-in">
+
+      <!-- ===== ADMIN VIEW ===== -->
+      <div id="adminExamView" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div>
+            <div class="section-title" style="margin:0 0 4px;">📋 Question Bank</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">
+              Tổng: <strong id="eqCount" style="color:var(--gold)">0</strong> câu &nbsp;·&nbsp; Mỗi kỳ thi lấy ngẫu nhiên <strong style="color:var(--gold)">30</strong> câu
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn-xs eq-add"   onclick="openAddQuestion()">+ Thêm câu hỏi</button>
+            <button class="btn-xs eq-reset" onclick="resetExamBank()">↺ Reset mặc định</button>
+          </div>
+        </div>
+        <div id="eqList"></div>
+      </div>
+
+      <!-- ===== MOD VIEW ===== -->
+      <div id="modExamView" class="hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div>
+            <div class="section-title" style="margin:0 0 4px;">📋 Question Bank (Chế độ xem)</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);">
+              Tổng: <strong id="modEqCount" style="color:var(--gold)">0</strong> câu &nbsp;·&nbsp; Bạn có thể đề xuất chỉnh sửa để Admin xem xét.
+            </div>
+          </div>
+          <button class="btn-xs eq-add" onclick="openProposeAddQ()">💡 Đề xuất thêm câu hỏi</button>
+        </div>
+        <div id="modEqList"></div>
+      </div>
 
       <!-- Blocked: Disqualified -->
       <div id="disqualifiedView" class="hidden">
@@ -39,7 +89,7 @@
         <div class="result-hero">
           <div class="result-icon">⏳</div>
           <h2 class="fail">Exam Locked</h2>
-          <p>You failed the first attempt. You can retake the exam after the 5-day waiting period.</p>
+          <p>You failed the first attempt. You can retake the exam after the 3-day waiting period.</p>
           <div class="countdown-display" id="countdownDisplay">—</div>
           <p style="color:var(--text-muted);font-size:0.85rem;margin-top:8px;">Time remaining until retry is available</p>
           <div style="margin-top:24px;">
@@ -79,7 +129,7 @@
             <li>30 questions will be selected randomly from a large question bank</li>
             <li>Minimum pass score: <strong>70%</strong> (21 out of 30 correct)</li>
             <li>You have <strong>2 attempts</strong> total</li>
-            <li>If you fail attempt 1, you must wait <strong>5 days</strong> before retrying</li>
+            <li>If you fail attempt 1, you must wait <strong>3 days</strong> before retrying</li>
             <li>If you fail attempt 2, you will be <strong>permanently disqualified</strong></li>
             <li>Make sure you have completed all 7 modules before taking this exam</li>
           </ul>
@@ -220,7 +270,7 @@ const QUESTION_BANK = [
   { q: "Which of these is a prohibited trading practice?", opts: ["Using stop losses","Hedging across accounts for guaranteed profit","Trading Gold","Using MT5 EAs"], correct: 1, module: 7 },
   { q: "When must KYC be completed?", opts: ["Before first trade","Within 7 days of signup","Before first payout request","KYC is optional"], correct: 2, module: 7 },
   { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], correct: 2, module: 7 },
-  { q: "How long after failing attempt 1 can a trainee retry the final exam?", opts: ["1 day","3 days","5 days","7 days"], correct: 2, module: 7 },
+  { q: "How long after failing attempt 1 can a trainee retry the final exam?", opts: ["1 day","3 days","5 days","7 days"], correct: 1, module: 7 },
   { q: "What happens if a trainee fails the final exam a second time?", opts: ["They can retry in 30 days","They are permanently disqualified","They need to redo all modules","They get a third attempt"], correct: 1, module: 7 }
 ];
 
@@ -240,6 +290,14 @@ function saveExamState(data) {
   localStorage.setItem('wmt_exam_' + getUser(), JSON.stringify(data));
 }
 
+// Persist question bank to localStorage on first load (allows admin edits)
+function getActiveQBank() {
+  const stored = localStorage.getItem('wmt_exam_qbank');
+  if (stored) return JSON.parse(stored);
+  localStorage.setItem('wmt_exam_qbank', JSON.stringify(QUESTION_BANK));
+  return QUESTION_BANK;
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -249,10 +307,205 @@ function shuffle(arr) {
   return a;
 }
 
+// ===== ADMIN EXAM MANAGEMENT =====
+const EQ_MODULE_NAMES = ['','Products','Affiliate & Partners','Trading Rules','Financial Products','Payment Methods','Profit & Payouts','Compliance & Risk'];
+function getExamQBank()   { return JSON.parse(localStorage.getItem('wmt_exam_qbank') || 'null'); }
+function saveExamQBank(d) { localStorage.setItem('wmt_exam_qbank', JSON.stringify(d)); }
+
+function renderAdminExamView() {
+  const bank = getExamQBank();
+  if (!bank) { renderAdminExamView._init(); return; }
+  document.getElementById('eqCount').textContent = bank.length;
+  const byMod = {};
+  bank.forEach((q, i) => { const m = q.module||0; if (!byMod[m]) byMod[m]=[]; byMod[m].push({...q, _i:i}); });
+  document.getElementById('eqList').innerHTML = Object.keys(byMod).sort((a,b)=>+a-+b).map(m=>`
+    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} câu)</div>
+    ${byMod[m].map(q=>`
+      <div class="exam-q-item">
+        <div class="exam-q-hdr">
+          <span class="exam-q-num">#${q._i+1}</span>
+          <span class="exam-q-text">${q.q}</span>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="btn-xs eq-edit" onclick="openEditQuestion(${q._i})">✎ Edit</button>
+            <button class="btn-xs eq-del"  onclick="deleteQuestion(${q._i})">✕</button>
+          </div>
+        </div>
+        <div class="exam-q-opts">
+          ${q.opts.map((opt,oi)=>`<div class="exam-q-opt ${oi===q.correct?'correct':''}">
+            ${oi===q.correct?'✓':'○'} ${String.fromCharCode(65+oi)}. ${opt}
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}`).join('');
+}
+renderAdminExamView._init = function() {
+  saveExamQBank(QUESTION_BANK);
+  renderAdminExamView();
+};
+
+function _eqModal(title, q, idx, isNew) {
+  const ex = document.getElementById('eqModal'); if (ex) ex.remove();
+  const m = document.createElement('div');
+  m.id = 'eqModal'; m.className = 'modal-overlay show';
+  m.innerHTML = `<div class="modal-box" style="max-width:560px;max-height:88vh;overflow-y:auto;">
+    <h3 style="margin-bottom:16px;">${title}</h3>
+    <div class="form-group"><label>Module</label>
+      <select id="eeM" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;">
+        ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${q&&q.module===n?'selected':''}>${n} — ${EQ_MODULE_NAMES[n]}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label>Câu hỏi</label>
+      <textarea id="eeQ" rows="3" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;font-size:0.88rem;resize:vertical;">${q?q.q:''}</textarea></div>
+    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Đáp án ${l}</label>
+      <input type="text" id="eeO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Nhập đáp án ${l}…"></div>`).join('')}
+    <div class="form-group"><label>Đáp án đúng</label>
+      <select id="eeC" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;">
+        ${['A','B','C','D'].map((l,i)=>`<option value="${i}" ${q&&q.correct===i?'selected':''}>${l}</option>`).join('')}
+      </select></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('eqModal').remove()">Hủy</button>
+      <button class="btn btn-primary" onclick="${isNew?'saveNewQ()':'saveEditQ('+idx+')'}">💾 ${isNew?'Thêm':'Lưu'}</button>
+    </div>
+  </div>`;
+  m.addEventListener('click', e => { if (e.target===m) m.remove(); });
+  document.body.appendChild(m);
+}
+function openEditQuestion(i) { const b=getExamQBank(); if(b) _eqModal(`✎ Chỉnh sửa câu #${i+1}`,b[i],i,false); }
+function openAddQuestion()   { _eqModal('+ Thêm câu hỏi mới',null,null,true); }
+function _readModal() {
+  return { module:+document.getElementById('eeM').value, q:document.getElementById('eeQ').value.trim(),
+    opts:['A','B','C','D'].map(l=>document.getElementById('eeO'+l).value.trim()),
+    correct:+document.getElementById('eeC').value };
+}
+function saveEditQ(i) {
+  const v=_readModal(); if(!v.q){alert('Vui lòng nhập câu hỏi.');return;}
+  const b=getExamQBank(); b[i]=v; saveExamQBank(b);
+  document.getElementById('eqModal').remove(); renderAdminExamView();
+}
+function saveNewQ() {
+  const v=_readModal(); if(!v.q){alert('Vui lòng nhập câu hỏi.');return;}
+  const b=getExamQBank()||[]; b.push(v); saveExamQBank(b);
+  document.getElementById('eqModal').remove(); renderAdminExamView();
+}
+function deleteQuestion(i) {
+  if(!confirm(`Xóa câu hỏi #${i+1}?`)) return;
+  const b=getExamQBank(); b.splice(i,1); saveExamQBank(b); renderAdminExamView();
+}
+function resetExamBank() {
+  if(!confirm('Reset về bộ câu hỏi mặc định?\nMọi thay đổi sẽ bị mất.')) return;
+  saveExamQBank(QUESTION_BANK); renderAdminExamView();
+}
+
+// ===== PROPOSALS (shared helpers) =====
+function getProposals()  { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
+function addProposal(p)  { const ps = getProposals(); ps.push(p); localStorage.setItem('wmt_proposals', JSON.stringify(ps)); }
+
+// ===== MOD VIEW =====
+function renderModExamView() {
+  const bank = getActiveQBank();
+  document.getElementById('modEqCount').textContent = bank.length;
+  const byMod = {};
+  bank.forEach((q, i) => { const m = q.module||0; if (!byMod[m]) byMod[m]=[]; byMod[m].push({...q, _i:i}); });
+  document.getElementById('modEqList').innerHTML = Object.keys(byMod).sort((a,b)=>+a-+b).map(m=>`
+    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} câu)</div>
+    ${byMod[m].map(q=>`
+      <div class="exam-q-item">
+        <div class="exam-q-hdr">
+          <span class="exam-q-num">#${q._i+1}</span>
+          <span class="exam-q-text">${q.q}</span>
+          <button class="btn-xs eq-edit" onclick="openProposeEditQ(${q._i})">💡 Đề xuất</button>
+        </div>
+        <div class="exam-q-opts">
+          ${q.opts.map((opt,oi)=>`<div class="exam-q-opt ${oi===q.correct?'correct':''}">
+            ${oi===q.correct?'✓':'○'} ${String.fromCharCode(65+oi)}. ${opt}
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}`).join('');
+}
+
+function _proposeModal(title, q, idx, isNew) {
+  const ex = document.getElementById('propModal'); if (ex) ex.remove();
+  const inputStyle = 'width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:0.88rem;box-sizing:border-box;';
+  const m = document.createElement('div');
+  m.id = 'propModal'; m.className = 'modal-overlay show';
+  m.innerHTML = `<div class="modal-box" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin-bottom:6px;">${title}</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Đề xuất sẽ được gửi cho Admin xem xét. Câu gốc giữ nguyên cho đến khi được phê duyệt.</div>
+    <div class="form-group"><label>Module</label>
+      <select id="ppM" style="${inputStyle}">
+        ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${q&&q.module===n?'selected':''}>${n} — ${EQ_MODULE_NAMES[n]}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label>Câu hỏi</label>
+      <textarea id="ppQ" rows="3" style="${inputStyle}resize:vertical;">${q?q.q:''}</textarea></div>
+    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Đáp án ${l}</label>
+      <input type="text" id="ppO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Nhập đáp án ${l}…" style="${inputStyle}"></div>`).join('')}
+    <div class="form-group"><label>Đáp án đúng</label>
+      <select id="ppC" style="${inputStyle}">
+        ${['A','B','C','D'].map((l,i)=>`<option value="${i}" ${q&&q.correct===i?'selected':''}>${l}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label>Lý do / Ghi chú cho Admin</label>
+      <textarea id="ppNote" rows="2" placeholder="Giải thích lý do đề xuất…" style="${inputStyle}resize:vertical;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('propModal').remove()">Hủy</button>
+      <button class="btn btn-primary" onclick="submitExamProposal(${isNew?'null':idx},${isNew})">📩 Gửi đề xuất</button>
+    </div>
+  </div>`;
+  m.addEventListener('click', e => { if (e.target===m) m.remove(); });
+  document.body.appendChild(m);
+}
+
+function openProposeEditQ(idx) {
+  const bank = getActiveQBank();
+  _proposeModal(`💡 Đề xuất chỉnh sửa câu #${idx+1}`, bank[idx], idx, false);
+}
+function openProposeAddQ() {
+  _proposeModal('💡 Đề xuất thêm câu hỏi mới', null, null, true);
+}
+
+function submitExamProposal(idx, isNew) {
+  const q = document.getElementById('ppQ').value.trim();
+  if (!q) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
+  const proposed = {
+    module: +document.getElementById('ppM').value, q,
+    opts: ['A','B','C','D'].map(l => document.getElementById('ppO'+l).value.trim()),
+    correct: +document.getElementById('ppC').value
+  };
+  const note = document.getElementById('ppNote').value.trim();
+  const bank = getActiveQBank();
+  addProposal({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    source: 'exam',
+    action: isNew ? 'add' : 'edit',
+    proposedBy: localStorage.getItem('wmt_user') || '',
+    proposedAt: new Date().toISOString(),
+    status: 'pending',
+    reviewedBy: null, reviewedAt: null, reviewNote: '',
+    note,
+    idx: isNew ? null : idx,
+    group: null,
+    original: isNew ? null : bank[idx],
+    proposed
+  });
+  document.getElementById('propModal').remove();
+  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+}
+
 // ===== INIT =====
 window.addEventListener('load', function() {
   document.getElementById('sidebar').innerHTML = getSidebarHTML(0);
   updateSidebarProgress();
+
+  const curUser = localStorage.getItem('wmt_user') || '';
+  const allUsers = getUsersDB();
+  if (allUsers[curUser]?.role === 'admin') {
+    document.getElementById('adminExamView').classList.remove('hidden');
+    renderAdminExamView();
+    return;
+  }
+  if (allUsers[curUser]?.role === 'mod') {
+    document.getElementById('introView').classList.add('hidden');
+    document.getElementById('modExamView').classList.remove('hidden');
+    renderModExamView();
+    return;
+  }
 
   // Check module completion
   const p = getProgress();
@@ -276,7 +529,7 @@ window.addEventListener('load', function() {
   // Check lockout
   if (es.fail1Date && !es.fail2Date && !es.passed) {
     const fail1 = new Date(es.fail1Date);
-    const unlockDate = new Date(fail1.getTime() + 5 * 24 * 60 * 60 * 1000);
+    const unlockDate = new Date(fail1.getTime() + 3 * 24 * 60 * 60 * 1000);
     const now = new Date();
     if (now < unlockDate) {
       document.getElementById('introView').classList.add('hidden');
@@ -315,8 +568,8 @@ function startCountdown(unlockDate) {
 }
 
 function startExam() {
-  // Select 30 random questions
-  examQuestions = shuffle(QUESTION_BANK).slice(0, 30);
+  // Select 30 random questions from active bank
+  examQuestions = shuffle(getActiveQBank()).slice(0, 30);
   examAnswers = new Array(30).fill(null);
   examCurrent = 0;
 
@@ -405,8 +658,8 @@ function submitExam() {
     es.passScore = score;
     es.passDate = now;
   } else {
-    if (!es.failDate) {
-      es.failDate = now;
+    if (!es.fail1Date) {
+      es.fail1Date = now;
       es.fail1Score = score;
     } else {
       es.fail2Date = now;

@@ -112,7 +112,7 @@
 
         <!-- 510zero -->
         <h4>510zero Plan</h4>
-        <p>No profit target and no profit consistency rule — maximum flexibility for experienced traders. Profit share is based on Daily Loss Breached (DLB).</p>
+        <p>No profit target — maximum flexibility for experienced traders.</p>
         <div class="table-wrap">
           <table>
             <thead><tr><th>Account Size</th><th>One-Time Fee</th></tr></thead>
@@ -129,8 +129,8 @@
         <div class="callout info">
           <span class="callout-icon">ℹ️</span>
           <div class="callout-content">
-            <strong>510zero Profit Share based on DLB:</strong><br>
-            &lt;1% → 90% · ≥1% → 50% · ≥1.5% → 30% · ≥2% → 20%
+            <strong>510zero Profit Share:</strong><br>
+            If the profit is less than 6% (8% for Indonesian and Thailand customers), the profit sharing ratio of the 510Zero package will be reduced to a fixed 10%.
           </div>
         </div>
 
@@ -168,7 +168,7 @@
               <tr><td>Daily Loss Limit</td><td>5%</td><td>5%</td><td>5%</td><td>2–5%</td></tr>
               <tr><td>Max Loss Limit</td><td>10%</td><td>10%</td><td>10%</td><td>4–10%</td></tr>
               <tr><td>Profit Target</td><td>8% / 6%</td><td>10%</td><td>None</td><td>Customizable</td></tr>
-              <tr><td>Profit Consistency</td><td>Phase 2 only</td><td>Yes</td><td>No</td><td>Customizable</td></tr>
+              <tr><td>Profit Consistency</td><td>Phase 2 only</td><td>Yes</td><td>Yes</td><td>Customizable</td></tr>
               <tr><td>Risk per Trade</td><td>2%</td><td>2%</td><td>2%</td><td>Customizable</td></tr>
               <tr><td>Leverage</td><td>1:100</td><td>1:100</td><td>1:33</td><td>Customizable</td></tr>
               <tr class="highlight-row"><td>Max Profit Share</td><td>90%</td><td>90%</td><td>90%</td><td>90%</td></tr>
@@ -217,27 +217,32 @@ const questions = [
   {
     q: "What is the profit target for Challenge Phase 1?",
     opts: ["5%", "8%", "10%", "6%"],
-    correct: 1
+    correct: 1,
+    explain: "Challenge Phase 1 requires an 8% profit target. Phase 2 is 6%, and Instant Funding plans have no evaluation phases."
   },
   {
     q: "What is the fee for a $50K 51010 Instant account?",
     opts: ["$370", "$175", "$288", "$552"],
-    correct: 2
+    correct: 2,
+    explain: "The $50K 51010 Instant Funding account costs $288. Always refer to the official pricing table for exact fees per account size."
   },
   {
-    q: "Which Instant plan has NO Profit Consistency Rule and NO Profit Target?",
+    q: "Which Instant plan has NO Profit Target?",
     opts: ["51010", "510zero", "Challenge", "Customizable"],
-    correct: 1
+    correct: 1,
+    explain: "510zero is the most flexible plan — it has no Profit Target, making it ideal for traders who want maximum freedom."
   },
   {
     q: "What is the fee for the NEW $5K 51010 Instant account?",
     opts: ["$52", "$44", "$78", "$35"],
-    correct: 1
+    correct: 1,
+    explain: "The $5K 51010 account is priced at $44, making it the most affordable entry point for new traders on the 51010 plan."
   },
   {
     q: "What is the Daily Loss range for the Customizable Instant plan?",
     opts: ["1–3%", "2–5%", "3–8%", "5–10%"],
-    correct: 1
+    correct: 1,
+    explain: "The Customizable plan allows clients to select a Daily Loss Limit between 2% and 5%, giving them flexibility to match their risk tolerance."
   }
 ];
 

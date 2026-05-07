@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Interview | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .interview-hero {
+      background: linear-gradient(135deg, var(--bg-card) 0%, #1a1025 100%);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .interview-hero-icon {
+      font-size: 2.5rem;
+      flex-shrink: 0;
+    }
+    .interview-hero h2 { font-size: 1.5rem; color: var(--gold); margin-bottom: 6px; }
+    .interview-hero p  { color: var(--text-secondary); font-size: 0.9rem; }
+
+    /* Status card */
+    .status-card {
+      border-radius: 14px;
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .status-card.pending {
+      background: rgba(255,170,0,0.06);
+      border: 1px solid rgba(255,170,0,0.3);
+    }
+    .status-card.confirmed {
+      background: rgba(0,214,143,0.06);
+      border: 1px solid rgba(0,214,143,0.3);
+    }
+    .status-card.completed {
+      background: rgba(100,150,255,0.06);
+      border: 1px solid rgba(100,150,255,0.3);
+    }
+    .status-card.cancelled {
+      background: rgba(255,61,113,0.06);
+      border: 1px solid rgba(255,61,113,0.3);
+    }
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .status-icon { font-size: 1.6rem; }
+    .status-title { font-size: 1.1rem; font-weight: 700; }
+    .status-card.pending   .status-title { color: var(--warning); }
+    .status-card.confirmed .status-title { color: var(--success); }
+    .status-card.completed .status-title { color: #6496ff; }
+    .status-card.cancelled .status-title { color: var(--danger); }
+
+    .booking-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .detail-item {
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .detail-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .detail-value {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Meeting link card */
+    .meeting-card {
+      background: rgba(0,214,143,0.08);
+      border: 1px solid rgba(0,214,143,0.3);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .meeting-card-info h4 { color: var(--success); margin-bottom: 4px; font-size: 0.95rem; }
+    .meeting-card-info p  { color: var(--text-muted); font-size: 0.82rem; }
+    .meeting-link-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, var(--success), #00a36c);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      text-decoration: none;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .meeting-link-btn:hover { opacity: 0.85; color: #fff; }
+
+    /* Booking form */
+    .booking-form-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+    .booking-form-card h3 {
+      font-size: 1.05rem;
+      color: var(--gold);
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+    .timezone-select option { background: #0f0f24; }
+
+    /* Exam locked */
+    .locked-hero {
+      text-align: center;
+      padding: 60px 32px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+    .locked-hero .lock-icon { font-size: 3.5rem; margin-bottom: 16px; }
+    .locked-hero h3 { color: var(--text-primary); margin-bottom: 8px; font-size: 1.2rem; }
+    .locked-hero p  { color: var(--text-muted); font-size: 0.9rem; max-width: 400px; margin: 0 auto 24px; }
+
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(100,150,255,0.07);
+      border: 1px solid rgba(100,150,255,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+    .info-row .info-icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Interview Booking</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- Hero -->
+      <div class="interview-hero">
+        <div class="interview-hero-icon">📅</div>
+        <div>
+          <h2>Video Interview Booking</h2>
+          <p>Schedule a live video interview with a WeMasterTrade trainer to finalise your onboarding as a Sales Partner.</p>
+        </div>
+      </div>
+
+      <!-- Exam Required -->
+      <div id="examRequiredView" class="hidden">
+        <div class="locked-hero">
+          <div class="lock-icon">🔒</div>
+          <h3>Exam Required</h3>
+          <p>You need to pass the Final Exam before booking an interview. Complete all 7 modules and pass with at least 70%.</p>
+          <a href="exam.html" class="btn btn-primary" style="display:inline-flex;width:auto;">Go to Final Exam →</a>
+        </div>
+      </div>
+
+      <!-- Already Booked / Status View -->
+      <div id="bookedView" class="hidden">
+        <div id="statusCard"></div>
+        <div style="margin-top:16px;">
+          <button class="btn btn-secondary" onclick="cancelBooking()" id="cancelBtn" style="display:none">✕ Cancel Booking</button>
+        </div>
+      </div>
+
+      <!-- Booking Form -->
+      <div id="bookingFormView" class="hidden">
+        <div class="info-row">
+          <span class="info-icon">ℹ️</span>
+          <span>After submitting, our team will review your request and send you a confirmed meeting link within <strong>24 hours</strong>. You can check back on this page to see your confirmed details.</span>
+        </div>
+
+        <div class="booking-form-card">
+          <h3>📋 Fill in Your Details</h3>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="iFullName">Full Name *</label>
+              <input type="text" id="iFullName" placeholder="Your full name">
+            </div>
+            <div class="form-group">
+              <label for="iEmail">Email Address *</label>
+              <input type="email" id="iEmail" placeholder="your@email.com">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="iDate">Preferred Date *</label>
+              <input type="date" id="iDate">
+            </div>
+            <div class="form-group">
+              <label for="iTime">Preferred Time *</label>
+              <select id="iTime">
+                <option value="">-- Select a time --</option>
+                <option>09:00 AM</option>
+                <option>10:00 AM</option>
+                <option>11:00 AM</option>
+                <option>12:00 PM</option>
+                <option>01:00 PM</option>
+                <option>02:00 PM</option>
+                <option>03:00 PM</option>
+                <option>04:00 PM</option>
+                <option>05:00 PM</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="iTimezone">Your Timezone *</label>
+            <select id="iTimezone" class="timezone-select">
+              <option value="">-- Select timezone --</option>
+              <option value="UTC+7 (Bangkok, Hanoi, Jakarta)">UTC+7 — Bangkok / Hanoi / Jakarta</option>
+              <option value="UTC+8 (Singapore, Manila, KL)">UTC+8 — Singapore / Manila / Kuala Lumpur</option>
+              <option value="UTC+9 (Tokyo, Seoul)">UTC+9 — Tokyo / Seoul</option>
+              <option value="UTC+5:30 (Mumbai, New Delhi)">UTC+5:30 — Mumbai / New Delhi</option>
+              <option value="UTC+3 (Riyadh, Nairobi)">UTC+3 — Riyadh / Nairobi</option>
+              <option value="UTC+1 (Lagos, London Summer)">UTC+1 — Lagos / London (Summer)</option>
+              <option value="UTC+0 (London, Accra)">UTC+0 — London / Accra</option>
+              <option value="UTC-5 (New York, Toronto)">UTC-5 — New York / Toronto</option>
+              <option value="UTC-6 (Chicago, Mexico City)">UTC-6 — Chicago / Mexico City</option>
+              <option value="UTC-8 (Los Angeles, Vancouver)">UTC-8 — Los Angeles / Vancouver</option>
+              <option value="UTC+10 (Sydney, Melbourne)">UTC+10 — Sydney / Melbourne</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="iNotes">Additional Notes</label>
+            <textarea id="iNotes" placeholder="Any questions, language preference, or notes for the trainer…" style="min-height:80px;width:100%;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text-primary);font-size:0.92rem;outline:none;resize:vertical;" onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+          </div>
+
+          <div class="error-msg" id="bookingError" style="margin-bottom:8px;"></div>
+          <button class="btn btn-primary" onclick="submitBooking()" style="margin-top:4px;">📅 Submit Interview Request</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+const USERNAME = localStorage.getItem('wmt_user');
+
+function getInterview() {
+  return JSON.parse(localStorage.getItem('wmt_interview_' + USERNAME) || 'null');
+}
+function saveInterview(data) {
+  localStorage.setItem('wmt_interview_' + USERNAME, JSON.stringify(data));
+  // Keep central list in sync
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  const idx  = list.findIndex(x => x.username === USERNAME);
+  if (idx >= 0) list[idx] = data; else list.push(data);
+  localStorage.setItem('wmt_interviews_list', JSON.stringify(list));
+}
+
+function removeInterview() {
+  localStorage.removeItem('wmt_interview_' + USERNAME);
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== USERNAME)));
+}
+
+// Set minimum date to tomorrow
+const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+document.getElementById('iDate').min = tomorrow.toISOString().split('T')[0];
+
+window.addEventListener('load', function() {
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('interview');
+  updateSidebarProgress();
+  initPage();
+});
+
+function initPage() {
+  const examData = JSON.parse(localStorage.getItem('wmt_exam_' + USERNAME) || '{}');
+  const passed   = examData.passed || false;
+
+  if (!passed) {
+    document.getElementById('examRequiredView').classList.remove('hidden');
+    return;
+  }
+
+  const booking = getInterview();
+  // Also check legacy key
+  const legacy  = JSON.parse(localStorage.getItem('wmt_interview_booked_' + USERNAME) || 'null');
+
+  if (booking) {
+    showBookedView(booking);
+  } else if (legacy) {
+    // Migrate legacy booking
+    const migrated = {
+      username: USERNAME,
+      fullName: legacy.name  || '',
+      email:    legacy.email || '',
+      preferredDate: '',
+      preferredTime: legacy.slot  || '',
+      timezone:  '',
+      notes:     legacy.notes || '',
+      submittedAt: legacy.submittedAt || new Date().toISOString(),
+      status: 'pending',
+      meetingLink: '', meetingPlatform: '', confirmedSlot: '', adminNotes: ''
+    };
+    saveInterview(migrated);
+    showBookedView(migrated);
+  } else {
+    document.getElementById('bookingFormView').classList.remove('hidden');
+  }
+}
+
+const STATUS_META = {
+  pending:   { icon: '⏳', label: 'Pending Confirmation',   cls: 'pending',   desc: 'Your request has been received. Our team will confirm your slot and send a meeting link within 24 hours.' },
+  confirmed: { icon: '✅', label: 'Interview Confirmed!',    cls: 'confirmed', desc: 'Your interview is confirmed. Check your meeting details below.' },
+  completed: { icon: '🏆', label: 'Interview Completed',    cls: 'completed', desc: 'Your interview has been completed. Our team will be in touch regarding next steps.' },
+  cancelled: { icon: '❌', label: 'Booking Cancelled',       cls: 'cancelled', desc: 'Your booking was cancelled. Please contact your trainer to reschedule.' }
+};
+
+function showBookedView(b) {
+  document.getElementById('bookedView').classList.remove('hidden');
+  const meta = STATUS_META[b.status] || STATUS_META.pending;
+
+  const meetingHtml = (b.status === 'confirmed' && b.meetingLink) ? `
+    <div class="meeting-card">
+      <div class="meeting-card-info">
+        <h4>📹 Meeting Details</h4>
+        <p>${b.meetingPlatform || 'Video Call'} · ${b.confirmedSlot || b.preferredDate + ' ' + b.preferredTime}</p>
+        ${b.adminNotes ? `<p style="margin-top:4px;color:var(--text-muted)">Note: ${b.adminNotes}</p>` : ''}
+      </div>
+      <a href="${b.meetingLink}" target="_blank" rel="noopener" class="meeting-link-btn">
+        🔗 Join Meeting
+      </a>
+    </div>` : (b.status === 'confirmed' ? `<div style="color:var(--warning);font-size:0.85rem;margin-top:12px;">⚠️ Meeting link will be provided shortly. Please check back soon.</div>` : '');
+
+  document.getElementById('statusCard').innerHTML = `
+    <div class="status-card ${meta.cls}">
+      <div class="status-header">
+        <span class="status-icon">${meta.icon}</span>
+        <span class="status-title">${meta.label}</span>
+      </div>
+      <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:12px;">${meta.desc}</p>
+      <div class="booking-details">
+        <div class="detail-item">
+          <div class="detail-label">Name</div>
+          <div class="detail-value">${b.fullName || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Email</div>
+          <div class="detail-value">${b.email || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Preferred Date</div>
+          <div class="detail-value">${b.preferredDate || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Preferred Time</div>
+          <div class="detail-value">${b.preferredTime || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Timezone</div>
+          <div class="detail-value">${b.timezone || '—'}</div>
+        </div>
+        <div class="detail-item">
+          <div class="detail-label">Submitted</div>
+          <div class="detail-value">${new Date(b.submittedAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        </div>
+      </div>
+      ${meetingHtml}
+    </div>`;
+
+  if (b.status === 'pending') {
+    document.getElementById('cancelBtn').style.display = 'inline-flex';
+  }
+}
+
+function submitBooking() {
+  const fullName  = document.getElementById('iFullName').value.trim();
+  const email     = document.getElementById('iEmail').value.trim();
+  const date      = document.getElementById('iDate').value;
+  const time      = document.getElementById('iTime').value;
+  const timezone  = document.getElementById('iTimezone').value;
+  const notes     = document.getElementById('iNotes').value.trim();
+  const errEl     = document.getElementById('bookingError');
+
+  errEl.textContent = '';
+  if (!fullName)  { errEl.textContent = 'Please enter your full name.'; return; }
+  if (!email || !email.includes('@')) { errEl.textContent = 'Please enter a valid email address.'; return; }
+  if (!date)      { errEl.textContent = 'Please select a preferred date.'; return; }
+  if (!time)      { errEl.textContent = 'Please select a preferred time.'; return; }
+  if (!timezone)  { errEl.textContent = 'Please select your timezone.'; return; }
+
+  const booking = {
+    username: USERNAME,
+    fullName, email,
+    preferredDate: date,
+    preferredTime: time,
+    timezone, notes,
+    submittedAt: new Date().toISOString(),
+    status: 'pending',
+    meetingLink: '', meetingPlatform: '', confirmedSlot: '', adminNotes: ''
+  };
+
+  saveInterview(booking);
+  document.getElementById('bookingFormView').classList.add('hidden');
+  showBookedView(booking);
+  document.getElementById('bookedView').classList.remove('hidden');
+}
+
+function cancelBooking() {
+  if (!confirm('Cancel your interview booking? You can re-book after cancelling.')) return;
+  removeInterview();
+  document.getElementById('bookedView').classList.add('hidden');
+  document.getElementById('cancelBtn').style.display = 'none';
+  document.getElementById('bookingFormView').classList.remove('hidden');
+}
+</script>
+</body>
+</html>

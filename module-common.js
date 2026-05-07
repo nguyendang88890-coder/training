@@ -1,19 +1,49 @@
 // ===== SHARED MODULE LOGIC =====
+
+function getUsersDB() {
+  let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
+  if (!users) {
+    users = {
+      admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
+      test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
+      trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
+    };
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  }
+  if (!users.admin) {
+    users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  }
+  return users;
+}
+
 // Auth guard
 (function() {
   const user = localStorage.getItem('wmt_user');
-  const USERS = { admin: 'wmt2026', test: 'test123', trainee: 'train123' };
-  if (!user || !USERS[user]) {
+  const users = getUsersDB();
+  if (!user || !users[user]) {
     window.location.href = 'index.html';
   }
 })();
 
 function getProgress() {
-  return JSON.parse(localStorage.getItem('wmt_progress') || '{}');
+  const user = localStorage.getItem('wmt_user') || 'guest';
+  return JSON.parse(localStorage.getItem('wmt_progress_' + user) || '{}');
 }
 
 function saveProgress(data) {
-  localStorage.setItem('wmt_progress', JSON.stringify(data));
+  const user = localStorage.getItem('wmt_user') || 'guest';
+  localStorage.setItem('wmt_progress_' + user, JSON.stringify(data));
+}
+
+function getQuizResult(username, moduleId) {
+  return JSON.parse(localStorage.getItem(`wmt_quiz_${username}_m${moduleId}`) || 'null');
+}
+function saveQuizResult(username, moduleId, data) {
+  localStorage.setItem(`wmt_quiz_${username}_m${moduleId}`, JSON.stringify(data));
+}
+function resetQuizResult(username, moduleId) {
+  localStorage.removeItem(`wmt_quiz_${username}_m${moduleId}`);
 }
 
 function markModuleComplete(moduleId) {
@@ -37,6 +67,53 @@ function checkCompleted(moduleId) {
 function doLogout() {
   localStorage.removeItem('wmt_user');
   window.location.href = 'index.html';
+}
+
+function openProfileModal() {
+  const existing = document.getElementById('profileModal');
+  if (existing) { existing.classList.add('show'); return; }
+  const user  = localStorage.getItem('wmt_user') || '';
+  const users = getUsersDB();
+  const u     = users[user] || {};
+  const modal = document.createElement('div');
+  modal.id        = 'profileModal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:400px;">
+      <h3>👤 My Profile</h3>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" value="${user}" disabled style="opacity:.45;cursor:not-allowed;">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="pmEmail" value="${u.email||''}" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="pmFullName" value="${u.fullName||''}" placeholder="Your full name">
+      </div>
+      <div class="success-msg" id="pmSuccess" style="display:none;margin-top:6px;">✓ Saved!</div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('profileModal').classList.remove('show')">Close</button>
+        <button class="btn btn-primary"   onclick="saveProfileModal()">Save</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('pmEmail').focus(), 100);
+}
+
+function saveProfileModal() {
+  const user  = localStorage.getItem('wmt_user');
+  const users = getUsersDB();
+  if (!users[user]) return;
+  users[user].email    = document.getElementById('pmEmail').value.trim();
+  users[user].fullName = document.getElementById('pmFullName').value.trim();
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  const s = document.getElementById('pmSuccess');
+  s.style.display = 'block';
+  setTimeout(() => { s.style.display = 'none'; }, 2000);
 }
 
 function toggleSidebar() {
@@ -72,8 +149,84 @@ class ModuleQuiz {
   }
 
   render() {
+    const user  = localStorage.getItem('wmt_user') || '';
+    const saved = getQuizResult(user, this.moduleId);
+    if (saved) {
+      this.answers = saved.answers;
+      this.showLockedResult(saved);
+      return;
+    }
+    // Fallback: quiz submitted before lock feature existed — check progress data
+    const p = getProgress();
+    if (p[`module${this.moduleId}_done`]) {
+      this.showLockedLegacy(p[`module${this.moduleId}_score`] ?? 0);
+      return;
+    }
     this.renderQuestion(0);
     this.renderDots();
+  }
+
+  _lockBanner(subtitle) {
+    return `<div style="background:rgba(100,150,255,0.07);border:1px solid rgba(100,150,255,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:1.4rem;">🔒</span>
+      <div>
+        <div style="font-weight:700;color:#6496ff;font-size:0.9rem;">Quiz Đã Được Nộp</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">${subtitle}</div>
+      </div>
+    </div>`;
+  }
+
+  _showResult(score, correctStr) {
+    const result  = document.getElementById('quizResult');
+    const scoreEl = document.getElementById('quizScore');
+    const dots    = document.getElementById('quizDots');
+    const nav     = document.getElementById('quizNavBottom');
+    if (dots) dots.innerHTML = '';
+    if (nav)  nav.innerHTML  = '';
+    result.classList.add('show');
+    scoreEl.textContent = correctStr;
+    scoreEl.className   = `result-score ${score >= 60 ? 'pass' : 'fail'}`;
+    document.getElementById('quizResultMsg').textContent = score >= 60
+      ? '🎉 Great job! Module marked as complete.'
+      : '📚 Review the material. Contact admin to retake the quiz.';
+  }
+
+  showLockedResult(saved) {
+    document.getElementById('quizContainer').innerHTML =
+      this._lockBanner(`Nộp lúc: ${new Date(saved.submittedAt).toLocaleString('vi-VN')} &nbsp;·&nbsp; Liên hệ admin để làm lại bài quiz.`) +
+      this.buildReviewHTML();
+    this._showResult(saved.score, `${saved.correct}/${saved.total} — ${saved.score}%`);
+  }
+
+  showLockedLegacy(score) {
+    document.getElementById('quizContainer').innerHTML =
+      this._lockBanner('Liên hệ admin để làm lại bài quiz.');
+    this._showResult(score, `${score}%`);
+  }
+
+  buildReviewHTML() {
+    return `<div class="review-section">
+      <h3 class="review-title">📋 Answer Review</h3>
+      ${this.questions.map((q, i) => {
+        const userAns   = this.answers[i];
+        const isCorrect = userAns === q.correct;
+        return `<div class="review-item ${isCorrect ? 'correct' : 'wrong'}">
+          <div class="review-q">Q${i+1}. ${q.q}</div>
+          <ul class="review-opts">
+            ${q.opts.map((opt, oi) => {
+              let cls = '';
+              if (oi === q.correct) cls = 'review-correct';
+              else if (oi === userAns && !isCorrect) cls = 'review-wrong';
+              return `<li class="review-opt ${cls}">
+                <span class="review-letter">${String.fromCharCode(65+oi)}</span>
+                ${opt}${oi === q.correct ? ' ✓' : (oi === userAns && !isCorrect ? ' ✗' : '')}
+              </li>`;
+            }).join('')}
+          </ul>
+          ${q.explain ? `<div class="review-explain">💡 ${q.explain}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
   }
 
   renderQuestion(idx) {
@@ -100,6 +253,7 @@ class ModuleQuiz {
         </ul>
         ${answered ? `<div class="feedback-box show ${this.answers[idx] === q.correct ? 'correct' : 'wrong'}">
           ${this.answers[idx] === q.correct ? '✓ Correct! Well done.' : `✗ Incorrect. The correct answer is: ${q.opts[q.correct]}`}
+          ${q.explain ? `<div class="explain-text">💡 ${q.explain}</div>` : ''}
         </div>` : ''}
       </div>
       <div class="quiz-nav">
@@ -139,49 +293,73 @@ class ModuleQuiz {
     this.answers.forEach((a, i) => { if (a === this.questions[i].correct) correct++; });
     const score = Math.round((correct / this.questions.length) * 100);
 
-    // Save score
+    const user = localStorage.getItem('wmt_user') || '';
+    saveQuizResult(user, this.moduleId, {
+      submittedAt: new Date().toISOString(),
+      score, correct, total: this.questions.length,
+      answers: this.answers
+    });
+
     const p = getProgress();
     p[`module${this.moduleId}_score`] = score;
-    p[`module${this.moduleId}_done`] = true;
+    p[`module${this.moduleId}_done`]  = true;
     saveProgress(p);
 
-    // Show result
-    const result = document.getElementById('quizResult');
+    const result  = document.getElementById('quizResult');
     const scoreEl = document.getElementById('quizScore');
     result.classList.add('show');
     scoreEl.textContent = `${correct}/${this.questions.length} — ${score}%`;
-    scoreEl.className = `result-score ${score >= 60 ? 'pass' : 'fail'}`;
+    scoreEl.className   = `result-score ${score >= 60 ? 'pass' : 'fail'}`;
 
     document.getElementById('quizResultMsg').textContent = score >= 60
       ? '🎉 Great job! Module marked as complete.'
       : '📚 Review the material and retake the quiz to improve your score.';
 
-    // Update mark complete
     const btn = document.getElementById('markCompleteBtn');
     const chk = document.getElementById('completedCheck');
     if (btn) btn.style.display = 'none';
     if (chk) chk.style.display = 'flex';
 
     updateSidebarProgress();
-
-    // Hide question container
-    document.getElementById('quizContainer').innerHTML = '';
+    document.getElementById('quizContainer').innerHTML = this.buildReviewHTML();
     document.getElementById('quizNavBottom').innerHTML = '';
   }
 }
 
+// ===== READING PROGRESS BAR =====
+document.addEventListener('DOMContentLoaded', function() {
+  if (!document.getElementById('quizContainer')) return;
+  const bar = document.createElement('div');
+  bar.className = 'reading-progress';
+  bar.innerHTML = '<div class="reading-progress-fill" id="readingFill"></div>';
+  document.body.prepend(bar);
+  const fill = document.getElementById('readingFill');
+  window.addEventListener('scroll', function() {
+    const docH = document.documentElement.scrollHeight - window.innerHeight;
+    fill.style.width = docH > 0 ? Math.min(100, (window.scrollY / docH) * 100) + '%' : '0%';
+  }, { passive: true });
+});
+
 // Sidebar HTML snippet generator
 function getSidebarHTML(activeModule) {
   const modules = [
-    { id: 1, icon: '📦', title: 'Products', file: 'module1.html' },
-    { id: 3, icon: '📋', title: 'Trading Rules', file: 'module3.html' },
-    { id: 4, icon: '💰', title: 'Financial Products', file: 'module4.html' },
-    { id: 6, icon: '🏆', title: 'Profit & Payouts', file: 'module6.html' },
-    { id: 5, icon: '💳', title: 'Payment Methods', file: 'module5.html' },
-    { id: 2, icon: '🤝', title: 'Affiliate & Partners', file: 'module2.html' },
-    { id: 7, icon: '⚖️', title: 'Compliance & Risk', file: 'module7.html' }
+    { id: 1, icon: '📦', title: 'Products',            file: 'module1.html' },
+    { id: 3, icon: '📋', title: 'Trading Rules',       file: 'module3.html' },
+    { id: 4, icon: '💰', title: 'Financial Products',  file: 'module4.html' },
+    { id: 6, icon: '🏆', title: 'Profit & Payouts',    file: 'module6.html' },
+    { id: 5, icon: '💳', title: 'Payment Methods',     file: 'module5.html' },
+    { id: 2, icon: '🤝', title: 'Affiliate & Partners',file: 'module2.html' },
+    { id: 7, icon: '⚖️', title: 'Compliance & Risk',   file: 'module7.html' }
   ];
-  const user = localStorage.getItem('wmt_user') || 'Trainee';
+  const user    = localStorage.getItem('wmt_user') || 'Trainee';
+  const users   = getUsersDB();
+  const isAdmin = users[user] && users[user].role === 'admin';
+  const isMod   = users[user] && users[user].role === 'mod';
+
+  const examData  = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+  const examPassed = examData.passed || false;
+  const iv        = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
+  const ivStatus  = !iv ? 'BOOK' : ({ pending:'⏳', confirmed:'✅', completed:'🏆', cancelled:'↺' }[iv.status] || '⏳');
   return `
     <div class="sidebar-header">
       <div class="sidebar-logo">WeMasterTrade</div>
@@ -191,12 +369,21 @@ function getSidebarHTML(activeModule) {
       <div class="user-avatar">${user[0].toUpperCase()}</div>
       <div class="user-info">
         <div class="user-name">${user}</div>
-        <div class="user-role">Sales Trainee</div>
+        <div class="user-role">${(() => {
+          if (isAdmin) return 'Administrator';
+          if (isMod)   return '🛡️ Moderator';
+          const dept = users[user]?.department || '';
+          const pos  = users[user]?.position   || '';
+          const isOld = (users[user]?.employeeType || 'new') === 'old';
+          const base = [dept, pos].filter(Boolean).join(' - ');
+          return base ? (isOld ? base : base + ' - Trainee') : (isOld ? 'Existed Employee' : 'Trainee');
+        })()}</div>
       </div>
     </div>
+    ${(!isAdmin && !isMod) ? `<button class="sidebar-edit-profile" onclick="openProfileModal()">✎ Edit Profile</button>` : ''}
     <nav class="sidebar-nav">
       <div class="nav-section-title">Training Modules</div>
-      <a href="index.html#dashboard" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
+      <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
       <a href="about.html" class="nav-item ${activeModule === 'about' ? 'active' : ''}"><span class="nav-icon">🏢</span> About WMT</a>
       ${modules.map(m => `
         <a href="${m.file}" class="nav-item ${m.id === activeModule ? 'active' : ''}" id="nav-m${m.id}">
@@ -204,9 +391,99 @@ function getSidebarHTML(activeModule) {
           <span class="nav-badge" id="badge-m${m.id}">M${m.id}</span>
         </a>`).join('')}
       <div class="nav-section-title">Assessment</div>
-      <a href="exam.html" class="nav-item"><span class="nav-icon">📝</span> Final Exam <span class="nav-badge">EXAM</span></a>
+      <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
+        <span class="nav-icon">📝</span> Final Exam <span class="nav-badge">EXAM</span>
+      </a>
+      <a href="monthlytest.html" class="nav-item ${activeModule === 'monthlytest' ? 'active' : ''}">
+        <span class="nav-icon">🗓️</span> Monthly Test
+        ${isMod
+          ? `<span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">MOD</span>`
+          : !isAdmin && (users[user]?.employeeType || 'new') === 'new'
+            ? `<span class="nav-badge" style="background:rgba(255,61,113,0.12);color:var(--danger);">🔒</span>`
+            : `<span class="nav-badge">MTH</span>`}
+      </a>
+      ${!isMod ? `<a href="interview.html" class="nav-item ${activeModule === 'interview' ? 'active' : ''}">
+        <span class="nav-icon">🎤</span> Interview
+        <span class="nav-badge" style="background:rgba(0,214,143,0.15);color:var(--success)">${ivStatus}</span>
+      </a>` : ''}
+      ${isAdmin ? `
+      <div class="nav-section-title">Administration</div>
+      <a href="admin.html" class="nav-item ${activeModule === 'admin' ? 'active' : ''}">
+        <span class="nav-icon">⚙️</span> Admin Panel
+        <span class="nav-badge" style="background:rgba(255,215,0,0.2);color:var(--gold)">ADMIN</span>
+      </a>` : ''}
+      ${isMod ? `
+      <div class="nav-section-title">Moderator</div>
+      <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
+        <span class="nav-icon">📝</span> Final Exam <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">VIEW</span>
+      </a>` : ''}
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
     </div>`;
 }
+
+// ===== MODULE READING PROGRESS & SECTION NAV =====
+(function initModuleProgress() {
+  // Only run on module pages (they have a #quizContainer)
+  if (!document.getElementById('quizContainer')) return;
+
+  // --- 1. Reading progress bar ---
+  const bar = document.createElement('div');
+  bar.id = 'readingProgress';
+  document.body.appendChild(bar);
+
+  // --- 2. Section nav dots ---
+  const sections = Array.from(document.querySelectorAll('.content-section, .quiz-section'));
+  let dots = [];
+
+  if (sections.length > 0) {
+    const nav = document.createElement('div');
+    nav.id = 'sectionNav';
+
+    sections.forEach((sec, i) => {
+      const h3 = sec.querySelector('h3');
+      const rawLabel = h3 ? h3.textContent.trim() : (sec.classList.contains('quiz-section') ? '📝 Quiz' : 'Section ' + (i + 1));
+      // Keep full label for tooltip (emoji + text), max 32 chars
+      const label = rawLabel.length > 32 ? rawLabel.slice(0, 31) + '…' : rawLabel;
+
+      const dot = document.createElement('div');
+      dot.className = 'sec-dot';
+      dot.innerHTML = `<span class="sec-dot-tip">${label}</span>`;
+      dot.addEventListener('click', () => {
+        const offset = 72; // top-bar height + a bit of breathing room
+        const top = sec.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+      });
+      nav.appendChild(dot);
+      dots.push(dot);
+    });
+
+    document.body.appendChild(nav);
+  }
+
+  // --- 3. Scroll handler ---
+  function onScroll() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+
+    // Reading bar width
+    const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+    bar.style.width = pct + '%';
+
+    // Active dot
+    if (dots.length === 0) return;
+    let activeIdx = 0;
+    sections.forEach((sec, i) => {
+      if (sec.getBoundingClientRect().top <= 100) activeIdx = i;
+    });
+    dots.forEach((dot, i) => {
+      dot.classList.toggle('active', i === activeIdx);
+      // Mark sections above active as "done"
+      dot.classList.toggle('done', i < activeIdx);
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // run once on load
+})();

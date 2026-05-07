@@ -197,27 +197,32 @@ const questions = [
   {
     q: "What leverage is offered for the 510zero Instant Funding plan?",
     opts: ["1:100", "1:50", "1:33", "1:200"],
-    correct: 2
+    correct: 2,
+    explain: "510zero uses 1:33 leverage — lower than the standard 1:100 on Challenge and 51010 plans. The lower leverage reflects the plan's focus on disciplined, lower-risk trading."
   },
   {
     q: "What is the commission for trading XAUUSD (Gold)?",
     opts: ["$5 per lot", "$4 per lot", "0.035%", "$1 per lot"],
-    correct: 1
+    correct: 1,
+    explain: "XAUUSD (Gold) commissions are $4 per lot. Forex pairs charge $5/lot, indices charge $1/lot, and crypto uses a percentage-based fee of 0.035% per trade."
   },
   {
     q: "Which index is NOT listed as a tradeable instrument on WeMasterTrade?",
     opts: ["US30", "NAS100", "SPX500", "DAX40"],
-    correct: 3
+    correct: 3,
+    explain: "DAX40 (German stock index) is not currently available. Available indices include US30 (Dow Jones), NAS100 (Nasdaq), and SPX500 (S&P 500)."
   },
   {
     q: "What commission applies to cryptocurrency trades?",
     opts: ["$5 per lot", "$4 per lot", "0.035% per trade", "$1 per lot"],
-    correct: 2
+    correct: 2,
+    explain: "Crypto trades use a 0.035% commission per trade (percentage-based), unlike forex and metals which use fixed per-lot fees. This aligns with how crypto position sizes vary widely."
   },
   {
     q: "Which trading platform does NOT require installation and is browser-based?",
     opts: ["MetaTrader 4", "MetaTrader 5", "MatchTrader", "cTrader"],
-    correct: 2
+    correct: 2,
+    explain: "MatchTrader is fully browser-based — no download required. MT4 and MT5 require desktop installation, making MatchTrader ideal for clients who can't install software."
   }
 ];
 

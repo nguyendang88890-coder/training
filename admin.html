@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .admin-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .admin-stat-card.gold  { border-color: var(--border-gold); }
+    .admin-stat-card.green { border-color: rgba(0,214,143,0.3); }
+    .admin-stat-card.blue  { border-color: rgba(100,150,255,0.3); }
+    .admin-stat-card.warn  { border-color: rgba(255,170,0,0.3); }
+    .admin-stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .admin-stat-card.green .admin-stat-value { color: var(--success); }
+    .admin-stat-card.blue  .admin-stat-value { color: #6496ff; }
+    .admin-stat-card.warn  .admin-stat-value { color: var(--warning); }
+    .admin-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* Table */
+    .users-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .users-table-wrap table {
+      font-size: 0.85rem;
+    }
+    .users-table-wrap thead th {
+      background: var(--bg-secondary);
+      padding: 14px 16px;
+    }
+    .users-table-wrap tbody td {
+      padding: 13px 16px;
+      vertical-align: middle;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .role-badge.admin   { background: rgba(255,215,0,0.15); color: var(--gold); }
+    .role-badge.trainee { background: rgba(144,144,176,0.15); color: var(--text-muted); }
+    .role-badge.mod     { background: rgba(100,150,255,0.15); color: #6496ff; }
+    .prop-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .prop-card.pending  { border-left: 3px solid var(--warning); }
+    .prop-card.approved { border-left: 3px solid var(--success); opacity: .75; }
+    .prop-card.rejected { border-left: 3px solid var(--danger);  opacity: .75; }
+    .prop-meta { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .prop-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .prop-diff-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; font-size: 0.8rem; }
+    .prop-diff-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .prop-diff-box.orig .prop-diff-label { color: var(--text-muted); }
+    .prop-diff-box.prop .prop-diff-label { color: var(--gold); }
+    @media (max-width:640px) { .prop-diff { grid-template-columns: 1fr; } }
+
+    .exam-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .exam-badge.passed       { background: rgba(0,214,143,0.15); color: var(--success); }
+    .exam-badge.failed       { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .exam-badge.disqualified { background: rgba(255,61,113,0.15); color: var(--danger); }
+    .exam-badge.none         { background: rgba(144,144,176,0.1); color: var(--text-muted); }
+
+    .mod-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .mod-progress-bar {
+      width: 64px;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mod-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 3px;
+    }
+    .mod-progress-fill.complete { background: linear-gradient(90deg, #00a36c, var(--success)); }
+
+    .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-xs {
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-xs.reset {
+      background: rgba(255,170,0,0.1);
+      border-color: rgba(255,170,0,0.4);
+      color: var(--warning);
+    }
+    .btn-xs.reset:hover { background: rgba(255,170,0,0.2); }
+    .btn-xs.delete {
+      background: rgba(255,61,113,0.1);
+      border-color: rgba(255,61,113,0.4);
+      color: var(--danger);
+    }
+    .btn-xs.delete:hover { background: rgba(255,61,113,0.2); }
+    .btn-xs:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Add user modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-box h3 { color: var(--gold); margin-bottom: 20px; font-size: 1.1rem; }
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-footer .btn { flex: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* Page tabs */
+    .page-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      width: fit-content;
+    }
+    .page-tab {
+      padding: 8px 20px;
+      border-radius: 7px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .page-tab.active {
+      background: var(--bg-card);
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+    }
+    .page-tab:hover:not(.active) { color: var(--text-secondary); }
+
+    .tab-badge {
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    /* Interviews table */
+    .iv-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .iv-status.pending   { background: rgba(255,170,0,0.15);   color: var(--warning); }
+    .iv-status.confirmed { background: rgba(0,214,143,0.15);   color: var(--success); }
+    .iv-status.completed { background: rgba(100,150,255,0.15); color: #6496ff; }
+    .iv-status.cancelled { background: rgba(255,61,113,0.15);  color: var(--danger); }
+
+    .meeting-link-cell a {
+      color: var(--success);
+      font-size: 0.82rem;
+      word-break: break-all;
+    }
+    .meeting-link-cell a:hover { color: var(--gold); }
+
+    .btn-xs.confirm {
+      background: rgba(0,214,143,0.1);
+      border-color: rgba(0,214,143,0.4);
+      color: var(--success);
+    }
+    .btn-xs.confirm:hover { background: rgba(0,214,143,0.2); }
+    .btn-xs.complete {
+      background: rgba(100,150,255,0.1);
+      border-color: rgba(100,150,255,0.4);
+      color: #6496ff;
+    }
+    .btn-xs.complete:hover { background: rgba(100,150,255,0.2); }
+    .btn-xs.edit {
+      background: rgba(255,215,0,0.08);
+      border-color: rgba(255,215,0,0.3);
+      color: var(--gold);
+    }
+    .btn-xs.edit:hover { background: rgba(255,215,0,0.16); }
+
+    /* Scrollable wide table */
+    .users-table-wrap { overflow-x: auto; }
+    .users-table-wrap table { min-width: 1100px; }
+
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Admin Panel</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- Tabs -->
+      <div class="page-tabs">
+        <button class="page-tab active" id="tabUsers"       onclick="switchTab('users')">👥 Users</button>
+        <button class="page-tab"        id="tabInterviews"  onclick="switchTab('interviews')">
+          📅 Interviews <span class="tab-badge hidden" id="pendingBadge">0</span>
+        </button>
+        <button class="page-tab"        id="tabQuiz"        onclick="switchTab('quiz')">📝 Quiz</button>
+        <button class="page-tab"        id="tabProposals"   onclick="switchTab('proposals')">💡 Proposals <span class="tab-badge hidden" id="proposalsBadge">0</span></button>
+      </div>
+
+      <!-- ===== USERS TAB ===== -->
+      <div id="usersTab">
+        <div class="section-title">Overview</div>
+        <div class="admin-stats" id="adminStats"></div>
+
+        <div class="section-title">Registered Users</div>
+        <div class="users-table-wrap">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>User</th><th>Full Name</th><th>Email</th>
+                <th>Department</th><th>Position</th><th>Role</th><th>Type</th><th>Joined</th>
+                <th>Modules</th><th>Avg Score</th><th>Exam</th>
+                <th>Interview</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== QUIZ TAB ===== -->
+      <div id="quizTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Quản lý quyền làm lại quiz từng module. Nhấn <strong>↺ Reset</strong> để cho phép trainee làm lại quiz đó.
+        </p>
+        <div class="users-table-wrap">
+          <table id="quizTable" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>M1 Products</th><th>M2 Affiliate</th><th>M3 Rules</th><th>M4 Financial</th>
+                <th>M5 Payment</th><th>M6 Payouts</th><th>M7 Compliance</th>
+                <th>Reset All</th>
+              </tr>
+            </thead>
+            <tbody id="quizTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== PROPOSALS TAB ===== -->
+      <div id="proposalsTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Đề xuất chỉnh sửa từ Moderator. Phê duyệt để áp dụng thay đổi vào Question Bank.
+        </p>
+        <div id="proposalsContent"></div>
+      </div>
+
+      <!-- ===== INTERVIEWS TAB ===== -->
+      <div id="interviewsTab" class="hidden">
+        <div class="section-title">Interview Requests</div>
+        <div class="users-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Username</th><th>Full Name</th><th>Email</th>
+                <th>Preferred Slot</th><th>Timezone</th>
+                <th>Status</th><th>Meeting</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="interviewsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Interview Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>✅ Confirm Interview</h3>
+    <input type="hidden" id="confirmUsername">
+    <div class="form-group">
+      <label>Confirmed Date & Time *</label>
+      <input type="text" id="confirmedSlot" placeholder="e.g. Monday 12 May 2026, 10:00 AM UTC+7">
+    </div>
+    <div class="form-group">
+      <label>Meeting Platform *</label>
+      <select id="meetingPlatform">
+        <option value="Zoom">Zoom</option>
+        <option value="Google Meet">Google Meet</option>
+        <option value="Microsoft Teams">Microsoft Teams</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Meeting Link *</label>
+      <input type="url" id="meetingLink" placeholder="https://zoom.us/j/...">
+    </div>
+    <div class="form-group">
+      <label>Admin Notes <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <input type="text" id="adminNotes" placeholder="e.g. Please prepare your portfolio">
+    </div>
+    <div class="error-msg" id="confirmError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-success"   onclick="saveConfirmInterview()">✅ Confirm & Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>✎ Edit User Profile</h3>
+    <input type="hidden" id="editUsername">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Username</label>
+        <input type="text" id="editUsernameDisplay" disabled style="opacity:0.45;cursor:not-allowed;">
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="editFullName" placeholder="e.g. Nguyen Van A">
+      </div>
+      <div class="form-group">
+        <label>Work Name</label>
+        <input type="text" id="editWorkName" placeholder="e.g. Alex Nguyen">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Email</label>
+        <input type="email" id="editEmail" placeholder="e.g. alex@example.com">
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <input type="text" id="editDepartment" placeholder="e.g. Sales">
+      </div>
+      <div class="form-group">
+        <label>Position</label>
+        <input type="text" id="editPosition" placeholder="e.g. Sales Trainee">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="editRole">
+          <option value="trainee">Trainee</option>
+          <option value="mod">🛡️ Moderator</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Employee Type</label>
+        <select id="editEmpType">
+          <option value="new">🆕 New Employee</option>
+          <option value="old">🏅 Existed Employee</option>
+        </select>
+      </div>
+    </div>
+    <div class="error-msg" id="editUserError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditUser()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script>
+// Admin guard
+(function() {
+  const user = localStorage.getItem('wmt_user');
+  const users = getUsersDB();
+  if (!user || !users[user] || users[user].role !== 'admin') {
+    window.location.href = 'index.html';
+  }
+})();
+
+window.addEventListener('load', function() {
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
+  updateSidebarProgress();
+  renderAdminPanel();
+  renderInterviewsTable();
+});
+
+// ===== HELPERS =====
+function getUserProgress(username) {
+  return JSON.parse(localStorage.getItem('wmt_progress_' + username) || '{}');
+}
+function getExamData(username) {
+  return JSON.parse(localStorage.getItem('wmt_exam_' + username) || '{}');
+}
+function getInterviewData(username) {
+  return JSON.parse(localStorage.getItem('wmt_interview_' + username) || 'null');
+}
+function saveInterviewData(username, data) {
+  localStorage.setItem('wmt_interview_' + username, JSON.stringify(data));
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  const idx  = list.findIndex(x => x.username === username);
+  if (idx >= 0) list[idx] = data; else list.push(data);
+  localStorage.setItem('wmt_interviews_list', JSON.stringify(list));
+}
+
+// ===== TAB SWITCH =====
+function switchTab(tab) {
+  ['users','interviews','quiz','proposals'].forEach(t => {
+    document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
+  });
+  if (tab === 'quiz')      renderQuizTab();
+  if (tab === 'proposals') renderProposalsTab();
+}
+
+// ===== USERS TABLE =====
+function renderAdminPanel() {
+  const users    = getUsersDB();
+  const userList = Object.entries(users);
+
+  let totalTrainees = 0, totalCompleted = 0, totalPassed = 0, totalInterviews = 0, pendingCount = 0;
+
+  userList.forEach(([uname, udata]) => {
+    if (udata.role !== 'admin') totalTrainees++;
+    const p = getUserProgress(uname);
+    let done = 0;
+    for (let i = 1; i <= 7; i++) { if (p[`module${i}_done`]) done++; }
+    if (done === 7) totalCompleted++;
+    if (getExamData(uname).passed) totalPassed++;
+    const iv = getInterviewData(uname);
+    if (iv) { totalInterviews++; if (iv.status === 'pending') pendingCount++; }
+  });
+
+  // Update interview badge
+  const badge = document.getElementById('pendingBadge');
+  if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+
+  // Update proposals badge
+  updateProposalsBadge();
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="admin-stat-card gold">
+      <div class="admin-stat-value">${userList.length}</div>
+      <div class="admin-stat-label">Total Users</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">${totalTrainees}</div>
+      <div class="admin-stat-label">Trainees</div>
+    </div>
+    <div class="admin-stat-card green">
+      <div class="admin-stat-value">${totalCompleted}</div>
+      <div class="admin-stat-label">Modules Completed</div>
+    </div>
+    <div class="admin-stat-card blue">
+      <div class="admin-stat-value">${totalPassed}</div>
+      <div class="admin-stat-label">Exam Passed</div>
+    </div>
+    <div class="admin-stat-card warn">
+      <div class="admin-stat-value">${totalInterviews}</div>
+      <div class="admin-stat-label">Interviews Booked</div>
+    </div>`;
+
+  const tbody = document.getElementById('usersTableBody');
+  if (userList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">👤</div><div>No users found.</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = userList.map(([uname, udata]) => {
+    const p  = getUserProgress(uname);
+    const ex = getExamData(uname);
+    const iv = getInterviewData(uname);
+
+    let doneCnt = 0, scoreSum = 0, scoreCnt = 0;
+    for (let i = 1; i <= 7; i++) {
+      if (p[`module${i}_done`]) doneCnt++;
+      if (p[`module${i}_score`] !== undefined) { scoreSum += p[`module${i}_score`]; scoreCnt++; }
+    }
+    const avgScore = scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) + '%' : '—';
+    const modPct   = Math.round((doneCnt / 7) * 100);
+
+    let examBadge = '';
+    if (ex.passed) {
+      examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else if (ex.disqualified) {
+      examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
+    } else if (ex.score !== undefined) {
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1} — ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else {
+      examBadge = `<span class="exam-badge none">Not Started</span>`;
+    }
+
+    let ivCell = `<span style="color:var(--text-muted);font-size:0.8rem;">—</span>`;
+    if (iv) {
+      const colors = { pending:'var(--warning)', confirmed:'var(--success)', completed:'#6496ff', cancelled:'var(--danger)' };
+      const labels = { pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Done', cancelled:'❌ Cancelled' };
+      ivCell = `<span style="color:${colors[iv.status]||colors.pending};font-size:0.8rem;font-weight:600;">${labels[iv.status]||'⏳ Pending'}</span>`;
+    }
+
+    const joined = udata.createdAt
+      ? new Date(udata.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary)">${uname}</div>
+        ${udata.workName ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">${udata.workName}</div>` : ''}
+      </td>
+      <td style="color:var(--text-secondary)">${udata.fullName || '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.email || '—'}</td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">${udata.department || '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
+      <td><span class="role-badge ${udata.role}">${udata.role==='mod'?'🛡️ Mod':udata.role}</span></td>
+      <td>${(udata.role==='admin'||udata.role==='mod') ? '<span style="color:var(--text-muted);font-size:0.8rem;">—</span>' :
+        (udata.employeeType||'new')==='old'
+          ? `<span class="role-badge" style="background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span class="role-badge" style="background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`
+      }</td>
+      <td style="color:var(--text-muted);font-size:0.8rem;">${joined}</td>
+      <td>
+        <div class="mod-progress">
+          <div class="mod-progress-bar">
+            <div class="mod-progress-fill ${doneCnt===7?'complete':''}" style="width:${modPct}%"></div>
+          </div>
+          <span style="color:${doneCnt===7?'var(--success)':'var(--text-secondary)'};">${doneCnt}/7</span>
+        </div>
+      </td>
+      <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
+      <td>${examBadge}</td>
+      <td>${ivCell}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn-xs edit"   onclick="openEditUser('${uname}')">✎ Edit</button>
+          <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
+          <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${uname==='admin'?'disabled title="Cannot delete admin"':''}>✕ Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function resetUser(uname) {
+  if (!confirm(`Reset all progress for "${uname}"?\n\nThis will clear module progress, quiz results, exam data, and interview booking.`)) return;
+  localStorage.removeItem('wmt_progress_' + uname);
+  localStorage.removeItem('wmt_exam_'      + uname);
+  localStorage.removeItem('wmt_interview_' + uname);
+  for (let i = 1; i <= 7; i++) localStorage.removeItem(`wmt_quiz_${uname}_m${i}`);
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== PROPOSALS =====
+const EQ_MOD_NAMES = ['','Products','Affiliate & Partners','Trading Rules','Financial Products','Payment Methods','Profit & Payouts','Compliance & Risk'];
+
+function getProposals()   { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
+function saveProposals(d) { localStorage.setItem('wmt_proposals', JSON.stringify(d)); }
+
+function updateProposalsBadge() {
+  const pending = getProposals().filter(p => p.status === 'pending').length;
+  const badge = document.getElementById('proposalsBadge');
+  if (!badge) return;
+  badge.textContent = pending;
+  badge.classList.toggle('hidden', pending === 0);
+}
+
+function renderProposalsTab() {
+  const all      = getProposals().slice().reverse();
+  const pending  = all.filter(p => p.status === 'pending');
+  const reviewed = all.filter(p => p.status !== 'pending');
+  const el = document.getElementById('proposalsContent');
+
+  if (!all.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div>Chưa có đề xuất nào.</div></div>`;
+    return;
+  }
+
+  function cardHTML(p) {
+    const srcLabel = p.source === 'exam'
+      ? `Final Exam${p.action==='add'?' — Thêm câu':` — Câu #${(p.idx??0)+1} (Module ${p.proposed?.module??''} ${EQ_MOD_NAMES[p.proposed?.module]??''})`}`
+      : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Thêm câu':`— Câu #${(p.idx??0)+1}`}`;
+    const statusColor = {pending:'var(--warning)',approved:'var(--success)',rejected:'var(--danger)'}[p.status];
+    const statusLabel = {pending:'⏳ Chờ duyệt',approved:'✅ Đã duyệt',rejected:'❌ Đã từ chối'}[p.status];
+    const dt = d => d ? new Date(d).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    const origBlock = p.original
+      ? `<div class="prop-diff-box orig">
+           <div class="prop-diff-label">Bản gốc</div>
+           <div>${p.original.q || p.original.text || '—'}</div>
+           ${p.original.opts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${p.original.opts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
+           ${p.original.correct!==undefined&&p.original.opts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${p.original.opts[p.original.correct]}</div>` : ''}
+         </div>` : '';
+
+    const propQ    = p.proposed?.q || p.proposed?.text || '—';
+    const propOpts = p.proposed?.opts;
+    const propCorr = p.proposed?.correct;
+    const propBlock = `<div class="prop-diff-box prop">
+      <div class="prop-diff-label" style="color:var(--gold);">Đề xuất${p.action==='add'?' mới':''}</div>
+      <div>${propQ}</div>
+      ${propOpts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${propOpts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
+      ${propCorr!==undefined&&propOpts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${propOpts[propCorr]}</div>` : ''}
+      ${p.proposed?.type ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:4px;">Loại: ${p.proposed.type} · Điểm: ${p.proposed.points??'—'}</div>` : ''}
+    </div>`;
+
+    const noteHTML = p.note ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:10px;padding:8px 12px;background:rgba(100,150,255,0.06);border-radius:7px;">💬 <em>${p.note}</em></div>` : '';
+    const reviewHTML = p.reviewedBy ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Xem xét bởi <strong>${p.reviewedBy}</strong> — ${dt(p.reviewedAt)}${p.reviewNote?' &nbsp;·&nbsp; "'+p.reviewNote+'"':''}</div>` : '';
+
+    const actions = p.status === 'pending' ? `
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn-xs ok"  onclick="approveProposal('${p.id}')">✅ Phê duyệt</button>
+        <button class="btn-xs del" onclick="rejectProposal('${p.id}')">❌ Từ chối</button>
+      </div>` : '';
+
+    return `<div class="prop-card ${p.status}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">${srcLabel}</div>
+          <div class="prop-meta">
+            <span>👤 ${p.proposedBy}</span>
+            <span>🕐 ${dt(p.proposedAt)}</span>
+            <span style="color:${statusColor};font-weight:700;">${statusLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="prop-diff">${origBlock}${propBlock}</div>
+      ${noteHTML}${reviewHTML}${actions}
+    </div>`;
+  }
+
+  el.innerHTML = (pending.length ? `<div class="section-title" style="margin-bottom:12px;">Chờ duyệt (${pending.length})</div>${pending.map(cardHTML).join('')}` : '') +
+    (reviewed.length ? `<div class="section-title" style="margin:24px 0 12px;">Đã xem xét (${reviewed.length})</div>${reviewed.map(cardHTML).join('')}` : '');
+}
+
+function approveProposal(id) {
+  const proposals = getProposals();
+  const idx = proposals.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const p = proposals[idx];
+
+  if (p.source === 'exam') {
+    const bank = JSON.parse(localStorage.getItem('wmt_exam_qbank') || 'null');
+    if (!bank) { alert('Question bank chưa được khởi tạo. Mở trang Final Exam một lần trước.'); return; }
+    if (p.action === 'edit') bank[p.idx] = p.proposed;
+    else bank.push(p.proposed);
+    localStorage.setItem('wmt_exam_qbank', JSON.stringify(bank));
+  } else if (p.source === 'monthly') {
+    const qb = JSON.parse(localStorage.getItem('wmt_qbank_' + p.group) || 'null');
+    if (!qb) { alert('Question Bank chưa có dữ liệu. Upload file trước.'); return; }
+    if (p.action === 'edit') qb.questions[p.idx] = { ...qb.questions[p.idx], ...p.proposed };
+    else { qb.questions.push(p.proposed); qb.totalPoints = qb.questions.reduce((s,q)=>s+(q.points||0),0); }
+    localStorage.setItem('wmt_qbank_' + p.group, JSON.stringify(qb));
+  }
+
+  const curUser = localStorage.getItem('wmt_user') || '';
+  proposals[idx] = { ...p, status:'approved', reviewedBy:curUser, reviewedAt:new Date().toISOString(), reviewNote:'' };
+  saveProposals(proposals);
+  renderProposalsTab();
+  updateProposalsBadge();
+  alert('✅ Đề xuất đã được phê duyệt và áp dụng vào Question Bank.');
+}
+
+function rejectProposal(id) {
+  const note = prompt('Lý do từ chối (tùy chọn):');
+  if (note === null) return;
+  const proposals = getProposals();
+  const idx = proposals.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const curUser = localStorage.getItem('wmt_user') || '';
+  proposals[idx] = { ...proposals[idx], status:'rejected', reviewedBy:curUser, reviewedAt:new Date().toISOString(), reviewNote:note };
+  saveProposals(proposals);
+  renderProposalsTab();
+  updateProposalsBadge();
+}
+
+// ===== QUIZ TAB =====
+const MODULE_LABELS = ['Products','Affiliate','Rules','Financial','Payment','Payouts','Compliance'];
+
+function renderQuizTab() {
+  const users    = getUsersDB();
+  const trainees = Object.entries(users).filter(([,u]) => u.role === 'trainee');
+  const tbody    = document.getElementById('quizTableBody');
+
+  if (!trainees.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📝</div><div>No trainees found.</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = trainees.map(([uname, udata]) => {
+    const progress = getUserProgress(uname);
+
+    const cells = Array.from({length: 7}, (_, i) => {
+      const mid    = i + 1;
+      const result = JSON.parse(localStorage.getItem(`wmt_quiz_${uname}_m${mid}`) || 'null');
+
+      if (result) {
+        const color = result.score >= 60 ? 'var(--success)' : 'var(--danger)';
+        return `<td style="text-align:center;">
+          <div style="font-weight:700;color:${color};font-size:0.88rem;">${result.score}%</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">${result.correct}/${result.total}</div>
+          <button class="btn-xs reset" style="margin-top:4px;font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
+        </td>`;
+      }
+      if (progress[`module${mid}_done`]) {
+        const score = progress[`module${mid}_score`] ?? 0;
+        const color = score >= 60 ? 'var(--success)' : 'var(--danger)';
+        return `<td style="text-align:center;">
+          <div style="font-weight:700;color:${color};font-size:0.88rem;">${score}%</div>
+          <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:2px;">legacy</div>
+          <button class="btn-xs reset" style="font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
+        </td>`;
+      }
+      return `<td style="color:var(--text-muted);font-size:0.8rem;text-align:center;">—</td>`;
+    });
+
+    const anySubmitted = Array.from({length:7}, (_, i) => {
+      const mid = i + 1;
+      return localStorage.getItem(`wmt_quiz_${uname}_m${mid}`) || progress[`module${mid}_done`];
+    }).some(Boolean);
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary)">${uname}</div>
+        ${udata.fullName ? `<div style="font-size:0.73rem;color:var(--text-muted)">${udata.fullName}</div>` : ''}
+      </td>
+      ${cells.join('')}
+      <td style="text-align:center;">
+        <button class="btn-xs reset" onclick="resetAllQuizzes('${uname}')" ${!anySubmitted ? 'disabled' : ''}>↺ All</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function resetQuiz(uname, moduleId) {
+  if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz cho "${uname}"?\nTrainee sẽ có thể làm lại quiz này.`)) return;
+  localStorage.removeItem(`wmt_quiz_${uname}_m${moduleId}`);
+  const p = getUserProgress(uname);
+  delete p[`module${moduleId}_done`];
+  delete p[`module${moduleId}_score`];
+  localStorage.setItem('wmt_progress_' + uname, JSON.stringify(p));
+  renderQuizTab();
+  renderAdminPanel();
+}
+
+function resetAllQuizzes(uname) {
+  if (!confirm(`Reset tất cả quiz của "${uname}"?\nTrainee sẽ có thể làm lại tất cả 7 module quiz.`)) return;
+  const p = getUserProgress(uname);
+  for (let i = 1; i <= 7; i++) {
+    localStorage.removeItem(`wmt_quiz_${uname}_m${i}`);
+    delete p[`module${i}_done`];
+    delete p[`module${i}_score`];
+  }
+  localStorage.setItem('wmt_progress_' + uname, JSON.stringify(p));
+  renderQuizTab();
+  renderAdminPanel();
+}
+
+function deleteUser(uname) {
+  if (uname === 'admin') return;
+  if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
+  const users = getUsersDB();
+  delete users[uname];
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => localStorage.removeItem(k + uname));
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  if (localStorage.getItem('wmt_user') === uname) { localStorage.removeItem('wmt_user'); window.location.href = 'index.html'; return; }
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== INTERVIEWS TABLE =====
+function renderInterviewsTable() {
+  const users  = getUsersDB();
+  const tbody  = document.getElementById('interviewsTableBody');
+  const rows   = [];
+
+  Object.keys(users).forEach(uname => {
+    const iv = getInterviewData(uname);
+    if (iv) rows.push({ uname, iv });
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div><div>No interview requests yet.</div></div></td></tr>`;
+    return;
+  }
+
+  // Sort: pending first, then by submittedAt
+  rows.sort((a, b) => {
+    const order = { pending:0, confirmed:1, completed:2, cancelled:3 };
+    const oa = order[a.iv.status] ?? 9, ob = order[b.iv.status] ?? 9;
+    if (oa !== ob) return oa - ob;
+    return new Date(a.iv.submittedAt) - new Date(b.iv.submittedAt);
+  });
+
+  tbody.innerHTML = rows.map(({ uname, iv }) => {
+    const submitted = iv.submittedAt
+      ? new Date(iv.submittedAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    const statusBadge = `<span class="iv-status ${iv.status||'pending'}">${
+      {pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Completed', cancelled:'❌ Cancelled'}[iv.status] || '⏳ Pending'
+    }</span>`;
+
+    const meetingCell = iv.meetingLink
+      ? `<div class="meeting-link-cell">
+           <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:2px;">${iv.meetingPlatform||''}</div>
+           <a href="${iv.meetingLink}" target="_blank" rel="noopener">🔗 Join Link</a>
+           ${iv.confirmedSlot ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${iv.confirmedSlot}</div>` : ''}
+         </div>`
+      : `<span style="color:var(--text-muted);font-size:0.8rem;">—</span>`;
+
+    const canConfirm  = iv.status === 'pending';
+    const canComplete = iv.status === 'confirmed';
+    const canCancel   = iv.status === 'pending' || iv.status === 'confirmed';
+
+    return `<tr>
+      <td style="font-weight:600;color:var(--text-primary)">${uname}</td>
+      <td style="color:var(--text-secondary)">${iv.fullName||'—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${iv.email||'—'}</td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">${iv.preferredDate||''} ${iv.preferredTime||''}</td>
+      <td style="color:var(--text-muted);font-size:0.78rem;">${iv.timezone||'—'}</td>
+      <td>${statusBadge}<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${submitted}</div></td>
+      <td>${meetingCell}</td>
+      <td>
+        <div class="action-btns">
+          ${canConfirm  ? `<button class="btn-xs confirm"  onclick="openConfirmModal('${uname}')">✅ Confirm</button>` : ''}
+          ${canComplete ? `<button class="btn-xs complete" onclick="markCompleted('${uname}')">🏆 Done</button>` : ''}
+          ${canCancel   ? `<button class="btn-xs delete"   onclick="cancelInterview('${uname}')">✕ Cancel</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function markCompleted(uname) {
+  if (!confirm(`Mark interview for "${uname}" as completed?`)) return;
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status = 'completed';
+  saveInterviewData(uname, iv);
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+function cancelInterview(uname) {
+  if (!confirm(`Cancel interview booking for "${uname}"?`)) return;
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status = 'cancelled';
+  saveInterviewData(uname, iv);
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== CONFIRM INTERVIEW MODAL =====
+function openConfirmModal(uname) {
+  document.getElementById('confirmUsername').value = uname;
+  document.getElementById('confirmedSlot').value   = '';
+  document.getElementById('meetingLink').value     = '';
+  document.getElementById('adminNotes').value      = '';
+  document.getElementById('meetingPlatform').value = 'Zoom';
+  document.getElementById('confirmError').textContent = '';
+  document.getElementById('confirmModal').classList.add('show');
+  setTimeout(() => document.getElementById('confirmedSlot').focus(), 100);
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+}
+
+function saveConfirmInterview() {
+  const uname    = document.getElementById('confirmUsername').value;
+  const slot     = document.getElementById('confirmedSlot').value.trim();
+  const platform = document.getElementById('meetingPlatform').value;
+  const link     = document.getElementById('meetingLink').value.trim();
+  const notes    = document.getElementById('adminNotes').value.trim();
+  const err      = document.getElementById('confirmError');
+
+  err.textContent = '';
+  if (!slot) { err.textContent = 'Please enter the confirmed date & time.'; return; }
+  if (!link) { err.textContent = 'Please enter the meeting link.'; return; }
+  if (!link.startsWith('http')) { err.textContent = 'Meeting link must start with http:// or https://.'; return; }
+
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status          = 'confirmed';
+  iv.confirmedSlot   = slot;
+  iv.meetingPlatform = platform;
+  iv.meetingLink     = link;
+  iv.adminNotes      = notes;
+  iv.confirmedAt     = new Date().toISOString();
+  saveInterviewData(uname, iv);
+
+  closeConfirmModal();
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== ADD USER MODAL =====
+
+function openEditUser(uname) {
+  const users = getUsersDB();
+  const u = users[uname];
+  if (!u) return;
+  document.getElementById('editUsername').value        = uname;
+  document.getElementById('editUsernameDisplay').value = uname;
+  document.getElementById('editFullName').value        = u.fullName   || '';
+  document.getElementById('editWorkName').value        = u.workName   || '';
+  document.getElementById('editEmail').value           = u.email      || '';
+  document.getElementById('editDepartment').value      = u.department || '';
+  document.getElementById('editPosition').value        = u.position   || '';
+  document.getElementById('editRole').value            = u.role         || 'trainee';
+  document.getElementById('editEmpType').value         = u.employeeType || 'new';
+  document.getElementById('editUserError').textContent = '';
+  document.getElementById('editUserModal').classList.add('show');
+  setTimeout(() => document.getElementById('editFullName').focus(), 100);
+}
+function closeEditUser() { document.getElementById('editUserModal').classList.remove('show'); }
+
+function saveEditUser() {
+  const uname = document.getElementById('editUsername').value;
+  const users = getUsersDB();
+  if (!users[uname]) return;
+  users[uname].fullName   = document.getElementById('editFullName').value.trim();
+  users[uname].workName   = document.getElementById('editWorkName').value.trim();
+  users[uname].email      = document.getElementById('editEmail').value.trim();
+  users[uname].department = document.getElementById('editDepartment').value.trim();
+  users[uname].position   = document.getElementById('editPosition').value.trim();
+  users[uname].role         = document.getElementById('editRole').value;
+  users[uname].employeeType = document.getElementById('editEmpType').value;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  closeEditUser();
+  renderAdminPanel();
+}
+
+document.getElementById('editUserModal').addEventListener('click',  function(e) { if (e.target===this) closeEditUser(); });
+document.getElementById('confirmModal').addEventListener('click',   function(e) { if (e.target===this) closeConfirmModal(); });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); }
+  if (e.key === 'Enter') {
+    if (document.getElementById('editUserModal').classList.contains('show')) saveEditUser();
+    if (document.getElementById('confirmModal').classList.contains('show'))  saveConfirmInterview();
+  }
+});
+
+</script>
+</body>
+</html>

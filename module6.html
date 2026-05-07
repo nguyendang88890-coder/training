@@ -203,17 +203,20 @@ const questions = [
   {
     q: "What is the payout percentage for the 1st withdrawal?",
     opts: ["90%", "75%", "50%", "60%"],
-    correct: 2
+    correct: 2,
+    explain: "The 1st payout is 50%, the 2nd is 75%, and from the 3rd onwards it reaches 90%. This graduated structure rewards long-term, consistent traders."
   },
   {
     q: "From which payout number do traders receive 90% profit share (Challenge/51010)?",
     opts: ["1st", "2nd", "3rd", "5th"],
-    correct: 2
+    correct: 2,
+    explain: "The 90% profit share tier is reached from the 3rd payout onward for Challenge and 51010 plans. It's one of the highest profit splits in the funded trader industry."
   },
   {
     q: "In the 510zero plan, what profit share is earned when DLB is less than 1%?",
     opts: ["50%", "75%", "80%", "90%"],
-    correct: 3
+    correct: 3,
+    explain: "510zero rewards disciplined traders: keeping your Daily Loss Baseline (DLB) below 1% earns the maximum 90% profit share, incentivizing very tight risk management."
   },
   {
     q: "When is a refund allowed under WeMasterTrade's policy?",
@@ -223,12 +226,14 @@ const questions = [
       "After the challenge is failed",
       "Never — all sales are final"
     ],
-    correct: 1
+    correct: 1,
+    explain: "Refunds are only granted if no trades have been placed. Once a trader enters any position, the account fee is non-refundable regardless of outcome."
   },
   {
     q: "What is the 24-hour payout SLA effective date?",
     opts: ["January 1, 2026", "March 12, 2026", "April 10, 2026", "February 1, 2026"],
-    correct: 1
+    correct: 1,
+    explain: "The 24-hour payout processing SLA took effect on March 12, 2026. This means approved payout requests are processed within one business day."
   }
 ];
 

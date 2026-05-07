@@ -195,84 +195,6 @@
         </ul>
       </div>
 
-      <!-- Prohibited Behaviors -->
-      <div class="content-section">
-        <h3>🚫 Prohibited Behaviors</h3>
-        <p>The following trading behaviors are strictly forbidden and will result in immediate account termination and potential legal action:</p>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Hedging & Arbitrage</strong>
-            <p>Opening offsetting positions (long and short on the same instrument simultaneously) or attempting to exploit price discrepancies across platforms is prohibited. This includes using multiple accounts to hedge positions.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>News Trading During High-Impact Events</strong>
-            <p>Trading within 2 minutes before or after major economic announcements (NFP, FOMC, CPI, etc.) is forbidden. Traders must avoid positions that are open during these critical windows.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Scalping & Rapid Position Flipping</strong>
-            <p>Opening and closing positions within seconds or minutes purely for commission/spread manipulation is prohibited. Trades must demonstrate genuine trading intent with reasonable holding periods.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Account Sharing & Unauthorized Access</strong>
-            <p>Sharing login credentials, allowing others to trade on your account, or using someone else's account is strictly forbidden. Each account is personal and non-transferable.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Manipulation & Collusion</strong>
-            <p>Coordinating trades with other traders to manipulate prices, pump-and-dump schemes, or any form of market manipulation is illegal and will result in account closure and legal prosecution.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Excessive Leverage & Margin Abuse</strong>
-            <p>Using leverage beyond platform limits or intentionally creating margin calls to exploit system vulnerabilities is prohibited.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Withdrawal Before Completion</strong>
-            <p>Attempting to withdraw funds before completing the challenge requirements or during the evaluation period is not permitted and will result in account termination.</p>
-          </div>
-        </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⛔</span>
-          <div class="callout-content">
-            <strong>Suspicious Activity & Fraud</strong>
-            <p>Any form of fraud, identity misrepresentation, using stolen payment methods, or suspicious account activity will trigger immediate investigation and account closure.</p>
-          </div>
-        </div>
-
-        <h4>Consequences of Prohibited Behavior</h4>
-        <ul>
-          <li><strong>Immediate Account Closure</strong> — No refund of any deposits or fees</li>
-          <li><strong>Permanent Ban</strong> — Blacklisted from all WeMasterTrade programs</li>
-          <li><strong>Legal Action</strong> — Potential prosecution for fraud or market manipulation</li>
-          <li><strong>Reporting to Authorities</strong> — Suspicious activity reported to financial regulators</li>
-        </ul>
-      </div>
-
       <!-- Scale-Up Plan -->
       <div class="content-section">
         <h3>🚀 Scale-Up Plan</h3>
@@ -310,7 +232,7 @@
       <div class="quiz-section">
         <div class="quiz-header">
           <h3>📝 Module 3 Quiz</h3>
-          <span class="quiz-counter">6 Questions</span>
+          <span class="quiz-counter">5 Questions</span>
         </div>
         <div class="quiz-progress-dots" id="quizDots"></div>
         <div id="quizContainer"></div>
@@ -341,12 +263,14 @@ const questions = [
       "Best Day × Total Profit ÷ 100",
       "Daily Loss ÷ Balance × 100"
     ],
-    correct: 1
+    correct: 1,
+    explain: "PCR = (Best Day Profit ÷ Total Profit) × 100. If this exceeds 20%, one day dominated your results — violating the consistency rule. The goal is balanced, steady trading."
   },
   {
     q: "What is the maximum risk per trade for 51010 and Funded accounts?",
     opts: ["2%", "5%", "1%", "3%"],
-    correct: 2
+    correct: 2,
+    explain: "51010 and Funded accounts have a stricter 1% max risk per trade. Standard Challenge accounts allow 2%. This tighter rule protects funded capital."
   },
   {
     q: "The Daily Loss Limit is calculated from which value?",
@@ -356,7 +280,8 @@ const questions = [
       "The HIGHER of yesterday's closing balance or current equity",
       "The LOWER of balance or equity"
     ],
-    correct: 2
+    correct: 2,
+    explain: "The baseline uses the HIGHER of yesterday's closing balance or current equity. This prevents traders from locking in large gains and then risking them all the next day."
   },
   {
     q: "When a trader hits the Daily Loss Limit, what happens?",
@@ -366,22 +291,14 @@ const questions = [
       "Trading is paused for the rest of that day only (not a violation)",
       "A $50 penalty is charged"
     ],
-    correct: 2
+    correct: 2,
+    explain: "Hitting the DLL pauses trading for that calendar day only — it is NOT a rule violation or account breach. Trading resumes the next day normally."
   },
   {
     q: "How long must a trader wait before re-trading the same symbol after a losing position?",
     opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
-    correct: 1
-  },
-  {
-    q: "Which of the following is a prohibited behavior?",
-    opts: [
-      "Trading during normal market hours",
-      "Using stop-loss orders",
-      "Opening offsetting long and short positions on the same instrument",
-      "Using technical analysis for trading decisions"
-    ],
-    correct: 2
+    correct: 1,
+    explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol. This cooling-off rule prevents emotional revenge trading."
   }
 ];
 

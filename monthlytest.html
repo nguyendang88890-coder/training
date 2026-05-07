@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly Test | WMT Training</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.mt-hero {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 28px 32px; margin-bottom: 24px; position: relative; overflow: hidden;
+}
+.mt-hero::before {
+  content: ''; position: absolute; top:-40px; right:-40px; width:200px; height:200px;
+  background: radial-gradient(circle, rgba(255,215,0,0.06) 0%, transparent 70%); pointer-events:none;
+}
+.mt-status {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 14px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;
+}
+.mt-status.upcoming { background: rgba(100,150,255,0.15); color: #6496ff; }
+.mt-status.active   { background: rgba(0,214,143,0.15); color: var(--success); animation: mtpulse 2s infinite; }
+.mt-status.expired  { background: rgba(255,61,113,0.1); color: var(--danger); }
+.mt-status.none     { background: rgba(90,90,120,0.18); color: var(--text-muted); }
+@keyframes mtpulse { 0%,100%{opacity:1} 50%{opacity:.65} }
+
+.mt-title { font-size: 1.25rem; font-weight: 700; color: var(--gold); margin-bottom: 14px; }
+.mt-meta  { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; margin-top: 14px; }
+.mt-meta-item .lbl { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+.mt-meta-item .val { font-size: 0.88rem; color: var(--text-primary); font-weight: 500; }
+
+.countdown { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+.cd-unit { background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.15); border-radius: 10px; padding: 10px 16px; text-align: center; min-width: 58px; }
+.cd-num  { font-size: 1.5rem; font-weight: 800; color: var(--gold); line-height: 1; }
+.cd-lbl  { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+
+.test-link-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px;
+  background: linear-gradient(135deg, var(--gold), #FFA500); color: #0a0a16; font-weight: 800;
+  font-size: 0.95rem; border-radius: 10px; text-decoration: none; margin-top: 18px;
+  transition: opacity .2s, transform .1s; border: none; cursor: pointer;
+}
+.test-link-btn:hover { opacity: .88; transform: translateY(-1px); color: #0a0a16; }
+.test-link-btn.locked { background: rgba(255,255,255,0.07); color: var(--text-muted); cursor: not-allowed; transform: none; pointer-events: none; }
+
+/* Reschedule */
+.reschedule-card { background: rgba(100,150,255,0.05); border: 1px solid rgba(100,150,255,0.2); border-radius: 12px; padding: 22px; margin-bottom: 24px; }
+.reschedule-card h4 { color: #6496ff; margin-bottom: 12px; font-size: 1rem; }
+
+/* Config */
+.config-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 26px; margin-bottom: 24px; }
+.config-card h4 { color: var(--gold); margin-bottom: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+@media (max-width:600px) { .form-row { grid-template-columns: 1fr; } }
+
+.test-cfg-row {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px;
+  margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.test-cfg-month { font-weight: 700; color: var(--gold); }
+.test-cfg-info  { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+/* Scores table */
+.score-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 28px; }
+.score-section-hdr { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.score-section-hdr-left { display: flex; align-items: center; gap: 10px; }
+.score-section-icon { font-size: 1.4rem; }
+.score-section-title { font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+.score-section-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+.score-section-bdcs .score-section-hdr { background: rgba(100,150,255,0.05); border-bottom-color: rgba(100,150,255,0.2); }
+.score-section-bdcs .score-section-title { color: #6496ff; }
+.score-section-others .score-section-hdr { background: rgba(255,215,0,0.04); border-bottom-color: rgba(255,215,0,0.15); }
+.score-section-others .score-section-title { color: var(--gold); }
+.score-section-body { overflow-x: auto; }
+.score-section-body table { min-width: 680px; font-size: 0.84rem; width: 100%; }
+.score-section-body thead th { background: var(--bg-secondary); padding: 10px 13px; text-align: left; white-space: nowrap; font-size: 0.78rem; color: var(--text-muted); }
+.score-section-body tbody td { padding: 10px 13px; vertical-align: middle; border-top: 1px solid var(--border); }
+.score-section-empty { padding: 24px 20px; color: var(--text-muted); font-size: 0.84rem; text-align: center; }
+
+.score-inp { width: 68px; padding: 5px 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; text-align: center; }
+.score-inp:focus { outline: none; border-color: var(--gold); }
+
+.pf-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+.pf-badge.pass { background: rgba(0,214,143,0.15); color: var(--success); }
+.pf-badge.fail { background: rgba(255,61,113,0.12); color: var(--danger); }
+.pf-badge.none { background: rgba(90,90,120,0.15); color: var(--text-muted); }
+
+/* History */
+.hist-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; }
+.hist-wrap table { min-width: 580px; font-size: 0.84rem; width: 100%; }
+.hist-wrap thead th { background: var(--bg-secondary); padding: 11px 14px; text-align: left; }
+.hist-wrap tbody td { padding: 10px 14px; vertical-align: middle; border-top: 1px solid var(--border); }
+
+/* Reschedule request cards */
+.rsched-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+.rsched-hdr  { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+
+/* Export + inline action btns */
+.export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; border: 1px solid; cursor: pointer; transition: all .15s; }
+.export-btn.xl  { background: rgba(0,214,143,0.08); border-color: rgba(0,214,143,0.35); color: var(--success); }
+.export-btn.xl:hover { background: rgba(0,214,143,0.18); }
+.btn-xs { padding: 4px 11px; font-size: 0.74rem; border-radius: 6px; font-weight: 600; cursor: pointer; border: 1px solid; transition: all .15s; white-space: nowrap; }
+.btn-xs.ok  { background: rgba(0,214,143,0.1); border-color: rgba(0,214,143,0.4); color: var(--success); }
+.btn-xs.ok:hover  { background: rgba(0,214,143,0.2); }
+.btn-xs.del { background: rgba(255,61,113,0.1); border-color: rgba(255,61,113,0.4); color: var(--danger); }
+.btn-xs.del:hover { background: rgba(255,61,113,0.2); }
+.btn-xs.edi { background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.3); color: var(--gold); }
+.btn-xs.edi:hover { background: rgba(255,215,0,0.16); }
+.btn-xs.app { background: rgba(0,214,143,0.1); border-color: rgba(0,214,143,0.4); color: var(--success); }
+.btn-xs.app:hover { background: rgba(0,214,143,0.2); }
+.btn-xs.rej { background: rgba(255,61,113,0.1); border-color: rgba(255,61,113,0.4); color: var(--danger); }
+.btn-xs.rej:hover { background: rgba(255,61,113,0.2); }
+.btn-danger  { background: rgba(255,61,113,0.15); border: 1px solid rgba(255,61,113,0.4); color: var(--danger); border-radius: 8px; cursor: pointer; font-weight: 700; transition: background .15s; }
+.btn-danger:hover { background: rgba(255,61,113,0.25); }
+
+.month-sel, .trainee-sel {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+  padding: 8px 14px; border-radius: 8px; font-size: 0.88rem;
+}
+.month-sel:focus, .trainee-sel:focus { outline: none; border-color: var(--gold); }
+.empty-state { text-align:center; padding: 40px 24px; color: var(--text-muted); }
+
+/* Question Bank */
+.qbank-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.qbank-card-hdr { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.qbank-card-hdr h4 { margin: 0; font-size: 0.9rem; }
+.qbank-card-bdcs h4 { color: #6496ff; }
+.qbank-card-others h4 { color: var(--gold); }
+.qbank-card-body { padding: 18px 20px; }
+.upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; transition: all .2s; margin-bottom: 14px; }
+.upload-zone:hover { border-color: var(--gold); background: rgba(255,215,0,0.03); }
+.qbank-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.qbank-stat { background: var(--bg-secondary); border-radius: 8px; padding: 6px 12px; font-size: 0.78rem; color: var(--text-secondary); }
+.qbank-stat strong { color: var(--gold); }
+.qbank-preview { max-height: 260px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+.qbank-q-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+.qbank-q-row:last-child { border-bottom: none; }
+.qbank-q-num { font-weight: 700; color: var(--text-muted); min-width: 22px; }
+.qbank-q-text { flex: 1; color: var(--text-secondary); }
+.qbank-tag { border-radius: 4px; padding: 1px 7px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+.qbank-tag.essay { background: rgba(100,150,255,0.12); color: #6496ff; }
+.qbank-tag.liet  { background: rgba(255,61,113,0.1); color: var(--danger); }
+.qbank-tag.mcq   { background: rgba(255,215,0,0.08); color: var(--gold); }
+.qbank-tag.pts   { background: rgba(90,90,120,0.15); color: var(--text-muted); }
+
+/* Test Preview Modal */
+.preview-q-wrap { padding: 0; }
+.preview-q-item { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.preview-q-item:last-child { border-bottom: none; }
+.preview-q-hdr { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.preview-q-num { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); min-width: 26px; }
+.preview-q-type-badge { font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.preview-q-type-mcq   { background: rgba(255,215,0,0.1); color: var(--gold); }
+.preview-q-type-essay { background: rgba(100,150,255,0.12); color: #6496ff; }
+.preview-q-liet  { background: rgba(255,61,113,0.1); color: var(--danger); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.preview-q-pts   { background: rgba(90,90,120,0.15); color: var(--text-muted); font-size: 0.68rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.preview-q-text { font-size: 0.9rem; color: var(--text-primary); line-height: 1.55; margin-bottom: 10px; }
+.preview-q-opts { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.preview-q-opt  { display: flex; align-items: flex-start; gap: 8px; font-size: 0.84rem; padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border); }
+.preview-q-opt.correct { background: rgba(0,214,143,0.08); border-color: rgba(0,214,143,0.4); color: var(--success); font-weight: 600; }
+.preview-q-opt-lbl { font-weight: 700; min-width: 18px; }
+.preview-q-rubric { font-size: 0.78rem; color: var(--text-muted); background: rgba(100,150,255,0.05); border-radius: 7px; padding: 8px 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Monthly Test</span>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- ===== ADMIN VIEW ===== -->
+      <div id="adminView" class="hidden">
+        <div class="page-tabs">
+          <button class="page-tab active" id="tabSetup"      onclick="switchAdminTab('Setup')">⚙️ Test Setup</button>
+          <button class="page-tab"        id="tabScores"     onclick="switchAdminTab('Scores')">📊 Scores</button>
+          <button class="page-tab"        id="tabHistory"    onclick="switchAdminTab('History')">📋 Trainee History</button>
+          <button class="page-tab"        id="tabReschedule" onclick="switchAdminTab('Reschedule')">
+            🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span>
+          </button>
+          <button class="page-tab" id="tabQBank" onclick="switchAdminTab('QBank')">📚 Question Bank</button>
+        </div>
+        <div id="adminSetupTab"></div>
+        <div id="adminScoresTab"     class="hidden"></div>
+        <div id="adminHistoryTab"    class="hidden"></div>
+        <div id="adminRescheduleTab" class="hidden"></div>
+        <div id="adminQBankTab" class="hidden"></div>
+      </div>
+
+      <!-- ===== MOD VIEW ===== -->
+      <div id="modView" class="hidden">
+        <div class="page-tabs">
+          <button class="page-tab active" id="tabModQBank"    onclick="switchModTab('QBank')">📚 Question Bank</button>
+          <button class="page-tab"        id="tabModSchedule" onclick="switchModTab('Schedule')">📅 Test Schedule</button>
+        </div>
+        <div id="modQBankTab"></div>
+        <div id="modScheduleTab" class="hidden"></div>
+      </div>
+
+      <!-- ===== TRAINEE VIEW ===== -->
+      <div id="traineeView" class="hidden">
+        <div id="currentTestCard"></div>
+        <div id="rescheduleSection"></div>
+        <div class="section-title">My Test History</div>
+        <div id="traineeHistoryWrap"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="module-common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ===== DATA =====
+const MC_KEY = 'wmt_monthly_config';
+const MS_KEY = 'wmt_monthly_scores';
+function getMC()      { return JSON.parse(localStorage.getItem(MC_KEY) || '{}'); }
+function saveMC(d)    { localStorage.setItem(MC_KEY, JSON.stringify(d)); }
+function getMS()      { return JSON.parse(localStorage.getItem(MS_KEY) || '{}'); }
+function saveMS(d)    { localStorage.setItem(MS_KEY, JSON.stringify(d)); }
+function getRS(u)     { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
+function saveRS(u,d)  { localStorage.setItem('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
+
+const CUR_USER = localStorage.getItem('wmt_user') || '';
+const ALL_USERS= getUsersDB();
+const IS_ADMIN = ALL_USERS[CUR_USER] && ALL_USERS[CUR_USER].role === 'admin';
+const IS_MOD   = ALL_USERS[CUR_USER] && ALL_USERS[CUR_USER].role === 'mod';
+
+function isBDCS(dept) {
+  if (!dept) return false;
+  const d = dept.toLowerCase().trim();
+  return d==='bd' || d.includes('business dev') || d==='cs' || d.includes('customer serv');
+}
+function fmtDT(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtMonth(m) {
+  if (!m) return '—';
+  const [y,mo] = m.split('-');
+  return new Date(+y,+mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+}
+function getStatus(cfg) {
+  // Admin overview: active if ANY group is active, upcoming if ANY group is upcoming
+  if (!cfg) return 'none';
+  const now=Date.now();
+  const starts=[cfg.startDateBDCS,cfg.startDateOthers].filter(Boolean).map(d=>new Date(d).getTime());
+  const ends=[cfg.deadlineBDCS,cfg.deadlineOthers].filter(Boolean).map(d=>new Date(d).getTime());
+  if (!starts.length) return 'none';
+  if (starts.some(s=>ends.some(e=>now>=s&&now<=e))) return 'active';
+  if (starts.some(s=>now<s)) return 'upcoming';
+  return 'expired';
+}
+function getStatusFor(cfg, isBDCSUser) {
+  if (!cfg) return 'none';
+  const s=isBDCSUser?cfg.startDateBDCS:cfg.startDateOthers;
+  const e=isBDCSUser?cfg.deadlineBDCS:cfg.deadlineOthers;
+  if (!s) return 'none';
+  const now=Date.now();
+  return now<new Date(s).getTime()?'upcoming':now<=new Date(e).getTime()?'active':'expired';
+}
+function curMonth() {
+  const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// ===== QUESTION BANK =====
+function getQBank(group)         { return JSON.parse(localStorage.getItem('wmt_qbank_'+group)||'null'); }
+function saveQBank(group, data)  { localStorage.setItem('wmt_qbank_'+group, JSON.stringify(data)); }
+function getGenTest(group, month){ return JSON.parse(localStorage.getItem(`wmt_gentest_${group}_${month}`)||'null'); }
+function saveGenTest(g, m, d)    { localStorage.setItem(`wmt_gentest_${g}_${m}`, JSON.stringify(d)); }
+function delGenTest(g, m)        { localStorage.removeItem(`wmt_gentest_${g}_${m}`); }
+
+// Question counts per test type
+const TEST_QUOTA = { bdcs: { mcq: 55, essay: 5 }, others: { mcq: 100 } };
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length-1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generateTest(month) {
+  const results = { bdcs: null, others: null };
+
+  // BD/CS
+  const qbBDCS = getQBank('bdcs');
+  if (qbBDCS?.questions?.length) {
+    const mcqPool   = shuffle(qbBDCS.questions.filter(q=>q.type==='MCQ'));
+    const essayPool = shuffle(qbBDCS.questions.filter(q=>q.type==='Essay'));
+    const pickedMCQ   = mcqPool.slice(0, TEST_QUOTA.bdcs.mcq);
+    const pickedEssay = essayPool.slice(0, TEST_QUOTA.bdcs.essay);
+    if (!pickedMCQ.length && !pickedEssay.length) {
+      results.bdcs = { error: 'Không có câu hỏi nào trong bank BD/CS.' };
+    } else {
+      const questions = shuffle([...pickedMCQ, ...pickedEssay]);
+      const totalPts  = questions.reduce((s,q)=>s+q.points, 0);
+      saveGenTest('bdcs', month, {
+        month, generatedAt: new Date().toISOString(),
+        questions, totalPoints: totalPts,
+        mcqCount: pickedMCQ.length, essayCount: pickedEssay.length
+      });
+      results.bdcs = { mcq: pickedMCQ.length, essay: pickedEssay.length };
+    }
+  }
+
+  // Others
+  const qbOthers = getQBank('others');
+  if (qbOthers?.questions?.length) {
+    const mcqPool = shuffle(qbOthers.questions.filter(q=>q.type==='MCQ'));
+    const picked  = mcqPool.slice(0, TEST_QUOTA.others.mcq);
+    if (!picked.length) {
+      results.others = { error: 'Không có câu hỏi nào trong bank Others.' };
+    } else {
+      const questions = shuffle(picked);
+      const totalPts  = questions.reduce((s,q)=>s+q.points, 0);
+      saveGenTest('others', month, {
+        month, generatedAt: new Date().toISOString(),
+        questions, totalPoints: totalPts,
+        mcqCount: picked.length, essayCount: 0
+      });
+      results.others = { mcq: picked.length };
+    }
+  }
+
+  return results;
+}
+
+function regenTest(m) {
+  if (!confirm(`Tạo lại đề thi cho ${fmtMonth(m)}?\n\nLưu ý: Nếu đã có trainee đang làm bài, họ sẽ gặp lỗi. Nên regenerate trước khi kỳ thi bắt đầu.`)) return;
+  const r = generateTest(m);
+  const msgs = [];
+  if (r.bdcs?.error)   msgs.push('BD/CS: ' + r.bdcs.error);
+  if (r.others?.error) msgs.push('Others: ' + r.others.error);
+  if (r.bdcs && !r.bdcs.error)   msgs.push(`✅ BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} tự luận`);
+  if (r.others && !r.others.error) msgs.push(`✅ Others: ${r.others.mcq} MCQ`);
+  if (!r.bdcs && !r.others) msgs.push('⚠️ Chưa có bộ đề nào được upload.');
+  alert('Kết quả tạo đề:\n\n' + msgs.join('\n'));
+  renderSetupTab();
+}
+function getSubmission(un, month) { return JSON.parse(localStorage.getItem('wmt_sub_'+un+'_'+month)||'null'); }
+function saveSubmission(un, month, data) { localStorage.setItem('wmt_sub_'+un+'_'+month, JSON.stringify(data)); }
+
+function renderQBankTab() {
+  const el = document.getElementById('adminQBankTab');
+  el.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">
+        Upload file Excel/CSV với các cột: <strong>Question, Type (MCQ/Essay), A, B, C, D, Answer, Points, Liet, Rubric</strong>.<br>
+        Khi file được cập nhật và upload lại, bộ đề sẽ tự động thay đổi cho lần thi tiếp theo.
+      </p>
+    </div>
+    ${renderQBankSection('bdcs','🏢','BD & CS','qbank-card-bdcs', true)}
+    ${renderQBankSection('others','🏛️','Other Departments','qbank-card-others', false)}`;
+}
+
+function renderQBankSection(group, icon, label, cls, allowEssay) {
+  const qb = getQBank(group);
+  const statsHTML = qb ? (() => {
+    const mcq   = qb.questions.filter(q=>q.type==='MCQ').length;
+    const essay = qb.questions.filter(q=>q.type==='Essay').length;
+    const liet  = qb.questions.filter(q=>q.isLiet).length;
+    return `<div class="qbank-stats">
+      <div class="qbank-stat">Tổng câu: <strong>${qb.questions.length}</strong></div>
+      <div class="qbank-stat">MCQ: <strong>${mcq}</strong></div>
+      ${allowEssay?`<div class="qbank-stat">Tự luận: <strong>${essay}</strong></div>`:''}
+      <div class="qbank-stat">Điểm liệt: <strong>${liet}</strong></div>
+      <div class="qbank-stat">Tổng điểm: <strong>${qb.totalPoints}</strong></div>
+      <div class="qbank-stat" style="color:var(--text-muted);">Cập nhật: ${new Date(qb.updatedAt).toLocaleString('vi-VN')}</div>
+    </div>
+    <div class="qbank-preview">
+      ${qb.questions.map((q,i)=>`
+        <div class="qbank-q-row">
+          <span class="qbank-q-num">${i+1}.</span>
+          <span class="qbank-q-text">${q.text.length>80?q.text.slice(0,80)+'…':q.text}</span>
+          <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Tự luận':'MCQ'}</span>
+          ${q.isLiet?'<span class="qbank-tag liet">Liệt</span>':''}
+          <span class="qbank-tag pts">${q.points}đ</span>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;">
+      <button class="btn-xs del" onclick="clearQBank('${group}')">✕ Xóa bộ đề</button>
+    </div>`;
+  })() : `<div style="color:var(--text-muted);font-size:0.84rem;padding:8px 0;">Chưa có bộ đề. Upload file để bắt đầu.</div>`;
+
+  return `<div class="qbank-card ${cls}">
+    <div class="qbank-card-hdr">
+      <h4>${icon} ${label}</h4>
+    </div>
+    <div class="qbank-card-body">
+      <label class="upload-zone" onclick="document.getElementById('qbFile_${group}').click()">
+        <input type="file" id="qbFile_${group}" accept=".xlsx,.xls,.csv" style="display:none"
+          onchange="parseQBankFile(this.files[0],'${group}',${allowEssay})">
+        <div style="font-size:1.8rem;margin-bottom:6px;">📂</div>
+        <div style="font-size:0.84rem;color:var(--text-secondary);">Click để chọn file Excel/CSV</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">.xlsx, .xls, .csv</div>
+      </label>
+      ${statsHTML}
+    </div>
+  </div>`;
+}
+
+function clearQBank(group) {
+  if (!confirm('Xóa toàn bộ bộ đề này?')) return;
+  localStorage.removeItem('wmt_qbank_'+group);
+  renderQBankTab();
+}
+
+function parseQBankFile(file, group, allowEssay) {
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { alert('SheetJS chưa load, thử lại sau.'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb  = XLSX.read(e.target.result, {type:'binary'});
+      const ws  = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (raw.length < 2) { alert('File không có dữ liệu.'); return; }
+      const hdr = raw[0].map(h=>String(h).toLowerCase().replace(/[_\s]/g,''));
+      const col = (...names) => { for (const n of names) { const i=hdr.indexOf(n); if(i>=0) return i; } return -1; };
+      const qCol  = col('question','câuhỏi','cauhoi','q','nộidung');
+      const tCol  = col('type','loại','loai','dạng','dang');
+      const aCol  = col('a','optiona','a.');
+      const bCol  = col('b','optionb','b.');
+      const cCol  = col('c','optionc','c.');
+      const dCol  = col('d','optiond','d.');
+      const ansCol = col('answer','đápán','dapan','correct','ans','đúng');
+      const ptsCol = col('points','điểm','diem','pts','score','đ');
+      const lietCol = col('liet','liệt','isliet','điểmliệt','kl');
+      const rubricCol = col('rubric','tiêuchí','tieuchi','criteria','hướngdẫn');
+      if (qCol < 0) { alert('Không tìm thấy cột câu hỏi. Kiểm tra lại tên cột.'); return; }
+      const questions = [];
+      for (let i=1; i<raw.length; i++) {
+        const row = raw[i];
+        const text = String(row[qCol]||'').trim();
+        if (!text) continue;
+        const typeStr = String(row[tCol]||'mcq').toLowerCase();
+        const isEssay = allowEssay && (typeStr.includes('essay')||typeStr.includes('tự')||typeStr.includes('tu')||typeStr.includes('luận'));
+        const lietStr = String(row[lietCol]||'').toLowerCase();
+        const isLiet  = lietStr.includes('y')||lietStr.includes('có')||lietStr.includes('co')||lietStr==='1'||lietStr==='true';
+        questions.push({
+          id: i,
+          text,
+          type: isEssay ? 'Essay' : 'MCQ',
+          opts: isEssay ? null : { A:String(row[aCol]||''), B:String(row[bCol]||''), C:String(row[cCol]||''), D:String(row[dCol]||'') },
+          correct: isEssay ? null : String(row[ansCol]||'').toUpperCase().trim().charAt(0),
+          points: parseFloat(row[ptsCol])||0,
+          isLiet,
+          rubric: String(row[rubricCol]||'')
+        });
+      }
+      if (!questions.length) { alert('Không parse được câu hỏi nào.'); return; }
+      const totalPoints = questions.reduce((s,q)=>s+q.points,0);
+      saveQBank(group, { updatedAt:new Date().toISOString(), totalPoints, questions });
+
+      // Auto-regenerate tests for all configured months
+      const months = Object.keys(getMC());
+      let regenCount = 0;
+      months.forEach(m => {
+        const r = generateTest(m);
+        if ((group==='bdcs' && r.bdcs && !r.bdcs.error) ||
+            (group==='others' && r.others && !r.others.error)) regenCount++;
+      });
+      const regenMsg = regenCount > 0
+        ? `\n✅ Đã tạo lại đề cho ${regenCount} tháng: ${months.join(', ')}`
+        : '\n⚠️ Chưa có tháng thi nào được cấu hình.';
+      alert(`Upload thành công: ${questions.length} câu hỏi, ${totalPoints} điểm.${regenMsg}`);
+      renderQBankTab();
+    } catch(err) { alert('Lỗi đọc file: '+err.message); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ===== MOD VIEW =====
+function switchModTab(name) {
+  ['QBank','Schedule'].forEach(t => {
+    document.getElementById('mod'+t+'Tab').classList.toggle('hidden', t !== name);
+    document.getElementById('tabMod'+t).classList.toggle('active', t === name);
+  });
+  if (name === 'Schedule') renderModScheduleTab();
+}
+
+function renderModQBankTab() {
+  const inputStyle = 'width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:0.88rem;box-sizing:border-box;';
+  const el = document.getElementById('modQBankTab');
+
+  function sectionHTML(group, icon, label) {
+    const qb = getQBank(group);
+    if (!qb) return `<div class="qbank-card" style="margin-bottom:20px;">
+      <div class="qbank-card-hdr"><h4>${icon} ${label}</h4></div>
+      <div class="qbank-card-body" style="color:var(--text-muted);font-size:0.84rem;">Chưa có bộ đề. Admin cần upload file trước.</div>
+    </div>`;
+
+    const rows = qb.questions.map((q,i) => `
+      <div class="qbank-q-row" style="align-items:center;">
+        <span class="qbank-q-num">${i+1}.</span>
+        <span class="qbank-q-text">${q.text.length>90?q.text.slice(0,90)+'…':q.text}</span>
+        <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Tự luận':'MCQ'}</span>
+        ${q.isLiet?'<span class="qbank-tag liet">Liệt</span>':''}
+        <span class="qbank-tag pts">${q.points}đ</span>
+        <button class="btn-xs edi" style="margin-left:6px;flex-shrink:0;" onclick="openProposeMonthlyEditQ('${group}',${i})">💡 Đề xuất</button>
+      </div>`).join('');
+
+    const mcq   = qb.questions.filter(q=>q.type==='MCQ').length;
+    const essay = qb.questions.filter(q=>q.type==='Essay').length;
+    const liet  = qb.questions.filter(q=>q.isLiet).length;
+
+    return `<div class="qbank-card" style="margin-bottom:20px;">
+      <div class="qbank-card-hdr" style="flex-wrap:wrap;gap:10px;">
+        <h4>${icon} ${label}</h4>
+        <button class="btn-xs edi" onclick="openProposeMonthlyAddQ('${group}')">💡 Đề xuất thêm câu</button>
+      </div>
+      <div class="qbank-card-body">
+        <div class="qbank-stats">
+          <div class="qbank-stat">Tổng: <strong>${qb.questions.length}</strong></div>
+          <div class="qbank-stat">MCQ: <strong>${mcq}</strong></div>
+          ${essay?`<div class="qbank-stat">Tự luận: <strong>${essay}</strong></div>`:''}
+          <div class="qbank-stat">Liệt: <strong>${liet}</strong></div>
+          <div class="qbank-stat">Tổng điểm: <strong>${qb.totalPoints}</strong></div>
+          <div class="qbank-stat" style="color:var(--text-muted);">Cập nhật: ${new Date(qb.updatedAt).toLocaleString('vi-VN')}</div>
+        </div>
+        <div class="qbank-preview">${rows}</div>
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML = `
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Chế độ xem — bạn có thể đề xuất chỉnh sửa để Admin xem xét và phê duyệt.</p>
+    ${sectionHTML('bdcs','🏢','BD & CS')}
+    ${sectionHTML('others','🏛️','Other Departments')}`;
+}
+
+function renderModScheduleTab() {
+  const el = document.getElementById('modScheduleTab');
+  const mc = getMC();
+  const months = Object.keys(mc).sort();
+  if (!months.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div>Chưa có lịch thi nào được cấu hình.</div></div>`;
+    return;
+  }
+  const rows = months.map(m => {
+    const cfg = mc[m];
+    const status = getStatus(cfg);
+    const statusLabel = {active:'🟢 Đang diễn ra',upcoming:'🔵 Sắp tới',expired:'⚫ Đã kết thúc',none:'—'}[status]||'—';
+    return `<div class="test-cfg-row">
+      <div>
+        <div class="test-cfg-month">${fmtMonth(m)}</div>
+        <div class="test-cfg-info">BD/CS: ${cfg.startDateBDCS?fmtDT(cfg.startDateBDCS):'—'} → ${cfg.deadlineBDCS?fmtDT(cfg.deadlineBDCS):'—'}</div>
+        <div class="test-cfg-info">Others: ${cfg.startDateOthers?fmtDT(cfg.startDateOthers):'—'} → ${cfg.deadlineOthers?fmtDT(cfg.deadlineOthers):'—'}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:0.82rem;">${statusLabel}</span>
+        <button class="btn-xs edi" onclick="openProposeSchedule('${m}')">💡 Đề xuất chỉnh sửa</button>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Lịch thi hiện tại (chỉ xem). Đề xuất chỉnh sửa để Admin xem xét.</p>${rows}`;
+}
+
+// Proposal helpers
+function getProposals()  { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
+function addProposal(p)  { const ps = getProposals(); ps.push(p); localStorage.setItem('wmt_proposals', JSON.stringify(ps)); }
+
+function _monthlyPropModal(title, group, q, idx, isNew) {
+  const ex = document.getElementById('mPropModal'); if (ex) ex.remove();
+  const s = 'width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:0.88rem;box-sizing:border-box;';
+  const modal = document.createElement('div');
+  modal.id = 'mPropModal'; modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:540px;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin-bottom:6px;">${title}</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Đề xuất sẽ được Admin xem xét. Bộ đề gốc giữ nguyên cho đến khi được phê duyệt.</div>
+    <div class="form-group"><label>Nội dung câu hỏi</label>
+      <textarea id="mpQ" rows="3" style="${s}resize:vertical;">${q?q.text:''}</textarea></div>
+    <div class="form-group"><label>Loại</label>
+      <select id="mpType" style="${s}">
+        <option value="MCQ" ${!q||q.type==='MCQ'?'selected':''}>MCQ (Trắc nghiệm)</option>
+        <option value="Essay" ${q&&q.type==='Essay'?'selected':''}>Tự luận</option>
+      </select></div>
+    <div class="form-group"><label>Đáp án A</label><input id="mpA" style="${s}" value="${q&&q.opts?q.opts.A:''}"></div>
+    <div class="form-group"><label>Đáp án B</label><input id="mpB" style="${s}" value="${q&&q.opts?q.opts.B:''}"></div>
+    <div class="form-group"><label>Đáp án C</label><input id="mpC" style="${s}" value="${q&&q.opts?q.opts.C:''}"></div>
+    <div class="form-group"><label>Đáp án D</label><input id="mpD" style="${s}" value="${q&&q.opts?q.opts.D:''}"></div>
+    <div class="form-group"><label>Đáp án đúng</label>
+      <select id="mpCorrect" style="${s}">
+        ${['A','B','C','D'].map(l=>`<option value="${l}" ${q&&q.correct===l?'selected':''}>${l}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label>Điểm</label>
+      <input type="number" id="mpPts" style="${s}" value="${q?q.points:0}" min="0" step="0.5"></div>
+    <div class="form-group"><label>Lý do / Ghi chú cho Admin</label>
+      <textarea id="mpNote" rows="2" placeholder="Giải thích lý do đề xuất…" style="${s}resize:vertical;"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('mPropModal').remove()">Hủy</button>
+      <button class="btn btn-primary" onclick="submitMonthlyProposal('${group}',${isNew?'null':idx},${isNew})">📩 Gửi đề xuất</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function openProposeMonthlyEditQ(group, idx) {
+  const qb = getQBank(group); if (!qb) return;
+  _monthlyPropModal(`💡 Đề xuất chỉnh sửa câu #${idx+1} (${group.toUpperCase()})`, group, qb.questions[idx], idx, false);
+}
+function openProposeMonthlyAddQ(group) {
+  _monthlyPropModal(`💡 Đề xuất thêm câu (${group.toUpperCase()})`, group, null, null, true);
+}
+
+function openProposeSchedule(month) {
+  const note = prompt(`Đề xuất chỉnh sửa lịch thi ${fmtMonth(month)}:\n\nMô tả thay đổi bạn muốn đề xuất:`);
+  if (!note) return;
+  const mc = getMC();
+  addProposal({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    source: 'monthly',
+    action: 'schedule',
+    proposedBy: CUR_USER,
+    proposedAt: new Date().toISOString(),
+    status: 'pending',
+    reviewedBy: null, reviewedAt: null, reviewNote: '',
+    note,
+    idx: null, group: null,
+    original: { month, config: mc[month] },
+    proposed: { month, description: note }
+  });
+  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+}
+
+function submitMonthlyProposal(group, idx, isNew) {
+  const text = document.getElementById('mpQ').value.trim();
+  if (!text) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
+  const proposed = {
+    text,
+    type:    document.getElementById('mpType').value,
+    opts:    { A: document.getElementById('mpA').value.trim(), B: document.getElementById('mpB').value.trim(),
+               C: document.getElementById('mpC').value.trim(), D: document.getElementById('mpD').value.trim() },
+    correct: document.getElementById('mpCorrect').value,
+    points:  parseFloat(document.getElementById('mpPts').value) || 0,
+    isLiet:  false
+  };
+  const note = document.getElementById('mpNote').value.trim();
+  const qb = getQBank(group);
+  addProposal({
+    id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    source: 'monthly',
+    action: isNew ? 'add' : 'edit',
+    proposedBy: CUR_USER,
+    proposedAt: new Date().toISOString(),
+    status: 'pending',
+    reviewedBy: null, reviewedAt: null, reviewNote: '',
+    note,
+    idx: isNew ? null : idx,
+    group,
+    original: (isNew || !qb) ? null : qb.questions[idx],
+    proposed
+  });
+  document.getElementById('mPropModal').remove();
+  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+}
+
+// ===== INIT =====
+window.addEventListener('load', function() {
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
+  updateSidebarProgress();
+  if (IS_ADMIN) {
+    document.getElementById('adminView').classList.remove('hidden');
+    renderSetupTab();
+    updateRsBadge();
+  } else if (IS_MOD) {
+    document.getElementById('modView').classList.remove('hidden');
+    renderModQBankTab();
+  } else {
+    document.getElementById('traineeView').classList.remove('hidden');
+    renderTraineeView();
+  }
+});
+
+// ===== ADMIN TABS =====
+function switchAdminTab(name) {
+  ['Setup','QBank','Scores','History','Reschedule'].forEach(t => {
+    document.getElementById('admin'+t+'Tab').classList.toggle('hidden', t!==name);
+    document.getElementById('tab'+t).classList.toggle('active', t===name);
+  });
+  if (name==='Scores')     renderScoresTab();
+  if (name==='History')    renderHistoryTab();
+  if (name==='Reschedule') renderRescheduleTab();
+  if (name==='QBank')      renderQBankTab();
+}
+
+// ===== SETUP TAB =====
+function renderSetupTab() {
+  const configs = getMC();
+  const months  = Object.keys(configs).sort().reverse();
+  document.getElementById('adminSetupTab').innerHTML = `
+    <div class="config-card">
+      <h4>📅 Create / Edit Monthly Test</h4>
+      <div class="form-row">
+        <div class="form-group"><label>Month</label><input type="month" id="cfgMonth" value="${curMonth()}"></div>
+        <div class="form-group"><label>Test Title</label><input type="text" id="cfgTitle" placeholder="e.g. May 2026 Monthly Assessment"></div>
+      </div>
+      <div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.18);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#6496ff;margin-bottom:10px;">🏢 BD &amp; CS — Schedule &amp; Link</div>
+        <div class="form-row">
+          <div class="form-group"><label>Start Date &amp; Time</label><input type="datetime-local" id="cfgStartBDCS"></div>
+          <div class="form-group"><label>Deadline Date &amp; Time</label><input type="datetime-local" id="cfgDeadlineBDCS"></div>
+        </div>
+        <div class="form-group"><label>Test Link (URL)</label><input type="url" id="cfgLinkBDCS" placeholder="https://forms.google.com/... (BD &amp; CS)"></div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group" style="margin-bottom:0"><label>Pass Score <span style="font-weight:400;color:#5a5a7a">(out of 300)</span></label><input type="number" id="cfgPassBDCS" value="250" min="0" max="300"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Max "Điểm Liệt" sai cho phép</label><input type="number" id="cfgLietMax" value="2" min="0" max="20"></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.14);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);margin-bottom:10px;">🏛️ Other Departments — Schedule, Link &amp; Score</div>
+        <div class="form-row">
+          <div class="form-group"><label>Start Date &amp; Time</label><input type="datetime-local" id="cfgStartOthers"></div>
+          <div class="form-group"><label>Deadline Date &amp; Time</label><input type="datetime-local" id="cfgDeadlineOthers"></div>
+        </div>
+        <div class="form-group"><label>Test Link (URL)</label><input type="url" id="cfgLinkOthers" placeholder="https://forms.google.com/... (Others)"></div>
+        <div class="form-group" style="margin-bottom:0"><label>Pass Score <span style="font-weight:400;color:#5a5a7a">(out of 100)</span></label><input type="number" id="cfgPassOthers" value="70" min="0" max="100"></div>
+      </div>
+      <div class="error-msg" id="cfgErr"></div>
+      <button class="btn btn-primary" onclick="saveTestConfig()" style="margin-top:8px;">💾 Save Configuration</button>
+    </div>
+    <div class="section-title">Scheduled Tests</div>
+    ${months.length===0
+      ? `<div class="empty-state">No tests configured yet.</div>`
+      : months.map(m => {
+          const c=configs[m], st=getStatus(c);
+          const stColor={upcoming:'#6496ff',active:'var(--success)',expired:'var(--text-muted)',none:'var(--text-muted)'}[st];
+          const stLbl={upcoming:'Upcoming',active:'🟢 Active',expired:'Expired',none:'Draft'}[st];
+          const gbBDCS   = getGenTest('bdcs', m);
+          const gbOthers = getGenTest('others', m);
+          const genBDCS   = gbBDCS   ? `<span style="color:var(--success)">✅ ${gbBDCS.mcqCount} MCQ + ${gbBDCS.essayCount} tự luận</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbBDCS.generatedAt).toLocaleString('vi-VN')})</span>`
+                                     : `<span style="color:var(--warning)">⚠ Chưa có đề</span>`;
+          const genOthers = gbOthers ? `<span style="color:var(--success)">✅ ${gbOthers.mcqCount} MCQ</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbOthers.generatedAt).toLocaleString('vi-VN')})</span>`
+                                     : `<span style="color:var(--warning)">⚠ Chưa có đề</span>`;
+          return `<div class="test-cfg-row">
+            <div style="flex:1;min-width:0">
+              <div class="test-cfg-month">${fmtMonth(m)}</div>
+              <div class="test-cfg-info">${c.title||''}</div>
+              <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Liệt max: ${c.lietMax??2}</div>
+              <div class="test-cfg-info">🏛️ Others: ${fmtDT(c.startDateOthers)} → ${fmtDT(c.deadlineOthers)} &nbsp;·&nbsp; Pass: ${c.passOthers??70}/100</div>
+              <div class="test-cfg-info" style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;">
+                <span>🏢 Đề BD/CS: ${genBDCS}</span>
+                <span>🏛️ Đề Others: ${genOthers}</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0">
+              <span style="color:${stColor};font-size:0.78rem;font-weight:700;">${stLbl}</span>
+              <button class="btn-xs edi" onclick="regenTest('${m}')">🔄 Tạo đề</button>
+              ${gbBDCS   ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','bdcs')">👁 Đề BD/CS</button>` : ''}
+              ${gbOthers ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','others')">👁 Đề Others</button>` : ''}
+              <button class="btn-xs edi" onclick="loadCfg('${m}')">✎ Edit</button>
+              <button class="btn-xs del" onclick="deleteCfg('${m}')">✕</button>
+            </div>
+          </div>`;
+        }).join('')}`;
+}
+
+function loadCfg(m) {
+  const c=getMC()[m]||{};
+  document.getElementById('cfgMonth').value        = m;
+  document.getElementById('cfgTitle').value        = c.title||'';
+  document.getElementById('cfgStartBDCS').value    = c.startDateBDCS||'';
+  document.getElementById('cfgDeadlineBDCS').value = c.deadlineBDCS||'';
+  document.getElementById('cfgLinkBDCS').value     = c.testLinkBDCS||'';
+  document.getElementById('cfgPassBDCS').value     = c.passBDCS!==undefined ? c.passBDCS : 250;
+  document.getElementById('cfgLietMax').value      = c.lietMax!==undefined  ? c.lietMax  : 2;
+  document.getElementById('cfgStartOthers').value    = c.startDateOthers||'';
+  document.getElementById('cfgDeadlineOthers').value = c.deadlineOthers||'';
+  document.getElementById('cfgLinkOthers').value     = c.testLinkOthers||'';
+  document.getElementById('cfgPassOthers').value     = c.passOthers!==undefined ? c.passOthers : 70;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function saveTestConfig() {
+  const month=document.getElementById('cfgMonth').value,
+        title=document.getElementById('cfgTitle').value.trim(),
+        startDateBDCS=document.getElementById('cfgStartBDCS').value,
+        deadlineBDCS=document.getElementById('cfgDeadlineBDCS').value,
+        startDateOthers=document.getElementById('cfgStartOthers').value,
+        deadlineOthers=document.getElementById('cfgDeadlineOthers').value,
+        testLinkBDCS=document.getElementById('cfgLinkBDCS').value.trim(),
+        testLinkOthers=document.getElementById('cfgLinkOthers').value.trim(),
+        passBDCS=parseInt(document.getElementById('cfgPassBDCS').value)||250,
+        lietMax=parseInt(document.getElementById('cfgLietMax').value)||2,
+        passOthers=parseInt(document.getElementById('cfgPassOthers').value)||70,
+        err=document.getElementById('cfgErr');
+  err.textContent='';
+  if (!month)           { err.textContent='Please select a month.'; return; }
+  if (!startDateBDCS)   { err.textContent='Please set BD & CS start date & time.'; return; }
+  if (!deadlineBDCS)    { err.textContent='Please set BD & CS deadline.'; return; }
+  if (new Date(deadlineBDCS)<=new Date(startDateBDCS)) { err.textContent='BD & CS: deadline must be after start.'; return; }
+  if (!startDateOthers) { err.textContent='Please set Other Departments start date & time.'; return; }
+  if (!deadlineOthers)  { err.textContent='Please set Other Departments deadline.'; return; }
+  if (new Date(deadlineOthers)<=new Date(startDateOthers)) { err.textContent='Other Departments: deadline must be after start.'; return; }
+  const cfgs=getMC();
+  const isNew = !cfgs[month];
+  cfgs[month]={ month, title:title||fmtMonth(month), startDateBDCS, deadlineBDCS, startDateOthers, deadlineOthers, testLinkBDCS, testLinkOthers, passBDCS, lietMax, passOthers,
+    createdAt: cfgs[month]?.createdAt||new Date().toISOString(), updatedAt:new Date().toISOString() };
+  saveMC(cfgs);
+
+  // Auto-generate test when creating new month config
+  if (isNew) {
+    const r = generateTest(month);
+    const genMsgs = [];
+    if (r.bdcs && !r.bdcs.error)   genMsgs.push(`🏢 BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} tự luận`);
+    if (r.others && !r.others.error) genMsgs.push(`🏛️ Others: ${r.others.mcq} MCQ`);
+    if (genMsgs.length) {
+      document.getElementById('cfgErr').style.color = 'var(--success)';
+      document.getElementById('cfgErr').textContent = '✅ Đã lưu & tạo đề tự động: ' + genMsgs.join(' · ');
+    } else {
+      document.getElementById('cfgErr').style.color = 'var(--warning)';
+      document.getElementById('cfgErr').textContent = '✅ Đã lưu. Chưa có bộ đề — upload file ở tab Question Bank để tạo đề.';
+    }
+  } else {
+    document.getElementById('cfgErr').style.color = 'var(--success)';
+    document.getElementById('cfgErr').textContent = '✅ Đã cập nhật cấu hình.';
+  }
+  renderSetupTab();
+}
+
+function deleteCfg(m) {
+  if (!confirm(`Delete test configuration for ${fmtMonth(m)}?`)) return;
+  const cfgs=getMC(); delete cfgs[m]; saveMC(cfgs);
+  delGenTest('bdcs', m); delGenTest('others', m);
+  renderSetupTab();
+}
+
+// ===== SCORES TAB =====
+function renderScoresTab() {
+  const cfgs=getMC(), months=Object.keys(cfgs).sort().reverse(), el=document.getElementById('adminScoresTab');
+  if (!months.length) { el.innerHTML=`<div class="empty-state">No tests configured yet.</div>`; return; }
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap;">
+      <label style="color:var(--text-secondary);font-weight:600;">Month:</label>
+      <select class="month-sel" id="scMonth" onchange="renderScoresTables()">
+        ${months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+      </select>
+      <button class="export-btn xl" onclick="exportAll()">📥 Export All (Excel)</button>
+    </div>
+    <div id="scoresTables"></div>`;
+  renderScoresTables();
+}
+
+function renderScoresTables() {
+  const month  = document.getElementById('scMonth').value;
+  const cfg    = getMC()[month];
+  const scores = getMS()[month]||{};
+  const trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+  const bdcs   = trainees.filter(([,u])=>isBDCS(u.department));
+  const others = trainees.filter(([,u])=>!isBDCS(u.department));
+
+  const passBDCS   = cfg.passBDCS   ?? 250;
+  const lietMax    = cfg.lietMax    ?? 2;
+  const passOthers = cfg.passOthers ?? 70;
+
+  function pfBDCS(sc) {
+    if (!sc || sc.score===undefined) return 'none';
+    return sc.score >= passBDCS && (sc.liet??0) <= lietMax ? 'pass' : 'fail';
+  }
+  function pfOthers(sc) {
+    if (!sc || sc.score===undefined) return 'none';
+    return sc.score >= passOthers ? 'pass' : 'fail';
+  }
+
+  function buildRowsBDCS(list) {
+    if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
+    return `<div class="score-section-body"><table><thead><tr>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Trạng thái nộp</th>
+      <th>Score (0–300)</th><th>Liệt ×</th><th>Pass / Fail</th><th></th>
+    </tr></thead><tbody>
+      ${list.map(([un,ud], idx)=>{
+        const sc  = scores[un];
+        const sub = getSubmission(un, month);
+        const suggestScore = (sc?.score==null && sub) ? sub.mcqScore : null;
+        const pct  = sc?.score ?? null;
+        const liet = sc?.liet  ?? (sub?.lietWrong ?? null);
+        const pf   = pfBDCS(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
+        const subBadge = sub
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Đã nộp</span>
+             ${sub.essayPending?`<br><button class="btn-xs edi" style="margin-top:4px;font-size:0.7rem" onclick="openEssayModal('${un}','${month}')">📝 Tự luận</button>`:''}
+             ${suggestScore!==null?`<br><span style="font-size:0.7rem;color:var(--text-muted)">MCQ: ${sub.mcqScore}đ</span>`:''}`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Chưa nộp</span>`;
+        return `<tr>
+          <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${subBadge}</td>
+          <td>
+            <input class="score-inp" id="sc_bdcs_${un}" type="number" min="0" max="300"
+              value="${pct!==null?pct:(suggestScore!==null?suggestScore:'')}" placeholder="—"
+              oninput="liveUpdatePFBDCS('${un}',${passBDCS},${lietMax})">
+            ${suggestScore!==null&&pct===null?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Gợi ý MCQ</div>`:''}
+          </td>
+          <td><input class="score-inp" id="liet_${un}" type="number" min="0" max="99" style="width:50px"
+            value="${liet!==null?liet:''}" placeholder="0"
+            oninput="liveUpdatePFBDCS('${un}',${passBDCS},${lietMax})"></td>
+          <td><span class="pf-badge ${pf}" id="pf_bdcs_${un}">${pfTxt}</span></td>
+          <td><button class="btn-xs ok" onclick="saveOneBDCS('${un}','${month}',${passBDCS},${lietMax})">Save</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  }
+
+  function buildRowsOthers(list) {
+    if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
+    return `<div class="score-section-body"><table><thead><tr>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Trạng thái nộp</th>
+      <th>Score (0–100)</th><th>Pass / Fail</th><th></th>
+    </tr></thead><tbody>
+      ${list.map(([un,ud], idx)=>{
+        const sc  = scores[un];
+        const sub = getSubmission(un, month);
+        const pct = sc?.score ?? null;
+        const pf  = pfOthers(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
+        const autoTag = sc?.autoGraded ? `<span style="font-size:0.68rem;color:var(--success);margin-left:4px;">(auto)</span>` : '';
+        const subBadge = sub
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Đã nộp</span>`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Chưa nộp</span>`;
+        return `<tr>
+          <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${subBadge}</td>
+          <td>
+            <input class="score-inp" id="sc_others_${un}" type="number" min="0" max="100"
+              value="${pct!==null?pct:''}" placeholder="—"
+              oninput="liveUpdatePFOthers('${un}',${passOthers})">${autoTag}
+          </td>
+          <td><span class="pf-badge ${pf}" id="pf_others_${un}">${pfTxt}</span></td>
+          <td><button class="btn-xs ok" onclick="saveOneOthers('${un}','${month}',${passOthers})">Save</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  }
+
+  const passedBdcs   = bdcs.filter(([un])=>pfBDCS(scores[un])==='pass').length;
+  const passedOthers = others.filter(([un])=>pfOthers(scores[un])==='pass').length;
+
+  document.getElementById('scoresTables').innerHTML=`
+    <div class="score-section score-section-bdcs">
+      <div class="score-section-hdr">
+        <div class="score-section-hdr-left">
+          <span class="score-section-icon">🏢</span>
+          <div>
+            <div class="score-section-title">Business Development (BD) &amp; Customer Services (CS)</div>
+            <div class="score-section-sub">${bdcs.length} trainee${bdcs.length!==1?'s':''} · ${passedBdcs} passed · Pass: ${passBDCS}/300 · Max liệt sai: ${lietMax}</div>
+          </div>
+        </div>
+        <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
+      </div>
+      ${buildRowsBDCS(bdcs)}
+    </div>
+
+    <div class="score-section score-section-others">
+      <div class="score-section-hdr">
+        <div class="score-section-hdr-left">
+          <span class="score-section-icon">🏛️</span>
+          <div>
+            <div class="score-section-title">Other Departments</div>
+            <div class="score-section-sub">${others.length} trainee${others.length!==1?'s':''} · ${passedOthers} passed · Pass: ${passOthers}/100</div>
+          </div>
+        </div>
+        <button class="export-btn xl" onclick="exportGroup('${month}','others')">📥 Export Excel</button>
+      </div>
+      ${buildRowsOthers(others)}
+    </div>`;
+}
+
+function liveUpdatePFBDCS(un, passBDCS, lietMax) {
+  const v  = parseFloat(document.getElementById(`sc_bdcs_${un}`).value);
+  const lv = parseInt(document.getElementById(`liet_${un}`).value) || 0;
+  const el = document.getElementById(`pf_bdcs_${un}`);
+  if (isNaN(v)) { el.className='pf-badge none'; el.textContent='—'; return; }
+  const pass = v >= passBDCS && lv <= lietMax;
+  el.className = `pf-badge ${pass?'pass':'fail'}`;
+  el.textContent = pass ? '✓ PASS' : '✗ FAIL';
+}
+
+function liveUpdatePFOthers(un, passOthers) {
+  const v  = parseFloat(document.getElementById(`sc_others_${un}`).value);
+  const el = document.getElementById(`pf_others_${un}`);
+  if (isNaN(v)) { el.className='pf-badge none'; el.textContent='—'; return; }
+  const pass = v >= passOthers;
+  el.className = `pf-badge ${pass?'pass':'fail'}`;
+  el.textContent = pass ? '✓ PASS' : '✗ FAIL';
+}
+
+function saveOneBDCS(un, month, passBDCS, lietMax) {
+  const v    = parseFloat(document.getElementById(`sc_bdcs_${un}`).value);
+  const liet = parseInt(document.getElementById(`liet_${un}`).value) || 0;
+  if (isNaN(v)||v<0||v>300) { alert('Score must be 0–300.'); return; }
+  const all=getMS(); if (!all[month]) all[month]={};
+  all[month][un]={ score:v, liet, passed: v>=passBDCS && liet<=lietMax, gradedAt:new Date().toISOString() };
+  saveMS(all); renderScoresTables();
+}
+
+function saveOneOthers(un, month, passOthers) {
+  const v = parseFloat(document.getElementById(`sc_others_${un}`).value);
+  if (isNaN(v)||v<0||v>100) { alert('Score must be 0–100.'); return; }
+  const all=getMS(); if (!all[month]) all[month]={};
+  all[month][un]={ score:v, passed: v>=passOthers, gradedAt:new Date().toISOString() };
+  saveMS(all); renderScoresTables();
+}
+
+function openEssayModal(un, month) {
+  const sub  = getSubmission(un, month);
+  const qb   = getQBank('bdcs');
+  if (!sub || !sub.essayAnswers) { alert('Không tìm thấy bài nộp.'); return; }
+
+  const existing = document.getElementById('essayModal');
+  if (existing) existing.remove();
+
+  const essays = Object.entries(sub.essayAnswers);
+  const rows = essays.map(([qid, ans]) => {
+    const q = qb?.questions?.find(q=>String(q.id)===String(qid));
+    return `<div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+      <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:4px;">
+        ${q ? `Câu ${q.id} — ${q.points}đ${q.isLiet?' ⚠ Điểm liệt':''}` : `Câu ${qid}`}
+      </div>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||''}</div>
+      ${q?.rubric?`<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>`:''}
+      <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;">${ans||'<em style="color:var(--text-muted)">Không có câu trả lời</em>'}</div>
+    </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'essayModal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:600px;max-height:85vh;display:flex;flex-direction:column;">
+    <h3 style="margin-bottom:4px;">📝 Câu trả lời tự luận — ${un}</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">
+      Nộp lúc: ${new Date(sub.submittedAt).toLocaleString('vi-VN')} &nbsp;·&nbsp; MCQ: ${sub.mcqScore}đ &nbsp;·&nbsp; Liệt sai: ${sub.lietWrong}
+    </div>
+    <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows.length ? rows : '<div style="color:var(--text-muted)">Không có câu tự luận.</div>'}</div>
+    <div class="modal-footer" style="margin-top:16px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove()">Đóng</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function openTestPreviewModal(m, group) {
+  const gt = getGenTest(group, m);
+  if (!gt || !gt.questions?.length) { alert('Chưa có đề cho nhóm này.'); return; }
+
+  const existing = document.getElementById('testPreviewModal');
+  if (existing) existing.remove();
+
+  const groupLabel = group === 'bdcs' ? '🏢 BD & CS' : '🏛️ Other Departments';
+  const rows = gt.questions.map((q, idx) => {
+    const typeBadge = q.type === 'Essay'
+      ? `<span class="preview-q-type-badge preview-q-type-essay">Tự luận</span>`
+      : `<span class="preview-q-type-badge preview-q-type-mcq">MCQ</span>`;
+    const lietBadge = q.isLiet ? `<span class="preview-q-liet">⚠ Điểm liệt</span>` : '';
+    const ptsBadge  = `<span class="preview-q-pts">${q.points}đ</span>`;
+
+    let bodyHTML = `<div class="preview-q-text">${q.text}</div>`;
+
+    if (q.type === 'MCQ' && q.opts) {
+      const optKeys = ['A','B','C','D'].filter(k => q.opts[k]);
+      bodyHTML += `<div class="preview-q-opts">` +
+        optKeys.map(k => `<div class="preview-q-opt ${q.correct===k?'correct':''}">
+          <span class="preview-q-opt-lbl">${k}.</span>
+          <span>${q.opts[k]}</span>
+          ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Đáp án</span>' : ''}
+        </div>`).join('') +
+        `</div>`;
+    } else if (q.type === 'Essay') {
+      if (q.rubric) {
+        bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
+      }
+    }
+
+    return `<div class="preview-q-item">
+      <div class="preview-q-hdr">
+        <span class="preview-q-num">${idx+1}.</span>
+        ${typeBadge}${lietBadge}${ptsBadge}
+      </div>
+      ${bodyHTML}
+    </div>`;
+  }).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'testPreviewModal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:700px;max-height:88vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:12px;flex-wrap:wrap;">
+      <h3 style="margin:0;">👁 Xem trước đề — ${groupLabel}</h3>
+      <button class="btn-xs del" onclick="document.getElementById('testPreviewModal').remove()">✕ Đóng</button>
+    </div>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">
+      ${fmtMonth(m)} &nbsp;·&nbsp; Tạo lúc: ${new Date(gt.generatedAt).toLocaleString('vi-VN')}
+      &nbsp;·&nbsp; ${gt.mcqCount} MCQ${gt.essayCount ? ' + ' + gt.essayCount + ' tự luận' : ''}
+      &nbsp;·&nbsp; ${gt.totalPoints}đ tổng
+    </div>
+    <div style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:10px;" class="preview-q-wrap">
+      ${rows}
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function buildExportRows(list, month, isBDCSGroup) {
+  const scores=getMS()[month]||{};
+  const hdr = isBDCSGroup
+    ? ['Full Name','Work Name','Username','Department','Position','Score (/300)','Điểm Liệt Sai','Pass/Fail','Graded At']
+    : ['Full Name','Work Name','Username','Department','Position','Score (/100)','Pass/Fail','Graded At'];
+  const rows=list.map(([un,ud])=>{
+    const sc=scores[un];
+    const base=[ud.fullName||'',ud.workName||'',un,ud.department||'',ud.position||'',sc?sc.score:''];
+    if (isBDCSGroup) base.push(sc?.liet??'');
+    base.push(sc?(sc.passed?'PASS':'FAIL'):'', sc?fmtDT(sc.gradedAt):'');
+    return base;
+  });
+  return [hdr,...rows];
+}
+
+function exportGroup(month, group) {
+  const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+  const isBDCSG = group==='bdcs';
+  const list = isBDCSG ? trainees.filter(([,u])=>isBDCS(u.department)) : trainees.filter(([,u])=>!isBDCS(u.department));
+  const sheetName = isBDCSG ? 'BD & CS' : 'Other Departments';
+  doExport([buildExportRows(list,month,isBDCSG)],[sheetName],`Monthly_${month}_${sheetName.replace(/ /g,'_')}`);
+}
+
+function exportAll() {
+  const month=document.getElementById('scMonth')?.value; if (!month) return;
+  const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+  const bdcs=trainees.filter(([,u])=>isBDCS(u.department));
+  const others=trainees.filter(([,u])=>!isBDCS(u.department));
+  doExport([buildExportRows(bdcs,month,true),buildExportRows(others,month,false)],['BD & CS','Other Departments'],`Monthly_Test_${month}_All`);
+}
+
+function doExport(sheetsData, sheetNames, filename) {
+  if (typeof XLSX!=='undefined') {
+    const wb=XLSX.utils.book_new();
+    sheetsData.forEach((data,i)=>{
+      const ws=XLSX.utils.aoa_to_sheet(data);
+      ws['!cols']=data[0].map((_,ci)=>({wch:Math.max(...data.map(r=>String(r[ci]||'').length),12)}));
+      XLSX.utils.book_append_sheet(wb,ws,sheetNames[i]);
+    });
+    XLSX.writeFile(wb,filename+'.xlsx');
+  } else {
+    const csv=sheetsData[0].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'}));
+    a.download=filename+'.csv'; a.click();
+  }
+}
+
+// ===== HISTORY TAB =====
+function renderHistoryTab() {
+  const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+  const el=document.getElementById('adminHistoryTab');
+  if (!trainees.length) { el.innerHTML=`<div class="empty-state">No trainees found.</div>`; return; }
+  el.innerHTML=`
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap;">
+      <label style="color:var(--text-secondary);font-weight:600;">Trainee:</label>
+      <select class="trainee-sel" id="histSel" onchange="renderHistTable()">
+        ${trainees.map(([u,d])=>`<option value="${u}">${u}${d.fullName?' — '+d.fullName:''}</option>`).join('')}
+      </select>
+    </div>
+    <div id="histTableWrap"></div>`;
+  renderHistTable();
+}
+
+function renderHistTable() {
+  const uname=document.getElementById('histSel').value;
+  const scores=getMS(), cfgs=getMC();
+  const months=Object.keys(cfgs).sort();
+  const el=document.getElementById('histTableWrap');
+  const udata=getUsersDB()[uname]||{};
+  const userIsBDCS=isBDCS(udata.department);
+  const maxScore=userIsBDCS?300:100;
+  let fc=0;
+  const rows=months.map(m=>{
+    const sc=scores[m]?.[uname], cfg=cfgs[m], rs=getRS(uname)[m];
+    if (sc&&!sc.passed) fc++;
+    return {m,sc,cfg,rs,fc};
+  });
+  if (!rows.some(r=>r.sc)) {
+    el.innerHTML=`<div style="color:var(--text-muted);padding:16px;">No test records for this trainee yet.</div>`; return;
+  }
+  const lietCol=userIsBDCS?'<th>Điểm Liệt</th>':'';
+  el.innerHTML=`<div class="hist-wrap"><table>
+    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScore})</th>${lietCol}<th>Result</th><th>Failed Count</th><th>Rescheduled</th></tr></thead>
+    <tbody>
+      ${rows.map(({m,sc,cfg,rs,fc})=>{
+        const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
+        const rsTxt=rs?(rs.status==='approved'?`✓ ${rs.newDate} ${rs.newTime}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
+        const startD=userIsBDCS?cfg?.startDateBDCS:cfg?.startDateOthers;
+        const endD  =userIsBDCS?cfg?.deadlineBDCS :cfg?.deadlineOthers;
+        const lietCell=userIsBDCS?`<td style="text-align:center">${sc?.liet??'—'}</td>`:'';
+        return `<tr>
+          <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>
+          <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
+          <td style="font-size:1.05rem;font-weight:700">${sc?sc.score:'—'}</td>
+          ${lietCell}
+          <td><span class="${pfCls}">${sc?(sc.passed?'✓ PASS':'✗ FAIL'):'—'}</span></td>
+          <td style="color:${fc>0?'var(--danger)':'var(--success)'};font-weight:600;">${sc?fc:'—'}</td>
+          <td style="font-size:0.8rem;color:var(--text-secondary)">${rsTxt}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+}
+
+// ===== RESCHEDULE TAB =====
+function updateRsBadge() {
+  let n=0;
+  Object.keys(getUsersDB()).forEach(u=>{ Object.values(getRS(u)).forEach(r=>{ if(r.status==='pending') n++; }); });
+  const b=document.getElementById('rsBadge');
+  if (b) { b.textContent=n; b.classList.toggle('hidden',n===0); }
+}
+
+function renderRescheduleTab() {
+  const users=getUsersDB(), reqs=[];
+  Object.entries(users).forEach(([un,ud])=>{
+    Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
+  });
+  reqs.sort((a,b)=>({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9));
+  const el=document.getElementById('adminRescheduleTab');
+  if (!reqs.length) { el.innerHTML=`<div class="empty-state">No reschedule requests.</div>`; return; }
+  const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
+  el.innerHTML=reqs.map(({un,ud,m,req})=>`
+    <div class="rsched-item">
+      <div class="rsched-hdr">
+        <div>
+          <span style="font-weight:700;color:var(--text-primary)">${un}</span>
+          ${ud.fullName?`<span style="color:var(--text-muted);font-size:0.82rem"> — ${ud.fullName}</span>`:''}
+          <span style="color:var(--gold);font-size:0.82rem;margin-left:8px;">${fmtMonth(m)}</span>
+        </div>
+        ${stB(req.status)}
+      </div>
+      <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
+        Requested: <strong>${req.newDate} ${req.newTime||''}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        ${req.reason?`<br>Reason: ${req.reason}`:''}
+        ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
+      </div>
+      ${req.status==='pending'?`
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
+          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>
+        </div>`:''}
+    </div>`).join('');
+}
+
+function approveRs(un,m) {
+  const rs=getRS(un); if(!rs[m]) return;
+  rs[m].status='approved'; rs[m].processedAt=new Date().toISOString();
+  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+function rejectRs(un,m) {
+  const note=prompt('Rejection note (optional):')||'';
+  const rs=getRS(un); if(!rs[m]) return;
+  rs[m].status='rejected'; rs[m].processedAt=new Date().toISOString();
+  if (note.trim()) rs[m].rejectReason=note.trim();
+  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+
+// ===== TRAINEE VIEW =====
+let _cdTimer=null;
+
+function renderTraineeView() {
+  const empType = (ALL_USERS[CUR_USER]?.employeeType) || 'new';
+  if (empType === 'new') {
+    renderNewEmployeeLocked();
+    return;
+  }
+  renderCurrentTestCard();
+  renderTraineeReschedule();
+  renderTraineeHistory();
+}
+
+function renderNewEmployeeLocked() {
+  document.getElementById('currentTestCard').innerHTML = `
+    <div class="mt-hero">
+      <div class="mt-status none">🔒 Chưa được cấp quyền</div>
+      <div class="mt-title">Monthly Test</div>
+      <p style="color:var(--text-muted);margin-top:10px;line-height:1.7;font-size:0.9rem;">
+        Monthly Test chỉ dành cho <strong style="color:var(--text-primary)">nhân sự cũ</strong> đã hoàn thành giai đoạn đào tạo.<br>
+        Vui lòng liên hệ Admin để được cấp quyền truy cập.
+      </p>
+      <div style="margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:12px 20px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.22);border-radius:10px;">
+        <span style="font-size:1.2rem;">🔒</span>
+        <span style="font-size:0.85rem;color:var(--danger);font-weight:600;">New Employee — Liên hệ Admin để mở khóa</span>
+      </div>
+    </div>`;
+  document.getElementById('rescheduleSection').innerHTML = '';
+  document.getElementById('traineeHistoryWrap').innerHTML = '';
+}
+
+function findActiveOrUpcoming() {
+  const cfgs=getMC(), months=Object.keys(cfgs).sort().reverse();
+  for (const m of months) {
+    const st=getStatus(cfgs[m]);
+    if (st==='active'||st==='upcoming') return {cfg:cfgs[m],m};
+  }
+  if (months.length) return {cfg:cfgs[months[0]],m:months[0]};
+  return {cfg:null,m:null};
+}
+
+function renderCurrentTestCard() {
+  const {cfg,m}=findActiveOrUpcoming();
+  const el=document.getElementById('currentTestCard');
+  if (!cfg) {
+    el.innerHTML=`<div class="mt-hero"><div class="mt-status none">No Test Scheduled</div><div class="mt-title">Monthly Test</div><p style="color:var(--text-muted);margin-top:8px;">No test has been scheduled yet. Check back later.</p></div>`;
+    return;
+  }
+  const st=getStatus(cfg);
+  const stLabel={upcoming:'⏳ Upcoming',active:'🟢 Active — Test Open',expired:'⌛ Test Period Ended',none:'—'}[st];
+  const myScore=getMS()[m]?.[CUR_USER];
+  const myRs=getRS(CUR_USER)[m];
+
+  const myDept = ALL_USERS[CUR_USER]?.department || '';
+  const myLink = isBDCS(myDept) ? cfg.testLinkBDCS : cfg.testLinkOthers;
+  const myGroup = isBDCS(myDept) ? 'bdcs' : 'others';
+  const qbank = getQBank ? getQBank(myGroup) : null;
+  const existingSub = getSubmission ? getSubmission(CUR_USER, m) : null;
+
+  let actionHTML='';
+  if (st==='active') {
+    if (existingSub && existingSub.submittedAt) {
+      actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">
+        <span style="font-size:1.3rem">✅</span>
+        <div><div style="font-size:0.72rem;color:var(--text-muted);">ĐÃ NỘP BÀI</div>
+        <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">Submitted ${new Date(existingSub.submittedAt).toLocaleString('vi-VN')}</div></div></div>`;
+    } else if (qbank && qbank.questions && qbank.questions.length) {
+      actionHTML = `<a class="test-link-btn" href="taketest.html?month=${m}" style="text-decoration:none;">📝 Làm bài ngay →</a>`;
+    } else if (myLink) {
+      actionHTML = `<a class="test-link-btn" href="${myLink}" target="_blank" rel="noopener">🚀 Access Test →</a>`;
+    } else {
+      actionHTML = `<span class="test-link-btn locked">🔒 No link assigned for your department</span>`;
+    }
+  } else if (st==='upcoming') {
+    actionHTML=`<span class="test-link-btn locked">🔒 Test Not Started Yet</span>`;
+  } else if (myScore) {
+    const pf=myScore.passed?`<span class="pf-badge pass">✓ PASS</span>`:`<span class="pf-badge fail">✗ FAIL</span>`;
+    const maxSc = isBDCS(myDept) ? 300 : 100;
+    const lietInfo = (isBDCS(myDept) && myScore.liet!==undefined)
+      ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Điểm liệt sai: ${myScore.liet}</div>` : '';
+    actionHTML=`<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;">
+      <div><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${myScore.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>${lietInfo}</div>
+      <div>${pf}</div></div>`;
+  }
+
+  el.innerHTML=`
+    <div class="mt-hero">
+      <div class="mt-status ${st}">${stLabel}</div>
+      <div class="mt-title">${cfg.title||fmtMonth(m)}</div>
+      <div class="mt-meta">
+        <div class="mt-meta-item"><div class="lbl">Start</div><div class="val">${fmtDT(cfg.startDate)}</div></div>
+        <div class="mt-meta-item"><div class="lbl">Deadline</div><div class="val">${fmtDT(cfg.deadline)}</div></div>
+        <div class="mt-meta-item"><div class="lbl">Pass Score</div><div class="val">${cfg.passScore||70}%</div></div>
+        ${myRs?`<div class="mt-meta-item"><div class="lbl">Reschedule</div><div class="val" style="color:${myRs.status==='approved'?'var(--success)':myRs.status==='rejected'?'var(--danger)':'var(--warning)'}">${myRs.status==='approved'?'✓ Approved':myRs.status==='rejected'?'✗ Rejected':'⏳ Pending'}</div></div>`:''}
+      </div>
+      ${(st==='upcoming'||st==='active')?`
+        <div style="margin-top:14px;font-size:0.8rem;color:var(--text-muted);">${st==='upcoming'?'⏳ Test starts in:':'⏰ Closes in:'}</div>
+        <div class="countdown" id="cdBox"></div>`:''}
+      <div>${actionHTML}</div>
+    </div>`;
+
+  if (_cdTimer) clearInterval(_cdTimer);
+  if (st==='upcoming'||st==='active') {
+    startCountdown(new Date(st==='upcoming'?cfg.startDate:cfg.deadline));
+  }
+}
+
+function startCountdown(target) {
+  function tick() {
+    const diff=target-Date.now(), box=document.getElementById('cdBox');
+    if (!box) { clearInterval(_cdTimer); return; }
+    if (diff<=0) { clearInterval(_cdTimer); renderTraineeView(); return; }
+    const vals=[[Math.floor(diff/86400000),'Days'],[Math.floor(diff%86400000/3600000),'Hrs'],[Math.floor(diff%3600000/60000),'Min'],[Math.floor(diff%60000/1000),'Sec']];
+    box.innerHTML=vals.map(([v,l])=>`<div class="cd-unit"><div class="cd-num">${String(v).padStart(2,'0')}</div><div class="cd-lbl">${l}</div></div>`).join('');
+  }
+  tick(); _cdTimer=setInterval(tick,1000);
+}
+
+function renderTraineeReschedule() {
+  const {cfg,m}=findActiveOrUpcoming();
+  const el=document.getElementById('rescheduleSection');
+  if (!cfg||getStatus(cfg)==='expired') { el.innerHTML=''; return; }
+
+  const existing=getRS(CUR_USER)[m];
+  const [y,mo]=m.split('-');
+  const minDate=`${y}-${mo}-01`;
+  const maxDate=new Date(+y,+mo,0).toISOString().split('T')[0];
+
+  if (existing) {
+    const stB=existing.status==='approved'?`<span style="color:var(--success);font-weight:700;">✓ Approved — ${existing.newDate} ${existing.newTime||''}</span>`
+      :existing.status==='rejected'?`<span style="color:var(--danger);font-weight:700;">✗ Rejected${existing.rejectReason?' — '+existing.rejectReason:''}</span>`
+      :`<span style="color:var(--warning);font-weight:700;">⏳ Awaiting admin approval</span>`;
+    el.innerHTML=`<div class="reschedule-card"><h4>🔄 Reschedule Request — ${fmtMonth(m)}</h4>
+      <div style="font-size:0.88rem;color:var(--text-secondary);">
+        Requested: <strong>${existing.newDate} ${existing.newTime||''}</strong><br>Status: ${stB}
+      </div></div>`;
+    return;
+  }
+
+  el.innerHTML=`
+    <div class="reschedule-card">
+      <h4>🔄 Request Test Reschedule</h4>
+      <p style="color:var(--text-muted);font-size:0.84rem;margin-bottom:16px;">
+        You may reschedule <strong>once per month</strong>. New date must be within <strong>${fmtMonth(m)}</strong>.
+      </p>
+      <div class="form-row">
+        <div class="form-group"><label>New Date</label><input type="date" id="rsDate" min="${minDate}" max="${maxDate}"></div>
+        <div class="form-group"><label>New Time <span style="color:var(--text-muted);font-weight:400">(optional)</span></label><input type="time" id="rsTime"></div>
+      </div>
+      <div class="form-group"><label>Reason <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+        <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment"></div>
+      <div class="error-msg" id="rsErr"></div>
+      <button class="btn btn-primary" onclick="submitReschedule('${m}','${minDate}','${maxDate}')">Submit Request</button>
+    </div>`;
+}
+
+function submitReschedule(m, minDate, maxDate) {
+  const date=document.getElementById('rsDate').value,
+        time=document.getElementById('rsTime').value||'09:00',
+        reason=document.getElementById('rsReason').value.trim(),
+        err=document.getElementById('rsErr');
+  err.textContent='';
+  if (!date) { err.textContent='Please select a new date.'; return; }
+  if (date<minDate||date>maxDate) { err.textContent=`Date must be within ${fmtMonth(m)}.`; return; }
+  const rs=getRS(CUR_USER);
+  rs[m]={ newDate:date, newTime:time, reason, requestedAt:new Date().toISOString(), status:'pending', processedAt:null };
+  saveRS(CUR_USER,rs);
+  renderTraineeReschedule();
+}
+
+function renderTraineeHistory() {
+  const scores=getMS(), cfgs=getMC(), months=Object.keys(cfgs).sort();
+  const el=document.getElementById('traineeHistoryWrap');
+  const myDeptH = ALL_USERS[CUR_USER]?.department || '';
+  const userIsBDCSH = isBDCS(myDeptH);
+  const maxScoreH = userIsBDCSH ? 300 : 100;
+  let fc=0;
+  const rows=months.map(m=>{
+    const sc=scores[m]?.[CUR_USER], cfg=cfgs[m], rs=getRS(CUR_USER)[m];
+    if (sc&&!sc.passed) fc++;
+    return {m,sc,cfg,rs,fc};
+  });
+  if (!rows.some(r=>r.sc)) {
+    el.innerHTML=`<div style="color:var(--text-muted);padding:20px 0;font-size:0.9rem;">No test results yet. Results will appear here after each monthly test.</div>`;
+    return;
+  }
+  const lietTh = userIsBDCSH ? '<th>Điểm Liệt</th>' : '';
+  el.innerHTML=`<div class="hist-wrap"><table>
+    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th></tr></thead>
+    <tbody>
+      ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc})=>{
+        const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
+        const rsTxt=rs?(rs.status==='approved'?`✓ ${rs.newDate}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
+        const startD=userIsBDCSH?cfg?.startDateBDCS:cfg?.startDateOthers;
+        const endD  =userIsBDCSH?cfg?.deadlineBDCS :cfg?.deadlineOthers;
+        const lietTd=userIsBDCSH?`<td style="text-align:center;color:${sc?.liet>0?'var(--danger)':'var(--text-muted)'}">${sc?.liet??'—'}</td>`:'';
+        return `<tr>
+          <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>
+          <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
+          <td style="font-size:1.1rem;font-weight:800;color:${sc?'var(--text-primary)':'var(--text-muted)'}">${sc?sc.score:'—'}</td>
+          ${lietTd}
+          <td><span class="${pfCls}">${sc?(sc.passed?'✓ PASS':'✗ FAIL'):'—'}</span></td>
+          <td style="color:${fc>0?'var(--danger)':'var(--success)'};font-weight:700;">${sc?fc:'—'}</td>
+          <td style="font-size:0.8rem;color:var(--text-secondary)">${rsTxt}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+}
+</script>
+</body>
+</html>

@@ -224,7 +224,8 @@ const questions = [
   {
     q: "Which of the following was RECENTLY ADDED to WeMasterTrade's restricted countries list?",
     opts: ["India", "USA", "Vietnam", "Philippines"],
-    correct: 1
+    correct: 1,
+    explain: "The USA was recently added to the restricted countries list due to regulatory compliance requirements. Always check the latest restricted countries list before onboarding new clients."
   },
   {
     q: "What is the consequence of Tick Scalping if detected?",
@@ -234,12 +235,14 @@ const questions = [
       "Immediate account termination with no refund",
       "A 10% penalty fee"
     ],
-    correct: 2
+    correct: 2,
+    explain: "Tick scalping results in immediate account termination with no refund — zero tolerance. This is because it exploits platform latency rather than genuine market analysis."
   },
   {
     q: "For clients in Indonesia and Thailand, how many rule violations are allowed before termination?",
     opts: ["3 violations", "2 violations", "1 violation — immediate termination", "Depends on severity"],
-    correct: 2
+    correct: 2,
+    explain: "Clients in Indonesia and Thailand operate under stricter local compliance rules: the very first rule violation results in immediate termination, with no second chances."
   },
   {
     q: "Which of these is a PROHIBITED trading practice?",
@@ -249,7 +252,8 @@ const questions = [
       "Hedging across multiple accounts to guarantee profit",
       "Using MT5 with EAs"
     ],
-    correct: 2
+    correct: 2,
+    explain: "Hedging across multiple accounts to lock in guaranteed profit is classified as account manipulation and is strictly prohibited. It undermines the integrity of performance evaluation."
   },
   {
     q: "When must KYC be completed?",
@@ -259,7 +263,8 @@ const questions = [
       "Before the first payout request",
       "KYC is optional"
     ],
-    correct: 2
+    correct: 2,
+    explain: "KYC verification is required before submitting a payout request — not before trading. This allows traders to begin immediately while compliance is completed before withdrawals."
   }
 ];
 

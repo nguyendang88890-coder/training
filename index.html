@@ -6,7 +6,6 @@
   <title>WeMasterTrade — Sales Training Portal</title>
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Extra dashboard-specific styles */
     .exam-ready-card {
       background: linear-gradient(135deg, rgba(255,215,0,0.1), rgba(255,215,0,0.03));
       border: 1px solid var(--border-gold);
@@ -19,397 +18,60 @@
       flex-wrap: wrap;
     }
     .exam-ready-text h4 { font-size: 1rem; color: var(--gold); margin-bottom: 4px; }
-    .exam-ready-text p { font-size: 0.85rem; color: var(--text-secondary); }
+    .exam-ready-text p  { font-size: 0.85rem; color: var(--text-secondary); }
     .locked-msg { color: var(--text-muted); font-size: 0.82rem; margin-top: 6px; }
 
-    /* Sign Up Page Styles */
-    .signup-page {
+    /* Auth tabs */
+    .auth-tabs {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
     }
-
-    .signup-page.hidden {
-      display: none;
-    }
-
-    .signup-box {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 215, 0, 0.2);
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 450px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    .signup-logo {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .signup-logo h1 {
-      font-size: 2rem;
-      color: var(--gold);
-      margin: 0;
-      font-weight: 700;
-    }
-
-    .signup-logo p {
-      color: var(--text-secondary);
-      margin: 8px 0 0 0;
-      font-size: 0.9rem;
-    }
-
-    .signup-form .form-group {
-      margin-bottom: 18px;
-    }
-
-    .signup-form label {
-      display: block;
-      color: var(--text-primary);
-      font-size: 0.9rem;
-      font-weight: 500;
-      margin-bottom: 6px;
-    }
-
-    .signup-form input {
-      width: 100%;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 215, 0, 0.15);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-size: 0.95rem;
-      transition: all 0.3s ease;
-      box-sizing: border-box;
-    }
-
-    .signup-form input:focus {
-      outline: none;
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--gold);
-      box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
-    }
-
-    .signup-form input::placeholder {
-      color: rgba(255, 255, 255, 0.4);
-    }
-
-    .signup-btn {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, var(--gold), #ffb700);
-      color: #000;
+    .auth-tab {
+      flex: 1;
+      background: none;
       border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      margin-top: 10px;
-    }
-
-    .signup-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(255, 215, 0, 0.3);
-    }
-
-    .signup-btn:active {
-      transform: translateY(0);
-    }
-
-    .signup-footer {
-      text-align: center;
-      margin-top: 20px;
-      color: var(--text-secondary);
+      padding: 10px 0;
       font-size: 0.9rem;
-    }
-
-    .signup-footer a {
-      color: var(--gold);
-      text-decoration: none;
+      font-weight: 600;
+      color: var(--text-muted);
       cursor: pointer;
-      transition: color 0.3s ease;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
     }
-
-    .signup-footer a:hover {
-      color: #ffb700;
+    .auth-tab.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
     }
+    .auth-tab:hover:not(.active) { color: var(--text-secondary); }
 
-    .error-msg {
-      color: #ff6b6b;
-      font-size: 0.85rem;
-      margin-top: 12px;
-      text-align: center;
-      display: none;
+    .auth-panel { display: none; }
+    .auth-panel.active { display: block; }
+
+    /* Employee type selector */
+    .emp-type-group { display: flex; gap: 10px; margin-top: 6px; }
+    .emp-type-opt {
+      flex: 1; display: flex; align-items: center; gap: 10px; cursor: pointer;
+      padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+      transition: all .15s; user-select: none;
     }
+    .emp-type-opt:hover { border-color: rgba(255,215,0,0.4); }
+    .emp-type-opt.selected { border-color: var(--gold); background: rgba(255,215,0,0.05); }
+    .emp-type-opt .emp-icon { font-size: 1.4rem; flex-shrink: 0; }
+    .emp-type-opt .emp-lbl { font-weight: 600; font-size: 0.85rem; color: var(--text-primary); }
+    .emp-type-opt .emp-sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
 
-    .error-msg.show {
-      display: block;
+    .input-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
     }
-
     .success-msg {
-      color: #00d68f;
+      color: var(--success);
       font-size: 0.85rem;
       margin-top: 12px;
       text-align: center;
-      display: none;
-    }
-
-    .success-msg.show {
-      display: block;
-    }
-
-    .animate-in {
-      animation: slideUp 0.5s ease-out;
-    }
-
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* User Management Page Styles */
-    .user-management-page {
-      display: none;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-      padding: 20px;
-    }
-
-    .user-management-page.show {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .user-management-box {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 215, 0, 0.2);
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 1000px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    .user-management-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-
-    .user-management-header h1 {
-      font-size: 1.8rem;
-      color: var(--gold);
-      margin: 0;
-    }
-
-    .back-btn {
-      padding: 10px 20px;
-      background: rgba(255, 215, 0, 0.1);
-      border: 1px solid rgba(255, 215, 0, 0.3);
-      border-radius: 8px;
-      color: var(--gold);
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      text-decoration: none;
-    }
-
-    .back-btn:hover {
-      background: rgba(255, 215, 0, 0.2);
-      border-color: var(--gold);
-    }
-
-    .users-table-wrap {
-      overflow-x: auto;
-    }
-
-    .users-table {
-      width: 100%;
-      border-collapse: collapse;
-      color: var(--text-primary);
-    }
-
-    .users-table thead {
-      background: rgba(255, 215, 0, 0.05);
-      border-bottom: 2px solid rgba(255, 215, 0, 0.2);
-    }
-
-    .users-table th {
-      padding: 16px;
-      text-align: left;
-      font-weight: 600;
-      color: var(--gold);
-      font-size: 0.95rem;
-    }
-
-    .users-table td {
-      padding: 16px;
-      border-bottom: 1px solid rgba(255, 215, 0, 0.1);
-      font-size: 0.9rem;
-    }
-
-    .users-table tbody tr:hover {
-      background: rgba(255, 215, 0, 0.03);
-    }
-
-    .status-select {
-      padding: 8px 12px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 215, 0, 0.15);
-      border-radius: 6px;
-      color: var(--text-primary);
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .status-select:focus {
-      outline: none;
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--gold);
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
-    .status-badge.in-progress {
-      background: rgba(255, 193, 7, 0.15);
-      color: #ffc107;
-    }
-
-    .status-badge.passed {
-      background: rgba(0, 214, 143, 0.15);
-      color: #00d68f;
-    }
-
-    .status-badge.failed {
-      background: rgba(255, 107, 107, 0.15);
-      color: #ff6b6b;
-    }
-
-    .delete-btn {
-      padding: 8px 16px;
-      background: rgba(255, 107, 107, 0.15);
-      border: 1px solid rgba(255, 107, 107, 0.3);
-      border-radius: 6px;
-      color: #ff6b6b;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
-    }
-
-    .delete-btn:hover {
-      background: rgba(255, 107, 107, 0.25);
-      border-color: #ff6b6b;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-secondary);
-    }
-
-    .empty-state p {
-      font-size: 1.1rem;
-      margin: 0;
-    }
-
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-overlay.show {
-      display: flex;
-    }
-
-    .modal-content {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 215, 0, 0.2);
-      border-radius: 16px;
-      padding: 30px;
-      max-width: 400px;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    }
-
-    .modal-content h3 {
-      color: var(--gold);
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-size: 1.3rem;
-    }
-
-    .modal-content p {
-      color: var(--text-secondary);
-      margin-bottom: 20px;
-      font-size: 0.95rem;
-    }
-
-    .modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
-
-    .modal-btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
-    }
-
-    .modal-btn-cancel {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-primary);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .modal-btn-cancel:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .modal-btn-confirm {
-      background: linear-gradient(135deg, #ff6b6b, #ff5252);
-      color: #fff;
-    }
-
-    .modal-btn-confirm:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
     }
   </style>
 </head>
@@ -422,99 +84,81 @@
       <h1>WeMasterTrade</h1>
       <p>Sales Training Portal</p>
     </div>
-    <div class="form-group">
-      <label for="username">Username</label>
-      <input type="text" id="username" placeholder="Enter your username" autocomplete="username">
-    </div>
-    <div class="form-group">
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
-    </div>
-    <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
-    <div class="error-msg" id="loginError"></div>
-    <div style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 0.9rem;">
-      Don't have an account? <a href="#" onclick="switchToSignup()" style="color: var(--gold); cursor: pointer; text-decoration: none;">Sign Up</a>
-    </div>
-  </div>
-</div>
 
-<!-- SIGN UP PAGE -->
-<div id="signupPage" class="signup-page hidden">
-  <div class="signup-box animate-in">
-    <div class="signup-logo">
-      <h1>WeMasterTrade</h1>
-      <p>Create Your Account</p>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
     </div>
-    <form class="signup-form" onsubmit="doSignup(event)">
-      <div class="form-group">
-        <label for="fullname">Họ và tên</label>
-        <input type="text" id="fullname" placeholder="Nhập họ và tên của bạn" required>
-      </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" placeholder="Nhập địa chỉ email" required>
-      </div>
-      <div class="form-group">
-        <label for="signup-username">Tên tài khoản</label>
-        <input type="text" id="signup-username" placeholder="Nhập tên tài khoản" required>
-      </div>
-      <div class="form-group">
-        <label for="signup-password">Mật khẩu</label>
-        <input type="password" id="signup-password" placeholder="Nhập mật khẩu" required>
-      </div>
-      <div class="form-group">
-        <label for="confirm-password">Xác nhận mật khẩu</label>
-        <input type="password" id="confirm-password" placeholder="Xác nhận mật khẩu" required>
-      </div>
-      <button type="submit" class="signup-btn">Tạo Tài Khoản</button>
-      <div class="error-msg" id="signupError"></div>
-      <div class="success-msg" id="signupSuccess"></div>
-    </form>
-    <div class="signup-footer">
-      Đã có tài khoản? <a onclick="switchToLogin()">Đăng nhập</a>
-    </div>
-  </div>
-</div>
 
-<!-- USER MANAGEMENT PAGE -->
-<div id="userManagementPage" class="user-management-page">
-  <div class="user-management-box animate-in">
-    <div class="user-management-header">
-      <h1>👥 User Management</h1>
-      <button class="back-btn" onclick="backToDashboard()">← Back to Dashboard</button>
+    <!-- Sign In Panel -->
+    <div id="loginPanel" class="auth-panel active">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter your username" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
+      <div class="error-msg" id="loginError"></div>
     </div>
-    
-    <div class="users-table-wrap">
-      <table class="users-table" id="usersTable">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Full Name</th>
-            <th>Email</th>
-            <th>Status</th>
-            <th>Created At</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="usersTableBody">
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="empty-state" id="emptyState" style="display: none;">
-      <p>No registered users found.</p>
-    </div>
-  </div>
-</div>
 
-<!-- DELETE CONFIRMATION MODAL -->
-<div class="modal-overlay" id="deleteModal">
-  <div class="modal-content">
-    <h3>Confirm Delete</h3>
-    <p>Are you sure you want to delete the account for <strong id="deleteUsername"></strong>? This action cannot be undone.</p>
-    <div class="modal-actions">
-      <button class="modal-btn modal-btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-      <button class="modal-btn modal-btn-confirm" onclick="confirmDelete()">Delete</button>
+    <!-- Register Panel -->
+    <div id="registerPanel" class="auth-panel">
+      <div class="form-group">
+        <label for="regUsername">Username *</label>
+        <input type="text" id="regUsername" placeholder="Choose a username" autocomplete="off" maxlength="20">
+        <div class="input-hint">3–20 characters: letters, numbers, underscores only.</div>
+      </div>
+      <div class="form-group">
+        <label for="regFullName">Full Name <span style="font-weight:400;color:#5a5a7a">(optional)</span></label>
+        <input type="text" id="regFullName" placeholder="e.g. Nguyen Van A">
+      </div>
+      <div class="form-group">
+        <label for="regEmail">Email <span style="font-weight:400;color:#5a5a7a">(optional)</span></label>
+        <input type="email" id="regEmail" placeholder="e.g. you@example.com">
+      </div>
+      <div class="form-group">
+        <label for="regDepartment">Department <span style="font-weight:400;color:#5a5a7a">(optional)</span></label>
+        <input type="text" id="regDepartment" placeholder="e.g. Business Development">
+      </div>
+      <div class="form-group">
+        <label for="regPosition">Position <span style="font-weight:400;color:#5a5a7a">(optional)</span></label>
+        <input type="text" id="regPosition" placeholder="e.g. Sales Trainee">
+      </div>
+      <div class="form-group">
+        <label>Employee Type *</label>
+        <input type="hidden" id="regEmpType" value="new">
+        <div class="emp-type-group">
+          <div class="emp-type-opt selected" id="empOptNew" onclick="selectEmpType('new')">
+            <span class="emp-icon">🆕</span>
+            <div>
+              <div class="emp-lbl">New Employee</div>
+              <div class="emp-sub">Training modules only</div>
+            </div>
+          </div>
+          <div class="emp-type-opt" id="empOptOld" onclick="selectEmpType('old')">
+            <span class="emp-icon">🏅</span>
+            <div>
+              <div class="emp-lbl">Existed Employee</div>
+              <div class="emp-sub">Full access incl. Monthly Test</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="regPassword">Password *</label>
+        <input type="password" id="regPassword" placeholder="Create a password" autocomplete="new-password">
+        <div class="input-hint">Minimum 6 characters.</div>
+      </div>
+      <div class="form-group">
+        <label for="regConfirm">Confirm Password *</label>
+        <input type="password" id="regConfirm" placeholder="Repeat your password" autocomplete="new-password">
+      </div>
+      <button class="btn btn-primary" onclick="doRegister()">Create Account</button>
+      <div class="error-msg"   id="regError"></div>
+      <div class="success-msg" id="regSuccess"></div>
     </div>
   </div>
 </div>
@@ -533,13 +177,14 @@
       <div class="user-avatar" id="userAvatar">T</div>
       <div class="user-info">
         <div class="user-name" id="sidebarUserName">Trainee</div>
-        <div class="user-role">Sales Trainee</div>
+        <div class="user-role" id="sidebarUserRole">Sales Trainee</div>
       </div>
     </div>
+    <button class="sidebar-edit-profile" id="editProfileBtn" style="display:none;" onclick="openDashboardProfileModal()">✎ Edit Profile</button>
 
     <nav class="sidebar-nav">
       <div class="nav-section-title">Training Modules</div>
-      <a href="#" class="nav-item active" onclick="showDashboard()">
+      <a href="#" class="nav-item active" onclick="return false;">
         <span class="nav-icon">🏠</span> Dashboard
       </a>
       <a href="about.html" class="nav-item">
@@ -579,11 +224,23 @@
         <span class="nav-icon">📝</span> Final Exam
         <span class="nav-badge">EXAM</span>
       </a>
-
-      <div class="nav-section-title">Management</div>
-      <a href="#" class="nav-item" id="nav-usermgmt" onclick="goToUserManagement()" style="display:none;">
-        <span class="nav-icon">👥</span> <span>User Management</span>
+      <a href="monthlytest.html" class="nav-item">
+        <span class="nav-icon">🗓️</span> Monthly Test
+        <span class="nav-badge">MTH</span>
       </a>
+      <a href="interview.html" class="nav-item" id="nav-interview">
+        <span class="nav-icon">🎤</span> Interview
+        <span class="nav-badge">INT</span>
+      </a>
+
+      <!-- Admin-only section, shown dynamically -->
+      <div id="adminNavSection" class="hidden">
+        <div class="nav-section-title">Administration</div>
+        <a href="admin.html" class="nav-item">
+          <span class="nav-icon">⚙️</span> Admin Panel
+          <span class="nav-badge" style="background:rgba(255,215,0,0.2);color:var(--gold)">ADMIN</span>
+        </a>
+      </div>
     </nav>
 
     <div class="sidebar-footer">
@@ -601,7 +258,6 @@
     </div>
 
     <div class="page-content animate-in">
-      <!-- Welcome Banner -->
       <div class="welcome-banner">
         <h2>Welcome back, <span id="welcomeName">Trainee</span>! 👋</h2>
         <p>Complete all 7 modules and pass the final exam to become a certified WeMasterTrade Sales Partner.</p>
@@ -630,11 +286,9 @@
         </div>
       </div>
 
-      <!-- Modules Grid -->
       <div class="section-title">Training Modules</div>
       <div class="modules-grid" id="modulesGrid"></div>
 
-      <!-- Exam Section -->
       <div class="section-title">Final Exam</div>
       <div class="exam-ready-card" id="examCard">
         <div class="exam-ready-text">
@@ -644,41 +298,77 @@
         </div>
         <a href="exam.html" class="btn btn-primary" id="examBtn" style="display:none">Start Exam →</a>
       </div>
+
+      <!-- Interview card — shown only after exam is passed -->
+      <div id="interviewCard" style="display:none">
+        <div class="section-title">Video Interview</div>
+        <div class="exam-ready-card" id="interviewCardInner">
+          <div class="exam-ready-text">
+            <h4 id="ivCardTitle">📅 Book Your Interview</h4>
+            <p id="ivCardDesc">You passed the exam! Schedule your video interview with a WeMasterTrade trainer.</p>
+            <div class="locked-msg" id="ivCardSub"></div>
+          </div>
+          <a href="interview.html" class="btn btn-primary" id="ivCardBtn">Book Interview →</a>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// ===== AUTH =====
-const USERS = {
-  admin: 'wmt2026',
-  test: 'test123',
-  trainee: 'train123'
-};
+// ===== USER DB =====
+function getUsersDB() {
+  let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
+  if (!users) {
+    users = {
+      admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
+      test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
+      trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
+    };
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  }
+  if (!users.admin) {
+    users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  }
+  return users;
+}
 
-const MODULES = [
-  { id: 1, title: 'WeMasterTrade Products', icon: '📦', file: 'module1.html' },
-  { id: 2, title: 'Affiliate & Partner Policies', icon: '🤝', file: 'module2.html' },
-  { id: 3, title: 'Trading Rules', icon: '📋', file: 'module3.html' },
-  { id: 4, title: 'Financial Products', icon: '💰', file: 'module4.html' },
-  { id: 5, title: 'Payment Methods', icon: '💳', file: 'module5.html' },
-  { id: 6, title: 'Profit Sharing & Payouts', icon: '🏆', file: 'module6.html' },
-  { id: 7, title: 'Compliance & Risk', icon: '⚖️', file: 'module7.html' }
-];
+function getProgress() {
+  const user = localStorage.getItem('wmt_user') || 'guest';
+  return JSON.parse(localStorage.getItem('wmt_progress_' + user) || '{}');
+}
 
-let currentUser = null;
-let userToDelete = null;
+// ===== EMPLOYEE TYPE SELECTOR =====
+function selectEmpType(type) {
+  document.getElementById('regEmpType').value = type;
+  document.getElementById('empOptNew').classList.toggle('selected', type === 'new');
+  document.getElementById('empOptOld').classList.toggle('selected', type === 'old');
+}
 
+// ===== AUTH TABS =====
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-panel').forEach(p => p.classList.remove('active'));
+  if (tab === 'login') {
+    document.querySelectorAll('.auth-tab')[0].classList.add('active');
+    document.getElementById('loginPanel').classList.add('active');
+  } else {
+    document.querySelectorAll('.auth-tab')[1].classList.add('active');
+    document.getElementById('registerPanel').classList.add('active');
+  }
+}
+
+// ===== LOGIN =====
 function doLogin() {
-  const u = document.getElementById('username').value.trim();
+  const u = document.getElementById('username').value.trim().toLowerCase();
   const p = document.getElementById('password').value;
   const err = document.getElementById('loginError');
+  const users = getUsersDB();
 
-  if (USERS[u] && USERS[u] === p) {
+  if (users[u] && users[u].password === p) {
     localStorage.setItem('wmt_user', u);
     err.textContent = '';
-    currentUser = u;
-    showDashboard();
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
     initDashboard(u);
@@ -687,225 +377,167 @@ function doLogin() {
   }
 }
 
-function switchToSignup() {
-  document.getElementById('loginPage').classList.add('hidden');
-  document.getElementById('signupPage').classList.remove('hidden');
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-}
-
-function switchToLogin() {
-  document.getElementById('signupPage').classList.add('hidden');
-  document.getElementById('loginPage').classList.remove('hidden');
-  document.getElementById('fullname').value = '';
-  document.getElementById('email').value = '';
-  document.getElementById('signup-username').value = '';
-  document.getElementById('signup-password').value = '';
-  document.getElementById('confirm-password').value = '';
-  clearSignupMessages();
-}
-
-function doSignup(event) {
-  event.preventDefault();
-
-  const fullname = document.getElementById('fullname').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const username = document.getElementById('signup-username').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const confirmPassword = document.getElementById('confirm-password').value;
-  const errorMsg = document.getElementById('signupError');
-  const successMsg = document.getElementById('signupSuccess');
-
-  clearSignupMessages();
-
-  // Validation
-  if (!fullname || !email || !username || !password || !confirmPassword) {
-    errorMsg.textContent = 'Vui lòng điền đầy đủ tất cả các trường.';
-    errorMsg.classList.add('show');
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    errorMsg.textContent = 'Mật khẩu không khớp. Vui lòng kiểm tra lại.';
-    errorMsg.classList.add('show');
-    return;
-  }
-
-  if (password.length < 6) {
-    errorMsg.textContent = 'Mật khẩu phải có ít nhất 6 ký tự.';
-    errorMsg.classList.add('show');
-    return;
-  }
-
-  if (USERS[username]) {
-    errorMsg.textContent = 'Tên tài khoản này đã tồn tại. Vui lòng chọn tên khác.';
-    errorMsg.classList.add('show');
-    return;
-  }
-
-  // Register user
-  USERS[username] = password;
-  const userData = {
-    fullname: fullname,
-    email: email,
-    username: username,
-    status: 'IN PROGRESS',
-    createdAt: new Date().toISOString()
-  };
-  localStorage.setItem('wmt_user_' + username, JSON.stringify(userData));
-
-  successMsg.textContent = '✓ Tài khoản đã được tạo thành công! Đang chuyển hướng...';
-  successMsg.classList.add('show');
-
-  setTimeout(() => {
-    localStorage.setItem('wmt_user', username);
-    currentUser = username;
-    document.getElementById('signupPage').classList.add('hidden');
-    document.getElementById('dashboardPage').classList.remove('hidden');
-    initDashboard(username);
-  }, 1500);
-}
-
-function clearSignupMessages() {
-  document.getElementById('signupError').textContent = '';
-  document.getElementById('signupError').classList.remove('show');
-  document.getElementById('signupSuccess').textContent = '';
-  document.getElementById('signupSuccess').classList.remove('show');
-}
-
-function goToUserManagement() {
-  if (currentUser !== 'trainee') {
-    alert('Access denied. Only trainee can access User Management.');
-    return;
-  }
-  document.getElementById('dashboardPage').classList.add('hidden');
-  document.getElementById('userManagementPage').classList.add('show');
-  loadUsersTable();
-}
-
-function backToDashboard() {
-  document.getElementById('userManagementPage').classList.remove('show');
-  document.getElementById('dashboardPage').classList.remove('hidden');
-}
-
-function loadUsersTable() {
-  const tbody = document.getElementById('usersTableBody');
-  const emptyState = document.getElementById('emptyState');
-  tbody.innerHTML = '';
-
-  const registeredUsers = [];
-  for (let key in localStorage) {
-    if (key.startsWith('wmt_user_')) {
-      const userData = JSON.parse(localStorage.getItem(key));
-      registeredUsers.push(userData);
-    }
-  }
-
-  if (registeredUsers.length === 0) {
-    emptyState.style.display = 'block';
-    return;
-  }
-
-  emptyState.style.display = 'none';
-
-  registeredUsers.forEach(user => {
-    const createdDate = new Date(user.createdAt).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-
-    const statusClass = user.status.toLowerCase().replace(' ', '-');
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><strong>${user.username}</strong></td>
-      <td>${user.fullname}</td>
-      <td>${user.email}</td>
-      <td>
-        <select class="status-select" onchange="updateUserStatus('${user.username}', this.value)">
-          <option value="IN PROGRESS" ${user.status === 'IN PROGRESS' ? 'selected' : ''}>IN PROGRESS</option>
-          <option value="PASSED" ${user.status === 'PASSED' ? 'selected' : ''}>PASSED</option>
-          <option value="FAILED" ${user.status === 'FAILED' ? 'selected' : ''}>FAILED</option>
-        </select>
-      </td>
-      <td>${createdDate}</td>
-      <td>
-        <button class="delete-btn" onclick="openDeleteModal('${user.username}', '${user.fullname}')">Delete</button>
-      </td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-function updateUserStatus(username, newStatus) {
-  const userData = JSON.parse(localStorage.getItem('wmt_user_' + username));
-  userData.status = newStatus;
-  localStorage.setItem('wmt_user_' + username, JSON.stringify(userData));
-  loadUsersTable();
-}
-
-function openDeleteModal(username, fullname) {
-  userToDelete = username;
-  document.getElementById('deleteUsername').textContent = fullname + ' (' + username + ')';
-  document.getElementById('deleteModal').classList.add('show');
-}
-
-function closeDeleteModal() {
-  document.getElementById('deleteModal').classList.remove('show');
-  userToDelete = null;
-}
-
-function confirmDelete() {
-  if (userToDelete) {
-    localStorage.removeItem('wmt_user_' + userToDelete);
-    closeDeleteModal();
-    loadUsersTable();
-  }
-}
-
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
-    if (!document.getElementById('loginPage').classList.contains('hidden')) doLogin();
-    if (!document.getElementById('signupPage').classList.contains('hidden')) doSignup(e);
+    const loginVisible = !document.getElementById('loginPage').classList.contains('hidden');
+    if (loginVisible) {
+      const activePanel = document.querySelector('.auth-panel.active');
+      if (activePanel && activePanel.id === 'loginPanel') doLogin();
+      if (activePanel && activePanel.id === 'registerPanel') doRegister();
+    }
   }
 });
 
+// ===== REGISTER =====
+function doRegister() {
+  const u   = document.getElementById('regUsername').value.trim().toLowerCase();
+  const p   = document.getElementById('regPassword').value;
+  const c   = document.getElementById('regConfirm').value;
+  const err = document.getElementById('regError');
+  const ok  = document.getElementById('regSuccess');
+
+  err.textContent = '';
+  ok.textContent  = '';
+
+  if (!/^[a-z0-9_]{3,20}$/.test(u)) {
+    err.textContent = 'Username must be 3–20 characters: letters, numbers, underscores only.';
+    return;
+  }
+  if (u === 'admin') {
+    err.textContent = 'That username is reserved. Please choose another.';
+    return;
+  }
+  if (p.length < 6) {
+    err.textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+  if (p !== c) {
+    err.textContent = 'Passwords do not match.';
+    return;
+  }
+
+  const users = getUsersDB();
+  if (users[u]) {
+    err.textContent = 'Username already taken. Please choose another.';
+    return;
+  }
+
+  users[u] = {
+    password:     p,
+    role:         'trainee',
+    fullName:     document.getElementById('regFullName').value.trim(),
+    email:        document.getElementById('regEmail').value.trim(),
+    department:   document.getElementById('regDepartment').value.trim(),
+    position:     document.getElementById('regPosition').value.trim(),
+    employeeType: document.getElementById('regEmpType').value || 'new',
+    createdAt:    new Date().toISOString()
+  };
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+
+  // Auto-login
+  localStorage.setItem('wmt_user', u);
+  ok.textContent = '✓ Account created! Signing you in…';
+  setTimeout(() => {
+    document.getElementById('loginPage').classList.add('hidden');
+    document.getElementById('dashboardPage').classList.remove('hidden');
+    initDashboard(u);
+  }, 800);
+}
+
+// ===== PROFILE EDIT (trainee) =====
+function openDashboardProfileModal() {
+  const existing = document.getElementById('dashProfileModal');
+  if (existing) { existing.classList.add('show'); return; }
+  const user  = localStorage.getItem('wmt_user') || '';
+  const users = getUsersDB();
+  const u     = users[user] || {};
+  const modal = document.createElement('div');
+  modal.id        = 'dashProfileModal';
+  modal.className = 'modal-overlay show';
+  modal.style.zIndex = '400';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:400px;">
+      <h3 style="color:var(--gold);margin-bottom:20px;">👤 My Profile</h3>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" value="${user}" disabled style="opacity:.45;cursor:not-allowed;width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="dpmEmail" value="${u.email||''}" placeholder="your@email.com" style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="dpmFullName" value="${u.fullName||''}" placeholder="Your full name" style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;">
+      </div>
+      <div id="dpmSuccess" style="display:none;color:#4caf50;font-size:13px;margin-top:6px;font-weight:600;">✓ Profile saved!</div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="document.getElementById('dashProfileModal').classList.remove('show')" style="flex:1;padding:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#aaa;cursor:pointer;font-weight:600;">Cancel</button>
+        <button onclick="saveDashboardProfile()" style="flex:1;padding:11px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#0a0a16;font-weight:800;border:none;border-radius:10px;cursor:pointer;font-size:14px;">Save</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('dpmEmail').focus(), 100);
+}
+
+function saveDashboardProfile() {
+  const user  = localStorage.getItem('wmt_user');
+  const users = getUsersDB();
+  if (!users[user]) return;
+  users[user].email    = document.getElementById('dpmEmail').value.trim();
+  users[user].fullName = document.getElementById('dpmFullName').value.trim();
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  const s = document.getElementById('dpmSuccess');
+  s.style.display = 'block';
+  setTimeout(() => { s.style.display = 'none'; }, 2000);
+}
+
+// ===== LOGOUT =====
 function doLogout() {
   localStorage.removeItem('wmt_user');
-  currentUser = null;
   document.getElementById('dashboardPage').classList.add('hidden');
-  document.getElementById('userManagementPage').classList.remove('show');
   document.getElementById('loginPage').classList.remove('hidden');
   document.getElementById('username').value = '';
   document.getElementById('password').value = '';
+  document.getElementById('loginError').textContent = '';
+  switchTab('login');
 }
 
 function toggleSidebar() {
-  const sidebar = document.getElementById('sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('show');
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
 }
 
-function showDashboard() { /* no-op, already on dashboard */ }
+// ===== MODULES DATA =====
+const MODULES = [
+  { id: 1, title: 'WeMasterTrade Products',    icon: '📦', file: 'module1.html' },
+  { id: 2, title: 'Affiliate & Partner Policies', icon: '🤝', file: 'module2.html' },
+  { id: 3, title: 'Trading Rules',             icon: '📋', file: 'module3.html' },
+  { id: 4, title: 'Financial Products',        icon: '💰', file: 'module4.html' },
+  { id: 5, title: 'Payment Methods',           icon: '💳', file: 'module5.html' },
+  { id: 6, title: 'Profit Sharing & Payouts',  icon: '🏆', file: 'module6.html' },
+  { id: 7, title: 'Compliance & Risk',         icon: '⚖️', file: 'module7.html' }
+];
 
-// ===== INIT =====
-function getProgress() {
-  return JSON.parse(localStorage.getItem('wmt_progress') || '{}');
-}
-
+// ===== DASHBOARD =====
 function initDashboard(user) {
+  const users = getUsersDB();
+  const isAdmin = users[user] && users[user].role === 'admin';
+
   document.getElementById('sidebarUserName').textContent = user;
+  document.getElementById('sidebarUserRole').textContent = isAdmin ? 'Administrator' : 'Sales Trainee';
   document.getElementById('welcomeName').textContent = user;
   document.getElementById('userAvatar').textContent = user[0].toUpperCase();
 
-  // Show User Management only for trainee user
-  const userMgmtNav = document.getElementById('nav-usermgmt');
-  if (user === 'trainee') {
-    userMgmtNav.style.display = 'flex';
-  } else {
-    userMgmtNav.style.display = 'none';
+  // Show edit profile for trainees
+  if (!isAdmin) {
+    document.getElementById('editProfileBtn').style.display = 'block';
+  }
+
+  // Show admin nav section
+  if (isAdmin) {
+    document.getElementById('adminNavSection').classList.remove('hidden');
   }
 
   const progress = getProgress();
@@ -924,17 +556,16 @@ function initDashboard(user) {
     if (completed) completedCount++;
     if (score !== undefined) { totalScore += score; scoredModules++; }
 
-    // Update nav badge
-    const badge = document.getElementById(`badge-m${m.id}`);
+    const badge   = document.getElementById(`badge-m${m.id}`);
     const navItem = document.getElementById(`nav-m${m.id}`);
     if (completed && badge) {
       badge.textContent = '✓';
       badge.style.background = 'rgba(0,214,143,0.15)';
       badge.style.color = 'var(--success)';
-      navItem.classList.add('completed');
+      if (navItem) navItem.classList.add('completed');
     }
 
-    const status = completed ? 'completed' : (score !== undefined ? 'inprogress' : 'pending');
+    const status      = completed ? 'completed' : (score !== undefined ? 'inprogress' : 'pending');
     const statusLabel = completed ? '✓ Completed' : (score !== undefined ? '● In Progress' : '○ Not Started');
 
     grid.innerHTML += `
@@ -952,26 +583,59 @@ function initDashboard(user) {
       </a>`;
   });
 
-  // Stats
   const pct = Math.round((completedCount / 7) * 100);
   document.getElementById('statCompleted').textContent = completedCount;
   document.getElementById('statPercent').textContent = pct + '%';
   document.getElementById('overallProgressBar').style.width = pct + '%';
   document.getElementById('topProgressPill').textContent = `${completedCount} / 7 Modules`;
-  document.getElementById('statAvgScore').textContent = scoredModules > 0 ? Math.round(totalScore / scoredModules) + '%' : '—';
+  document.getElementById('statAvgScore').textContent = scoredModules > 0
+    ? Math.round(totalScore / scoredModules) + '%' : '—';
 
-  // Exam unlock
   if (completedCount === 7) {
     document.getElementById('examLockMsg').textContent = '🎉 All modules complete! You can now take the final exam.';
     document.getElementById('examBtn').style.display = 'inline-flex';
   }
+
+  // Interview card — show if exam passed
+  const examData = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+  if (examData.passed) {
+    document.getElementById('interviewCard').style.display = 'block';
+    const iv = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
+    const titleEl = document.getElementById('ivCardTitle');
+    const descEl  = document.getElementById('ivCardDesc');
+    const subEl   = document.getElementById('ivCardSub');
+    const btnEl   = document.getElementById('ivCardBtn');
+
+    if (!iv) {
+      // Not booked yet
+      titleEl.textContent = '📅 Book Your Interview';
+      descEl.textContent  = 'You passed the exam! Schedule a video interview with a WeMasterTrade trainer to finalise your onboarding.';
+      subEl.textContent   = '';
+      btnEl.textContent   = 'Book Interview →';
+    } else {
+      const statusMap = {
+        pending:   { icon:'⏳', label:'Pending Confirmation', btn:'View Booking →' },
+        confirmed: { icon:'✅', label:'Interview Confirmed!',  btn:'View Meeting →' },
+        completed: { icon:'🏆', label:'Interview Completed',   btn:'View Details →' },
+        cancelled: { icon:'❌', label:'Booking Cancelled',      btn:'Re-book →' }
+      };
+      const meta = statusMap[iv.status] || statusMap.pending;
+      titleEl.textContent = `${meta.icon} ${meta.label}`;
+      descEl.textContent  = iv.status === 'confirmed' && iv.confirmedSlot
+        ? `${iv.meetingPlatform || 'Meeting'} · ${iv.confirmedSlot}`
+        : `${iv.preferredDate || ''} ${iv.preferredTime || ''} · ${iv.timezone || ''}`.trim();
+      subEl.textContent   = iv.status === 'confirmed' && iv.meetingLink ? '🔗 Meeting link ready' : '';
+      btnEl.textContent   = meta.btn;
+    }
+  }
 }
 
-// Check session on load
+// ===== SESSION CHECK =====
 window.addEventListener('load', function() {
+  getUsersDB(); // seed defaults if first visit
   const user = localStorage.getItem('wmt_user');
-  if (user && USERS[user]) {
-    currentUser = user;
+  const users = getUsersDB();
+  if (user && users[user]) {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
     initDashboard(user);
