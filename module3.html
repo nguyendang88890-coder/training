@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Module 3 — Trading Rules | WMT Training</title>
+  <title>Module 3 — Profit & Payouts | WMT Training</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div class="main-content">
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="top-bar-title">Module 3 — Trading Rules</span>
+      <span class="top-bar-title">Module 3 — Profit & Payouts</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
       </div>
@@ -24,197 +24,129 @@
       <div class="module-header">
         <div class="module-header-num">3</div>
         <div class="module-header-info">
-          <h2>Trading Rules</h2>
-          <p>Master all trading rules that traders must follow to maintain their funded accounts</p>
+          <h2>Profit Sharing & Payouts</h2>
+          <p>How traders earn profit splits, payout progression, and certificate rewards</p>
         </div>
       </div>
 
-      <!-- Profit Consistency Rule -->
+      <!-- Payout Progression -->
       <div class="content-section">
-        <h3>📈 Profit Consistency Rule (PCR)</h3>
-        <p>The Profit Consistency Rule ensures traders demonstrate consistent, professional trading behavior rather than relying on a single lucky day.</p>
+        <h3>📈 Payout Progression (Challenge & 51010)</h3>
+        <p>Traders earn increasing profit splits as they demonstrate consistent performance. This rewards reliable, long-term traders.</p>
 
         <div class="callout gold">
-          <span class="callout-icon">📐</span>
+          <span class="callout-icon">🏆</span>
           <div class="callout-content">
-            <strong>Formula: Best Day ÷ Total Profit × 100 ≤ 20%</strong>
-            <p>A single trading day cannot contribute more than 20% of the total profit earned during the evaluation.</p>
+            <strong>Progressive Profit Share — Up to 90%</strong>
+            <p>Traders don't start at 90% — they earn it through consistent performance over multiple payout cycles.</p>
           </div>
         </div>
-
-        <h4>When It Applies</h4>
-        <ul>
-          <li><strong>Challenge Phase 2</strong> — PCR is enforced</li>
-          <li><strong>51010 Instant Funding</strong> — PCR applies</li>
-          <li><strong>51010</strong> — PCR does NOT apply</li>
-          <li><strong>510zero</strong> — No profit target, PCR not applicable</li>
-          <li>Challenge Phase 1 — PCR is NOT enforced</li>
-        </ul>
-
-        <h4>Worked Example</h4>
-        <div class="callout info">
-          <span class="callout-icon">🧮</span>
-          <div class="callout-content">
-            <strong>Example Calculation</strong>
-            <p>
-              Total profit earned: $6,000<br>
-              Best single day profit: $1,000<br>
-              PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit)<br><br>
-              If best day was $1,500:<br>
-              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — violation)
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Risk Consistency Rule -->
-      <div class="content-section">
-        <h3>⚠️ Risk Consistency Rule (RCR)</h3>
-        <p>The Risk Consistency Rule limits the maximum risk exposure per trade idea to protect capital and ensure professional risk management.</p>
 
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Account Type</th><th>Max Risk Per Trade Idea</th></tr>
+              <tr><th>Payout Number</th><th>Trader's Share</th><th>WMT's Share</th></tr>
             </thead>
             <tbody>
-              <tr><td>Challenge (Phase 1 & 2)</td><td>2% of account balance</td></tr>
-              <tr><td>51010 (Instant Funded)</td><td>2% of account balance</td></tr>
-              <tr class="highlight-row"><td>51010 (Instant Funded)</td><td>1% of account balance</td></tr>
-              <tr class="highlight-row"><td>Funded Accounts</td><td>1% of account balance</td></tr>
+              <tr><td>1st Payout</td><td>50%</td><td>50%</td></tr>
+              <tr><td>2nd Payout</td><td>75%</td><td>25%</td></tr>
+              <tr class="highlight-row"><td>3rd Payout onwards</td><td>90%</td><td>10%</td></tr>
             </tbody>
           </table>
         </div>
-
-        <div class="callout danger">
-          <span class="callout-icon">⚠️</span>
-          <div class="callout-content">
-            <strong>Trade Idea Definition</strong>
-            <p>A "trade idea" can span multiple positions, instruments, or accounts. If a trader opens correlated positions as part of the same directional view, the combined risk counts toward the 2% (or 1%) limit.</p>
-          </div>
-        </div>
-
-        <div class="callout info">
-          <span class="callout-icon">📢</span>
-          <div class="callout-content">
-            <strong>Temporary Update — Effective April 10, 2026 (Trial)</strong>
-            <p>The Risk Consistency Rule has been <strong>temporarily removed for small accounts</strong> as part of a trial program starting April 10, 2026. Verify current applicability with the compliance team for specific account sizes.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Max Loss Limit -->
-      <div class="content-section">
-        <h3>🛑 Max Loss Limit (MLL)</h3>
-
-        <div class="callout gold">
-          <span class="callout-icon">📊</span>
-          <div class="callout-content">
-            <strong>10% of Initial Account Balance</strong>
-            <p>The account equity (or balance including open positions) must never fall below 90% of the initial account balance. This is a balance-based calculation.</p>
-          </div>
-        </div>
-
-        <h4>How It's Calculated</h4>
-        <ul>
-          <li>Based on the <strong>initial account balance</strong> (not current balance)</li>
-          <li>Includes <strong>open floating positions</strong> in the calculation</li>
-          <li>If account = $100,000, then equity must stay above <strong>$90,000</strong></li>
-          <li>Breaching this limit results in immediate account closure</li>
-        </ul>
 
         <div class="callout info">
           <span class="callout-icon">💡</span>
           <div class="callout-content">
-            <strong>Example</strong>
-            <p>Account size: $50,000 | Max Loss = 10% = $5,000<br>
-            Account cannot drop below: $50,000 - $5,000 = <strong>$45,000</strong> (including open P&L)</p>
+            <strong>Why Progressive?</strong>
+            <p>The progressive payout system ensures that only consistently profitable traders reach the 90% tier. This aligns incentives between WeMasterTrade and its funded traders.</p>
+          </div>
+        </div>
+
+        <div class="callout success">
+          <span class="callout-icon">⚡</span>
+          <div class="callout-content">
+            <strong>24-Hour Payout SLA — Effective March 12, 2026</strong>
+            <p>WeMasterTrade guarantees payout processing within <strong>24 hours</strong> of an approved withdrawal request. This applies to all Challenge and Instant Funding payout requests.</p>
           </div>
         </div>
       </div>
 
-      <!-- Daily Loss Limit -->
+      <!-- 510Zero Payout System -->
       <div class="content-section">
-        <h3>📅 Daily Loss Limit (DLL)</h3>
+        <h3>🎯 510Zero Profit Sharing</h3>
+        <p>The 510Zero package uses a <strong>performance-based reward</strong> system. Traders earn a profit share based on their trading performance level, with no minimum profit target required — simply request a withdrawal whenever ready.</p>
 
         <div class="callout gold">
-          <span class="callout-icon">📉</span>
+          <span class="callout-icon">⚠️</span>
           <div class="callout-content">
-            <strong>5% Daily Loss Limit</strong>
-            <p>Calculated from the <strong>higher of: yesterday's closing balance OR current equity</strong>. Ensures that each day has its own risk ceiling.</p>
+            <strong>Please note that for the 510Zero packages:</strong>
+            <p>If the profit is less than <strong>6%</strong>, the profit share of the 510Zero package will be reduced to a <strong>fixed 10%</strong> (under <strong>8%</strong> profit, profit share reduce to <strong>10%</strong> for Indonesia and Thailand customers).</p>
           </div>
         </div>
 
-        <h4>Daily Pause vs. Violation</h4>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Event</th><th>Outcome</th><th>Effect on Account</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>Daily Loss Limit Hit</td><td>Daily Pause</td><td>Trading suspended for that day only — NOT a failure</td></tr>
-              <tr><td>Max Loss Limit Hit</td><td>Account Closed</td><td>Challenge/funded account terminated</td></tr>
-            </tbody>
-          </table>
+        <ul>
+          <li>Performance-based reward applies — higher profit level earns a higher profit share</li>
+          <li>If profit &lt; 6%: profit share is reduced to a fixed <strong>10%</strong></li>
+          <li>Under 8% profit: profit share is also reduced to <strong>10%</strong> for Indonesia and Thailand customers</li>
+          <li>No minimum profit target — withdrawal can be requested at any time</li>
+        </ul>
+      </div>
+
+      <!-- Refund Policy -->
+      <div class="content-section">
+        <h3>🚫 Refund Policy</h3>
+
+        <div class="callout danger">
+          <span class="callout-icon">❌</span>
+          <div class="callout-content">
+            <strong>NO REFUNDS Once Trading Begins</strong>
+            <p>Challenge fees and Instant Funding fees are <strong>strictly non-refundable</strong> once the trader has placed even a single trade. This policy is absolute and must be communicated clearly before clients purchase.</p>
+          </div>
         </div>
+
+        <h4>Refund Eligibility (Pre-Trading Only)</h4>
+        <ul>
+          <li>A refund <em>may</em> be considered if the trader has <strong>NOT yet started trading</strong></li>
+          <li>Once the first trade is placed, no refund under any circumstances</li>
+          <li>Technical issues that prevented trading may be reviewed case by case</li>
+          <li>Refund requests must be submitted through official support channels</li>
+        </ul>
 
         <div class="callout success">
           <span class="callout-icon">✅</span>
           <div class="callout-content">
-            <strong>Daily Pause is NOT a Violation</strong>
-            <p>Hitting the daily loss limit only pauses trading for that calendar day. Trading resumes the next day. The account is NOT failed for this.</p>
+            <strong>Sales Partner Responsibility</strong>
+            <p>Always inform clients about the no-refund policy BEFORE purchase. Explain it clearly so they understand the commitment. This prevents disputes and protects both parties.</p>
           </div>
         </div>
-
-        <h4>Calculation Example</h4>
-        <ul>
-          <li>Starting balance: $100,000</li>
-          <li>Daily Loss Limit = 5% = <strong>$5,000</strong></li>
-          <li>If current equity is $102,000 (in profit), the daily limit is calculated from $102,000 = <strong>$5,100</strong></li>
-          <li>Always calculated from the HIGHER of balance or equity</li>
-        </ul>
       </div>
 
-      <!-- Trading Interval Restriction -->
+      <!-- Certificates -->
       <div class="content-section">
-        <h3>⏱️ Trading Interval Restriction</h3>
-
-        <div class="callout danger">
-          <span class="callout-icon">🚫</span>
-          <div class="callout-content">
-            <strong>1-Hour Wait Rule</strong>
-            <p>After closing a <strong>losing position</strong> on a specific symbol, the trader must wait <strong>1 hour</strong> before opening another trade on the same symbol — across ALL their accounts.</p>
-          </div>
-        </div>
-
-        <ul>
-          <li>Applies across all accounts owned by the same trader</li>
-          <li>Only triggered by <strong>losing positions</strong> — winning trades don't activate the wait</li>
-          <li>Symbol-specific: closing a losing EUR/USD trade triggers a 1hr wait on EUR/USD only</li>
-          <li>Designed to prevent emotional revenge trading</li>
-        </ul>
-      </div>
-
-      <!-- Scale-Up Plan -->
-      <div class="content-section">
-        <h3>🚀 Scale-Up Plan</h3>
-        <p>Successful traders can scale their funded account progressively up to $1,000,000.</p>
+        <h3>🏅 WeMasterTrade Certificates</h3>
+        <p>WeMasterTrade issues official certificates to recognize trader achievements and partner status. These serve as professional credentials.</p>
 
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Stage</th><th>Account Size</th></tr>
+              <tr><th>Certificate Type</th><th>Who Receives It</th><th>Purpose</th></tr>
             </thead>
             <tbody>
-              <tr><td>Start</td><td>100% of initial</td></tr>
-              <tr><td>Scale 1</td><td>150%</td></tr>
-              <tr><td>Scale 2</td><td>300%</td></tr>
-              <tr><td>Scale 3</td><td>600%</td></tr>
-              <tr><td>Scale 4</td><td>1,200%</td></tr>
-              <tr><td>Scale 5</td><td>2,400%</td></tr>
-              <tr class="highlight-row"><td>Maximum</td><td>$1,000,000</td></tr>
+              <tr><td>Profit Split Certificate</td><td>Funded traders who receive payouts</td><td>Proof of profit withdrawal</td></tr>
+              <tr><td>Challenge Certificate</td><td>Traders who pass the Challenge</td><td>Proof of evaluation success</td></tr>
+              <tr><td>Academy Certificate</td><td>Traders completing education programs</td><td>WMT education credential</td></tr>
+              <tr class="highlight-row"><td>Introducing Partner Certificate</td><td>Active introducing partners</td><td>Official partner status</td></tr>
             </tbody>
           </table>
+        </div>
+
+        <div class="callout gold">
+          <span class="callout-icon">🎖️</span>
+          <div class="callout-content">
+            <strong>Your Introducing Partner Certificate</strong>
+            <p>Upon completing this training and passing the final exam, you will receive your official WeMasterTrade Introducing Partner Certificate. This can be shared on LinkedIn, social media, and in client conversations to establish credibility.</p>
+          </div>
         </div>
       </div>
 
@@ -222,7 +154,7 @@
       <div class="mark-complete-bar">
         <div class="mark-complete-text">
           <h4>Ready to move on?</h4>
-          <p>Complete the quiz below before advancing to Module 4.</p>
+          <p>Complete the quiz below before advancing to Module 7.</p>
         </div>
         <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(3)">✓ Mark as Complete</button>
         <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
@@ -240,7 +172,7 @@
         <div class="quiz-result" id="quizResult">
           <div class="result-score" id="quizScore"></div>
           <p id="quizResultMsg"></p>
-          <a href="module4.html" class="btn btn-primary mt-16">Next Module →</a>
+          <a href="module5.html" class="btn btn-primary mt-16">Next Module →</a>
         </div>
       </div>
 
@@ -248,6 +180,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(3);
@@ -256,49 +191,44 @@ checkCompleted(3);
 
 const questions = [
   {
-    q: "What is the Profit Consistency Rule formula?",
+    q: "What is the payout percentage for the 1st withdrawal?",
+    opts: ["90%", "75%", "50%", "60%"],
+    _c: "Mg==",
+    explain: "The 1st payout is 50%, the 2nd is 75%, and from the 3rd onwards it reaches 90%. This graduated structure rewards long-term, consistent traders."
+  },
+  {
+    q: "From which payout number do traders receive 90% profit share (51010)?",
+    opts: ["1st", "2nd", "3rd", "5th"],
+    _c: "Mg==",
+    explain: "The 90% profit share tier is reached from the 3rd payout onward for Challenge and 51010 plans. It's one of the highest profit splits in the funded trader industry."
+  },
+  {
+    q: "In the 510Zero plan, what happens to the profit share if profit is less than 6%?",
     opts: [
-      "Total Profit ÷ Best Day × 100",
-      "Best Day ÷ Total Profit × 100 ≤ 20%",
-      "Best Day × Total Profit ÷ 100",
-      "Daily Loss ÷ Balance × 100"
+      "It stays the same — no change",
+      "It is reduced to a fixed 10%",
+      "It is reduced to 20%",
+      "The account is suspended"
     ],
-    correct: 1,
-    explain: "PCR = (Best Day Profit ÷ Total Profit) × 100. If this exceeds 20%, one day dominated your results — violating the consistency rule. The goal is balanced, steady trading."
+    _c: "MQ==",
+    explain: "If the 510Zero trader's profit is below 6%, the profit share is reduced to a fixed 10%. Under 8% profit, the same 10% reduction also applies for Indonesia and Thailand customers."
   },
   {
-    q: "What is the maximum risk per trade for 51010 and Funded accounts?",
-    opts: ["2%", "5%", "1%", "3%"],
-    correct: 2,
-    explain: "51010 and Funded accounts have a stricter 1% max risk per trade. Standard Challenge accounts allow 2%. This tighter rule protects funded capital."
-  },
-  {
-    q: "The Daily Loss Limit is calculated from which value?",
+    q: "When is a refund allowed under WeMasterTrade's policy?",
     opts: [
-      "Initial account balance only",
-      "Current balance only",
-      "The HIGHER of yesterday's closing balance or current equity",
-      "The LOWER of balance or equity"
+      "Any time within 30 days",
+      "Only if the trader hasn't placed any trades yet",
+      "After the challenge is failed",
+      "Never — all sales are final"
     ],
-    correct: 2,
-    explain: "The baseline uses the HIGHER of yesterday's closing balance or current equity. This prevents traders from locking in large gains and then risking them all the next day."
+    _c: "MQ==",
+    explain: "Refunds are only granted if no trades have been placed. Once a trader enters any position, the account fee is non-refundable regardless of outcome."
   },
   {
-    q: "When a trader hits the Daily Loss Limit, what happens?",
-    opts: [
-      "The account is permanently closed",
-      "The challenge is failed",
-      "Trading is paused for the rest of that day only (not a violation)",
-      "A $50 penalty is charged"
-    ],
-    correct: 2,
-    explain: "Hitting the DLL pauses trading for that calendar day only — it is NOT a rule violation or account breach. Trading resumes the next day normally."
-  },
-  {
-    q: "How long must a trader wait before re-trading the same symbol after a losing position?",
-    opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
-    correct: 1,
-    explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol. This cooling-off rule prevents emotional revenge trading."
+    q: "What is the 24-hour payout SLA effective date?",
+    opts: ["January 1, 2026", "March 12, 2026", "April 10, 2026", "February 1, 2026"],
+    _c: "MQ==",
+    explain: "The 24-hour payout processing SLA took effect on March 12, 2026. This means approved payout requests are processed within one business day."
   }
 ];
 

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -324,7 +324,7 @@
             <thead>
               <tr>
                 <th>Username</th>
-                <th>M1 Products</th><th>M2 Affiliate</th><th>M3 Rules</th><th>M4 Financial</th>
+                <th>M1 Products</th><th>M2 Rules</th><th>M3 Profit</th><th>M4 Payment</th>
                 <th>M5 Payment</th><th>M6 Payouts</th><th>M7 Compliance</th>
                 <th>Reset All</th>
               </tr>
@@ -450,6 +450,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 // Admin guard
@@ -461,7 +464,8 @@
   }
 })();
 
-window.addEventListener('load', function() {
+window.addEventListener('load', async function() {
+  await syncFromFirebase();
   document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
   updateSidebarProgress();
   renderAdminPanel();
@@ -479,11 +483,11 @@ function getInterviewData(username) {
   return JSON.parse(localStorage.getItem('wmt_interview_' + username) || 'null');
 }
 function saveInterviewData(username, data) {
-  localStorage.setItem('wmt_interview_' + username, JSON.stringify(data));
+  dbWrite('wmt_interview_' + username, JSON.stringify(data));
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
   const idx  = list.findIndex(x => x.username === username);
   if (idx >= 0) list[idx] = data; else list.push(data);
-  localStorage.setItem('wmt_interviews_list', JSON.stringify(list));
+  dbWrite('wmt_interviews_list', JSON.stringify(list));
 }
 
 // ===== TAB SWITCH =====
@@ -625,21 +629,21 @@ function renderAdminPanel() {
 
 function resetUser(uname) {
   if (!confirm(`Reset all progress for "${uname}"?\n\nThis will clear module progress, quiz results, exam data, and interview booking.`)) return;
-  localStorage.removeItem('wmt_progress_' + uname);
-  localStorage.removeItem('wmt_exam_'      + uname);
-  localStorage.removeItem('wmt_interview_' + uname);
-  for (let i = 1; i <= 7; i++) localStorage.removeItem(`wmt_quiz_${uname}_m${i}`);
+  dbRemove('wmt_progress_' + uname);
+  dbRemove('wmt_exam_'      + uname);
+  dbRemove('wmt_interview_' + uname);
+  for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
-  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
   renderAdminPanel();
   renderInterviewsTable();
 }
 
 // ===== PROPOSALS =====
-const EQ_MOD_NAMES = ['','Products','Affiliate & Partners','Trading Rules','Financial Products','Payment Methods','Profit & Payouts','Compliance & Risk'];
+const EQ_MOD_NAMES = ['','Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk'];
 
 function getProposals()   { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
-function saveProposals(d) { localStorage.setItem('wmt_proposals', JSON.stringify(d)); }
+function saveProposals(d) { dbWrite('wmt_proposals', JSON.stringify(d)); }
 
 function updateProposalsBadge() {
   const pending = getProposals().filter(p => p.status === 'pending').length;
@@ -727,13 +731,13 @@ function approveProposal(id) {
     if (!bank) { alert('Question bank chưa được khởi tạo. Mở trang Final Exam một lần trước.'); return; }
     if (p.action === 'edit') bank[p.idx] = p.proposed;
     else bank.push(p.proposed);
-    localStorage.setItem('wmt_exam_qbank', JSON.stringify(bank));
+    dbWrite('wmt_exam_qbank', JSON.stringify(bank));
   } else if (p.source === 'monthly') {
     const qb = JSON.parse(localStorage.getItem('wmt_qbank_' + p.group) || 'null');
     if (!qb) { alert('Question Bank chưa có dữ liệu. Upload file trước.'); return; }
     if (p.action === 'edit') qb.questions[p.idx] = { ...qb.questions[p.idx], ...p.proposed };
     else { qb.questions.push(p.proposed); qb.totalPoints = qb.questions.reduce((s,q)=>s+(q.points||0),0); }
-    localStorage.setItem('wmt_qbank_' + p.group, JSON.stringify(qb));
+    dbWrite('wmt_qbank_' + p.group, JSON.stringify(qb));
   }
 
   const curUser = localStorage.getItem('wmt_user') || '';
@@ -758,7 +762,7 @@ function rejectProposal(id) {
 }
 
 // ===== QUIZ TAB =====
-const MODULE_LABELS = ['Products','Affiliate','Rules','Financial','Payment','Payouts','Compliance'];
+const MODULE_LABELS = ['Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Intro Partner','Compliance'];
 
 function renderQuizTab() {
   const users    = getUsersDB();
@@ -817,11 +821,11 @@ function renderQuizTab() {
 
 function resetQuiz(uname, moduleId) {
   if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz cho "${uname}"?\nTrainee sẽ có thể làm lại quiz này.`)) return;
-  localStorage.removeItem(`wmt_quiz_${uname}_m${moduleId}`);
+  dbRemove(`wmt_quiz_${uname}_m${moduleId}`);
   const p = getUserProgress(uname);
   delete p[`module${moduleId}_done`];
   delete p[`module${moduleId}_score`];
-  localStorage.setItem('wmt_progress_' + uname, JSON.stringify(p));
+  dbWrite('wmt_progress_' + uname, JSON.stringify(p));
   renderQuizTab();
   renderAdminPanel();
 }
@@ -830,11 +834,11 @@ function resetAllQuizzes(uname) {
   if (!confirm(`Reset tất cả quiz của "${uname}"?\nTrainee sẽ có thể làm lại tất cả 7 module quiz.`)) return;
   const p = getUserProgress(uname);
   for (let i = 1; i <= 7; i++) {
-    localStorage.removeItem(`wmt_quiz_${uname}_m${i}`);
+    dbRemove(`wmt_quiz_${uname}_m${i}`);
     delete p[`module${i}_done`];
     delete p[`module${i}_score`];
   }
-  localStorage.setItem('wmt_progress_' + uname, JSON.stringify(p));
+  dbWrite('wmt_progress_' + uname, JSON.stringify(p));
   renderQuizTab();
   renderAdminPanel();
 }
@@ -844,10 +848,11 @@ function deleteUser(uname) {
   if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
   const users = getUsersDB();
   delete users[uname];
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
-  ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => localStorage.removeItem(k + uname));
+  dbWrite('wmt_users_db', JSON.stringify(users));
+  ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => dbRemove(k + uname));
+  for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
-  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
   if (localStorage.getItem('wmt_user') === uname) { localStorage.removeItem('wmt_user'); window.location.href = 'index.html'; return; }
   renderAdminPanel();
   renderInterviewsTable();
@@ -1013,7 +1018,7 @@ function saveEditUser() {
   users[uname].position   = document.getElementById('editPosition').value.trim();
   users[uname].role         = document.getElementById('editRole').value;
   users[uname].employeeType = document.getElementById('editEmpType').value;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  dbWrite('wmt_users_db', JSON.stringify(users));
   closeEditUser();
   renderAdminPanel();
 }

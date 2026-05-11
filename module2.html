@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Module 2 — Affiliate & Partners | WMT Training</title>
+  <title>Module 2 — Trading Rules | WMT Training</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div class="main-content">
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="top-bar-title">Module 2 — Affiliate & Partner Policies</span>
+      <span class="top-bar-title">Module 2 — Trading Rules</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
       </div>
@@ -24,186 +24,201 @@
       <div class="module-header">
         <div class="module-header-num">2</div>
         <div class="module-header-info">
-          <h2>Affiliate & Partner Policies</h2>
-          <p>Commission structures, partner tiers, cookie tracking, and payout rules</p>
+          <h2>Trading Rules</h2>
+          <p>Master all trading rules that traders must follow to maintain their funded accounts</p>
         </div>
       </div>
 
-      <!-- Commission Overview -->
+      <!-- Profit Consistency Rule -->
       <div class="content-section">
-        <h3>🤝 Commission Overview</h3>
-        <p>WeMasterTrade operates a <strong>3-level affiliate system</strong> with generous commissions and lifetime tracking. As a sales partner, you earn commissions on referrals and sub-referrals.</p>
+        <h3>📈 Profit Consistency Rule (PCR)</h3>
+        <p>The Profit Consistency Rule ensures traders demonstrate consistent, professional trading behavior rather than relying on a single lucky day.</p>
 
         <div class="callout gold">
-          <span class="callout-icon">⭐</span>
+          <span class="callout-icon">📐</span>
           <div class="callout-content">
-            <strong>25% First Transaction Commission</strong>
-            <p>Level 1 affiliates earn 25% commission on the FIRST purchase by each referred client, plus tiered upsell commissions based on monthly volume. Commissions are paid for the lifetime of the customer.</p>
+            <strong>Formula: Best Day ÷ Total Profit × 100 ≤ 20%</strong>
+            <p>A single trading day cannot contribute more than 20% of the total profit earned during the evaluation.</p>
           </div>
         </div>
 
-        <h4>3-Level Commission Structure</h4>
+        <h4>When It Applies</h4>
+        <ul>
+          <li><strong>Challenge Phase 2</strong> — PCR is enforced</li>
+          <li><strong>51010 Instant Funding</strong> — PCR applies</li>
+          <li><strong>510Zero</strong> — No profit target, PCR applied</li>
+          <li>Challenge Phase 1 &amp; Funded account — PCR is NOT enforced</li>
+        </ul>
+
+        <h4>Worked Example</h4>
+        <div class="callout info">
+          <span class="callout-icon">🧮</span>
+          <div class="callout-content">
+            <strong>Example Calculation</strong>
+            <p>
+              Total profit earned: $6,000<br>
+              Best single day profit: $1,000<br>
+              PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit)<br><br>
+              If best day was $1,500:<br>
+              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — violation)
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk Consistency Rule -->
+      <div class="content-section">
+        <h3>⚠️ Risk Consistency Rule (RCR)</h3>
+        <p>The Risk Consistency Rule limits the maximum risk exposure per trade idea to protect capital and ensure professional risk management.</p>
+
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>Level</th>
-                <th>Who</th>
-                <th>First Transaction</th>
-                <th>Upsell / Subsequent</th>
-                <th>Commission Type</th>
-              </tr>
+              <tr><th>Account Type</th><th>Max Risk Per Trade Idea</th></tr>
             </thead>
             <tbody>
-              <tr class="highlight-row">
-                <td>Level 1 (L1)</td>
-                <td>Your direct referrals</td>
-                <td>25%</td>
-                <td>5–10% (tiered by volume)</td>
-                <td>Lifetime</td>
-              </tr>
-              <tr>
-                <td>Level 2 (L2)</td>
-                <td>Referrals of your referrals</td>
-                <td>10%</td>
-                <td>10%</td>
-                <td>Lifetime</td>
-              </tr>
-              <tr>
-                <td>Level 3 (L3)</td>
-                <td>3rd-degree referrals</td>
-                <td>1%</td>
-                <td>1%</td>
-                <td>Lifetime</td>
-              </tr>
+              <tr><td>Challenge Phase 2</td><td>2% of account balance</td></tr>
+              <tr><td>51010 (Instant Funded)</td><td>2% of account balance</td></tr>
+              <tr><td>510Zero (Instant Funded)</td><td>2% of account balance</td></tr>
+              <tr class="highlight-row"><td>Funded Account</td><td>1% of account balance</td></tr>
             </tbody>
           </table>
         </div>
 
-        <h4>L1 Commission Tiers</h4>
-        <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
-
-          <!-- Silver -->
-          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
-            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Silver</div>
-            <div style="padding:16px 20px">
-              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">0 USD</strong> to <strong style="color:#fff">5,000 USD</strong></div>
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
-                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">5%</strong></div>
-              </div>
-            </div>
+        <div class="callout danger">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Trade Idea Definition</strong>
+            <p>A "trade idea" can span multiple positions, instruments, or accounts. If a trader opens correlated positions as part of the same directional view, the combined risk counts toward the 2% (or 1%) limit.</p>
           </div>
-
-          <!-- Gold -->
-          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
-            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Gold</div>
-            <div style="padding:16px 20px">
-              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">5,000 USD</strong> to <strong style="color:#fff">15,000 USD</strong></div>
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
-                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">7.5%</strong></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Platinum -->
-          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
-            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Platinum</div>
-            <div style="padding:16px 20px">
-              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">15,000 USD</strong> to <strong style="color:#fff">10,000,000 USD</strong></div>
-              <div style="display:flex;flex-direction:column;gap:6px">
-                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
-                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">10%</strong></div>
-              </div>
-            </div>
-          </div>
-
         </div>
-      </div>
-
-      <!-- Cookie Tracking -->
-      <div class="content-section">
-        <h3>🍪 Cookie Tracking & Attribution</h3>
 
         <div class="callout info">
-          <span class="callout-icon">ℹ️</span>
+          <span class="callout-icon">📢</span>
           <div class="callout-content">
-            <strong>30-Day Cookie Window</strong>
-            <p>When a user clicks your affiliate link, a cookie is stored for 30 days. This means if a user clicks your affiliate link but later visits the website directly to make a purchase — without clicking your link again — you still receive credit and earn the commission.</p>
+            <strong>Temporary Update — Effective April 10, 2026 (Trial)</strong>
+            <p>The Risk Consistency Rule has been <strong>temporarily removed for small accounts</strong> as part of a trial program starting April 10, 2026. Verify current applicability with the compliance team for specific account sizes.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Max Loss Limit -->
+      <div class="content-section">
+        <h3>🛑 Max Loss Limit (MLL)</h3>
+
+        <div class="callout gold">
+          <span class="callout-icon">📊</span>
+          <div class="callout-content">
+            <strong>10% of Initial Account Balance</strong>
+            <p>The account equity (or balance including open positions) must never fall below 90% of the initial account balance. This is a balance-based calculation.</p>
           </div>
         </div>
 
-        <h4>How Attribution Works</h4>
+        <h4>How It's Calculated</h4>
         <ul>
-          <li><strong>Last-click attribution</strong>: The affiliate whose link was clicked last (within 30 days) gets credit</li>
-          <li>Cookie persists for <strong>30 days</strong> from the click</li>
-          <li>If a client clears cookies before purchasing, the attribution may be lost</li>
-          <li>Commissions are tracked in your affiliate dashboard in real-time</li>
+          <li>Based on the <strong>initial account balance</strong> (not current balance)</li>
+          <li>Includes <strong>open floating positions</strong> in the calculation</li>
+          <li>If account = $100,000, then equity must stay above <strong>$90,000</strong></li>
+          <li>Breaching this limit results in immediate account closure</li>
+        </ul>
+
+        <div class="callout info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-content">
+            <strong>Example</strong>
+            <p>Account size: $50,000 | Max Loss = 10% = $5,000<br>
+            Account cannot drop below: $50,000 - $5,000 = <strong>$45,000</strong> (including open P&L)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Loss Limit -->
+      <div class="content-section">
+        <h3>📅 Daily Loss Limit (DLL)</h3>
+
+        <div class="callout gold">
+          <span class="callout-icon">📉</span>
+          <div class="callout-content">
+            <strong>5% Daily Loss Limit</strong>
+            <p>Calculated from the <strong>higher of: current equity OR current balance</strong>. Ensures that each day has its own risk ceiling.</p>
+          </div>
+        </div>
+
+        <h4>Definition</h4>
+        <p>The Maximum Daily Loss uses the <strong>higher value between equity and balance</strong> as the baseline. The day's equity includes:</p>
+        <ul>
+          <li>Floating P&amp;L (open positions)</li>
+          <li>All closed positions for that day</li>
+          <li>Swap, commission, and fees are all <strong>included</strong> in the calculation</li>
+        </ul>
+        <p>The Daily Loss Limit is calculated as a <strong>percentage of the initial account balance</strong>.</p>
+
+        <h4>What Happens If I Break the Daily Loss Rule?</h4>
+        <div class="callout danger">
+          <span class="callout-icon">🚨</span>
+          <div class="callout-content">
+            <strong>Account Auto-Liquidated — Rule Violation</strong>
+            <p>If you hit the Daily Loss Limit, your account is <strong>automatically liquidated</strong> for the remainder of the trading day. This is a <strong>rule violation</strong> — you <strong>CANNOT resume trading</strong>. You will need to purchase a new package to start again.</p>
+          </div>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Auto-Liquidation Mechanism</strong>
+            <p>The auto-liquidation system sends a market order to close open positions. Due to market fluctuation at the time of execution, the final P&amp;L may end up <strong>exceeding the daily loss limit</strong> slightly.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trading Interval Restriction -->
+      <div class="content-section">
+        <h3>⏱️ Trading Interval Restriction</h3>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-content">
+            <strong>1-Hour Wait Rule</strong>
+            <p>After closing a <strong>losing position</strong> on a specific symbol, the trader must wait <strong>1 hour</strong> before opening another trade on the same symbol — across ALL their accounts.</p>
+          </div>
+        </div>
+
+        <ul>
+          <li>Applies across all accounts owned by the same trader</li>
+          <li>Only triggered by <strong>losing positions</strong> — winning trades don't activate the wait</li>
+          <li>Symbol-specific: closing a losing EUR/USD trade triggers a 1hr wait on EUR/USD only</li>
+          <li>Designed to prevent emotional revenge trading</li>
         </ul>
       </div>
 
-      <!-- Payout Rules -->
+      <!-- Scale-Up Plan -->
       <div class="content-section">
-        <h3>💸 Commission Payout Rules</h3>
+        <h3>🚀 Scale-Up Plan</h3>
+        <p>Successful traders can scale their funded account progressively up to $1,000,000.</p>
 
-        <h4>Minimum Withdrawal Thresholds</h4>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Region</th><th>Minimum Balance to Withdraw</th></tr>
+              <tr><th>Stage</th><th>Account Size</th></tr>
             </thead>
             <tbody>
-              <tr class="highlight-row"><td>International (Standard)</td><td>$200</td></tr>
-              <tr><td>Bangladesh</td><td>$100</td></tr>
+              <tr><td>Start</td><td>100% of initial</td></tr>
+              <tr><td>Scale 1</td><td>150%</td></tr>
+              <tr><td>Scale 2</td><td>300%</td></tr>
+              <tr><td>Scale 3</td><td>600%</td></tr>
+              <tr><td>Scale 4</td><td>1,200%</td></tr>
+              <tr><td>Scale 5</td><td>2,400%</td></tr>
+              <tr class="highlight-row"><td>Maximum</td><td>$1,000,000</td></tr>
             </tbody>
           </table>
         </div>
-
-        <div class="callout gold">
-          <span class="callout-icon">⏰</span>
-          <div class="callout-content">
-            <strong>31-Day Holding Period</strong>
-            <p>Commissions become eligible for withdrawal <strong>31 days after the client's payment</strong>. This accounts for potential refund windows and chargebacks.</p>
-          </div>
-        </div>
-
-        <h4>Important Payout Notes</h4>
-        <ul>
-          <li>Commissions are calculated on the <strong>net amount paid</strong> by the client</li>
-          <li>If a client gets a refund (before trading starts), your commission is reversed</li>
-          <li>Once a client starts trading, <strong>no refunds are issued</strong>, so your commission is secured</li>
-          <li>Withdrawals are processed via the available payment methods in your region</li>
-        </ul>
-      </div>
-
-      <!-- Partner Benefits -->
-      <div class="content-section">
-        <h3>🏅 Partner Benefits & Certificates</h3>
-
-        <div class="callout success">
-          <span class="callout-icon">🎖️</span>
-          <div class="callout-content">
-            <strong>Affiliate Partner Certificate</strong>
-            <p>Active affiliates receive an official WeMasterTrade Affiliate Partner Certificate, valid for use in marketing and personal branding.</p>
-          </div>
-        </div>
-
-        <h4>Partner Tier Benefits</h4>
-        <ul>
-          <li><strong>Access to marketing materials</strong> — banners, links, landing pages</li>
-          <li><strong>Real-time dashboard</strong> — track clicks, conversions, and commissions</li>
-          <li><strong>Dedicated support</strong> — priority support for active partners</li>
-          <li><strong>Scale-up bonuses</strong> — higher volume affiliates may negotiate enhanced rates</li>
-          <li><strong>Multi-level visibility</strong> — see your L1, L2, and L3 network in your dashboard</li>
-        </ul>
       </div>
 
       <!-- Mark Complete -->
       <div class="mark-complete-bar">
         <div class="mark-complete-text">
           <h4>Ready to move on?</h4>
-          <p>Complete the quiz below before advancing to Module 3.</p>
+          <p>Complete the quiz below before advancing to Module 4.</p>
         </div>
         <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(2)">✓ Mark as Complete</button>
         <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
@@ -221,7 +236,7 @@
         <div class="quiz-result" id="quizResult">
           <div class="result-score" id="quizScore"></div>
           <p id="quizResultMsg"></p>
-          <a href="module3.html" class="btn btn-primary mt-16">Next Module →</a>
+          <a href="module6.html" class="btn btn-primary mt-16">Next Module →</a>
         </div>
       </div>
 
@@ -229,6 +244,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(2);
@@ -237,34 +255,49 @@ checkCompleted(2);
 
 const questions = [
   {
-    q: "What commission percentage does a Level 1 affiliate earn on a referred client's FIRST purchase?",
-    opts: ["10%", "15%", "25%", "30%"],
-    correct: 2,
-    explain: "Level 1 affiliates earn 25% on a referred client's first purchase and 10% on any upsells or renewals. This generous first-purchase rate rewards active recruitment."
+    q: "What is the Profit Consistency Rule formula?",
+    opts: [
+      "Total Profit ÷ Best Day × 100",
+      "Best Day ÷ Total Profit × 100 ≤ 20%",
+      "Best Day × Total Profit ÷ 100",
+      "Daily Loss ÷ Balance × 100"
+    ],
+    _c: "MQ==",
+    explain: "PCR = (Best Day Profit ÷ Total Profit) × 100. If this exceeds 20%, one day dominated your results — violating the consistency rule. The goal is balanced, steady trading."
   },
   {
-    q: "How long is the cookie tracking window for affiliate referrals?",
-    opts: ["7 days", "14 days", "30 days", "60 days"],
-    correct: 2,
-    explain: "WeMasterTrade uses a 30-day cookie window. If a visitor clicks your affiliate link and purchases within 30 days, you receive the commission."
+    q: "What is the maximum risk per trade for 51010 and Funded accounts?",
+    opts: ["2%", "5%", "1%", "3%"],
+    _c: "Mg==",
+    explain: "51010 and Funded accounts have a stricter 1% max risk per trade. Standard Challenge accounts allow 2%. This tighter rule protects funded capital."
   },
   {
-    q: "What is the minimum commission balance to withdraw for international affiliates (standard)?",
-    opts: ["$50", "$100", "$150", "$200"],
-    correct: 3,
-    explain: "The standard minimum withdrawal for international affiliates is $200. Bangladesh has a lower minimum of $100 to accommodate regional payment costs."
+    q: "The Daily Loss Limit is calculated from which value?",
+    opts: [
+      "Initial account balance only",
+      "Current balance only",
+      "The HIGHER of yesterday's closing balance or current equity",
+      "The LOWER of balance or equity"
+    ],
+    _c: "Mg==",
+    explain: "The baseline uses the HIGHER of yesterday's closing balance or current equity. This prevents traders from locking in large gains and then risking them all the next day."
   },
   {
-    q: "How many days after a client's payment does a commission become withdrawable?",
-    opts: ["7 days", "14 days", "31 days", "60 days"],
-    correct: 2,
-    explain: "Commissions become available 31 days after the client's payment. This waiting period covers the chargeback and refund window to prevent fraudulent claims."
+    q: "When a trader hits the Daily Loss Limit, what happens?",
+    opts: [
+      "Trading is paused for the rest of that day only — not a violation",
+      "A $50 penalty is charged",
+      "The account is auto-liquidated and cannot resume — it is a rule violation requiring a new package",
+      "The challenge is paused for 24 hours"
+    ],
+    _c: "Mg==",
+    explain: "Hitting the DLL triggers automatic liquidation of all open positions. This is a rule violation — trading cannot resume and you must purchase a new package to start again."
   },
   {
-    q: "What commission rate does a Level 2 affiliate earn?",
-    opts: ["1%", "5%", "10%", "25%"],
-    correct: 2,
-    explain: "Level 2 affiliates earn 10% on the purchases of clients referred by their Level 1 sub-affiliates. Level 3 earns 1%, creating a three-tier structure."
+    q: "How long must a trader wait before re-trading the same symbol after a losing position?",
+    opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
+    _c: "MQ==",
+    explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol. This cooling-off rule prevents emotional revenge trading."
   }
 ];
 

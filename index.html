@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -194,25 +194,25 @@
         <span class="nav-icon">📦</span> <span>Products</span>
         <span class="nav-badge" id="badge-m1">M1</span>
       </a>
-      <a href="module3.html" class="nav-item" id="nav-m3">
+      <a href="module2.html" class="nav-item" id="nav-m2">
         <span class="nav-icon">📋</span> <span>Trading Rules</span>
+        <span class="nav-badge" id="badge-m2">M2</span>
+      </a>
+      <a href="module3.html" class="nav-item" id="nav-m3">
+        <span class="nav-icon">🏆</span> <span>Profit & Payouts</span>
         <span class="nav-badge" id="badge-m3">M3</span>
       </a>
       <a href="module4.html" class="nav-item" id="nav-m4">
-        <span class="nav-icon">💰</span> <span>Financial Products</span>
+        <span class="nav-icon">💳</span> <span>Payment Methods</span>
         <span class="nav-badge" id="badge-m4">M4</span>
       </a>
-      <a href="module6.html" class="nav-item" id="nav-m6">
-        <span class="nav-icon">🏆</span> <span>Profit & Payouts</span>
-        <span class="nav-badge" id="badge-m6">M6</span>
-      </a>
       <a href="module5.html" class="nav-item" id="nav-m5">
-        <span class="nav-icon">💳</span> <span>Payment Methods</span>
+        <span class="nav-icon">💰</span> <span>Financial Products</span>
         <span class="nav-badge" id="badge-m5">M5</span>
       </a>
-      <a href="module2.html" class="nav-item" id="nav-m2">
-        <span class="nav-icon">🤝</span> <span>Affiliate & Partners</span>
-        <span class="nav-badge" id="badge-m2">M2</span>
+      <a href="module6.html" class="nav-item" id="nav-m6">
+        <span class="nav-icon">🤝</span> <span>Introducing Partner</span>
+        <span class="nav-badge" id="badge-m6">M6</span>
       </a>
       <a href="module7.html" class="nav-item" id="nav-m7">
         <span class="nav-icon">⚖️</span> <span>Compliance & Risk</span>
@@ -315,6 +315,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 // ===== USER DB =====
 function getUsersDB() {
@@ -325,11 +328,11 @@ function getUsersDB() {
       test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    dbWrite('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    dbWrite('wmt_users_db', JSON.stringify(users));
   }
   return users;
 }
@@ -432,7 +435,7 @@ function doRegister() {
     employeeType: document.getElementById('regEmpType').value || 'new',
     createdAt:    new Date().toISOString()
   };
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  dbWrite('wmt_users_db', JSON.stringify(users));
 
   // Auto-login
   localStorage.setItem('wmt_user', u);
@@ -487,7 +490,7 @@ function saveDashboardProfile() {
   if (!users[user]) return;
   users[user].email    = document.getElementById('dpmEmail').value.trim();
   users[user].fullName = document.getElementById('dpmFullName').value.trim();
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  dbWrite('wmt_users_db', JSON.stringify(users));
   const s = document.getElementById('dpmSuccess');
   s.style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 2000);
@@ -511,13 +514,13 @@ function toggleSidebar() {
 
 // ===== MODULES DATA =====
 const MODULES = [
-  { id: 1, title: 'WeMasterTrade Products',    icon: '📦', file: 'module1.html' },
-  { id: 2, title: 'Affiliate & Partner Policies', icon: '🤝', file: 'module2.html' },
-  { id: 3, title: 'Trading Rules',             icon: '📋', file: 'module3.html' },
-  { id: 4, title: 'Financial Products',        icon: '💰', file: 'module4.html' },
-  { id: 5, title: 'Payment Methods',           icon: '💳', file: 'module5.html' },
-  { id: 6, title: 'Profit Sharing & Payouts',  icon: '🏆', file: 'module6.html' },
-  { id: 7, title: 'Compliance & Risk',         icon: '⚖️', file: 'module7.html' }
+  { id: 1, title: 'WeMasterTrade Products', icon: '📦', file: 'module1.html' },
+  { id: 2, title: 'Trading Rules',          icon: '📋', file: 'module2.html' },
+  { id: 3, title: 'Profit & Payouts',       icon: '🏆', file: 'module3.html' },
+  { id: 4, title: 'Payment Methods',        icon: '💳', file: 'module4.html' },
+  { id: 5, title: 'Financial Products',     icon: '💰', file: 'module5.html' },
+  { id: 6, title: 'Introducing Partner',    icon: '🤝', file: 'module6.html' },
+  { id: 7, title: 'Compliance & Risk',      icon: '⚖️', file: 'module7.html' }
 ];
 
 // ===== DASHBOARD =====
@@ -631,7 +634,8 @@ function initDashboard(user) {
 }
 
 // ===== SESSION CHECK =====
-window.addEventListener('load', function() {
+window.addEventListener('load', async function() {
+  await syncFromFirebase();
   getUsersDB(); // seed defaults if first visit
   const user = localStorage.getItem('wmt_user');
   const users = getUsersDB();

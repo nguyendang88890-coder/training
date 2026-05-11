@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -160,6 +160,24 @@
 .preview-q-opt.correct { background: rgba(0,214,143,0.08); border-color: rgba(0,214,143,0.4); color: var(--success); font-weight: 600; }
 .preview-q-opt-lbl { font-weight: 700; min-width: 18px; }
 .preview-q-rubric { font-size: 0.78rem; color: var(--text-muted); background: rgba(100,150,255,0.05); border-radius: 7px; padding: 8px 12px; line-height: 1.5; }
+
+/* OBS Recording */
+.obs-callout {
+  background: rgba(255,61,113,0.06); border: 1px solid rgba(255,61,113,0.28);
+  border-radius: 12px; padding: 16px 20px; margin-top: 18px;
+  display: flex; align-items: flex-start; gap: 14px;
+}
+.obs-callout-icon { font-size: 1.7rem; flex-shrink: 0; line-height: 1; }
+.obs-callout-body { flex: 1; }
+.obs-callout-title { font-weight: 700; color: var(--danger); font-size: 0.9rem; margin-bottom: 4px; }
+.obs-callout-text  { font-size: 0.82rem; color: var(--text-secondary); line-height: 1.65; }
+.obs-submit-btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 10px 22px;
+  background: linear-gradient(135deg, #ff3d71, #b0004e); color: #fff; font-weight: 700;
+  font-size: 0.88rem; border-radius: 10px; text-decoration: none; margin-top: 12px;
+  transition: opacity .2s, transform .1s; border: none; cursor: pointer;
+}
+.obs-submit-btn:hover { opacity: .85; transform: translateY(-1px); color: #fff; }
 </style>
 </head>
 <body>
@@ -215,6 +233,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -222,11 +243,11 @@
 const MC_KEY = 'wmt_monthly_config';
 const MS_KEY = 'wmt_monthly_scores';
 function getMC()      { return JSON.parse(localStorage.getItem(MC_KEY) || '{}'); }
-function saveMC(d)    { localStorage.setItem(MC_KEY, JSON.stringify(d)); }
+function saveMC(d)    { dbWrite(MC_KEY, JSON.stringify(d)); }
 function getMS()      { return JSON.parse(localStorage.getItem(MS_KEY) || '{}'); }
-function saveMS(d)    { localStorage.setItem(MS_KEY, JSON.stringify(d)); }
+function saveMS(d)    { dbWrite(MS_KEY, JSON.stringify(d)); }
 function getRS(u)     { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
-function saveRS(u,d)  { localStorage.setItem('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
+function saveRS(u,d)  { dbWrite('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
 
 const CUR_USER = localStorage.getItem('wmt_user') || '';
 const ALL_USERS= getUsersDB();
@@ -272,10 +293,10 @@ function curMonth() {
 
 // ===== QUESTION BANK =====
 function getQBank(group)         { return JSON.parse(localStorage.getItem('wmt_qbank_'+group)||'null'); }
-function saveQBank(group, data)  { localStorage.setItem('wmt_qbank_'+group, JSON.stringify(data)); }
+function saveQBank(group, data)  { dbWrite('wmt_qbank_'+group, JSON.stringify(data)); }
 function getGenTest(group, month){ return JSON.parse(localStorage.getItem(`wmt_gentest_${group}_${month}`)||'null'); }
-function saveGenTest(g, m, d)    { localStorage.setItem(`wmt_gentest_${g}_${m}`, JSON.stringify(d)); }
-function delGenTest(g, m)        { localStorage.removeItem(`wmt_gentest_${g}_${m}`); }
+function saveGenTest(g, m, d)    { dbWrite(`wmt_gentest_${g}_${m}`, JSON.stringify(d)); }
+function delGenTest(g, m)        { dbRemove(`wmt_gentest_${g}_${m}`); }
 
 // Question counts per test type
 const TEST_QUOTA = { bdcs: { mcq: 55, essay: 5 }, others: { mcq: 100 } };
@@ -348,7 +369,7 @@ function regenTest(m) {
   renderSetupTab();
 }
 function getSubmission(un, month) { return JSON.parse(localStorage.getItem('wmt_sub_'+un+'_'+month)||'null'); }
-function saveSubmission(un, month, data) { localStorage.setItem('wmt_sub_'+un+'_'+month, JSON.stringify(data)); }
+function saveSubmission(un, month, data) { dbWrite('wmt_sub_'+un+'_'+month, JSON.stringify(data)); }
 
 function renderQBankTab() {
   const el = document.getElementById('adminQBankTab');
@@ -411,7 +432,7 @@ function renderQBankSection(group, icon, label, cls, allowEssay) {
 
 function clearQBank(group) {
   if (!confirm('Xóa toàn bộ bộ đề này?')) return;
-  localStorage.removeItem('wmt_qbank_'+group);
+  dbRemove('wmt_qbank_'+group);
   renderQBankTab();
 }
 
@@ -568,7 +589,7 @@ function renderModScheduleTab() {
 
 // Proposal helpers
 function getProposals()  { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
-function addProposal(p)  { const ps = getProposals(); ps.push(p); localStorage.setItem('wmt_proposals', JSON.stringify(ps)); }
+function addProposal(p)  { const ps = getProposals(); ps.push(p); dbWrite('wmt_proposals', JSON.stringify(ps)); }
 
 function _monthlyPropModal(title, group, q, idx, isNew) {
   const ex = document.getElementById('mPropModal'); if (ex) ex.remove();
@@ -667,7 +688,8 @@ function submitMonthlyProposal(group, idx, isNew) {
 }
 
 // ===== INIT =====
-window.addEventListener('load', function() {
+window.addEventListener('load', async function() {
+  await syncFromFirebase();
   document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
   updateSidebarProgress();
   if (IS_ADMIN) {
@@ -727,6 +749,11 @@ function renderSetupTab() {
         <div class="form-group"><label>Test Link (URL)</label><input type="url" id="cfgLinkOthers" placeholder="https://forms.google.com/... (Others)"></div>
         <div class="form-group" style="margin-bottom:0"><label>Pass Score <span style="font-weight:400;color:#5a5a7a">(out of 100)</span></label><input type="number" id="cfgPassOthers" value="70" min="0" max="100"></div>
       </div>
+      <div style="background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--danger);margin-bottom:10px;">🎥 OBS Recording — Drive Submission Link</div>
+        <div class="form-group" style="margin-bottom:0"><label>Google Drive Link <span style="font-weight:400;color:var(--text-muted)">(folder để nhận file recording của trainee)</span></label>
+          <input type="url" id="cfgDriveLink" placeholder="https://drive.google.com/drive/folders/..."></div>
+      </div>
       <div class="error-msg" id="cfgErr"></div>
       <button class="btn btn-primary" onclick="saveTestConfig()" style="margin-top:8px;">💾 Save Configuration</button>
     </div>
@@ -749,6 +776,7 @@ function renderSetupTab() {
               <div class="test-cfg-info">${c.title||''}</div>
               <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Liệt max: ${c.lietMax??2}</div>
               <div class="test-cfg-info">🏛️ Others: ${fmtDT(c.startDateOthers)} → ${fmtDT(c.deadlineOthers)} &nbsp;·&nbsp; Pass: ${c.passOthers??70}/100</div>
+              ${c.driveLink?`<div class="test-cfg-info">🎥 Drive: <a href="${c.driveLink}" target="_blank" rel="noopener" style="color:#ff7096;word-break:break-all;">${c.driveLink.length>60?c.driveLink.slice(0,60)+'…':c.driveLink}</a></div>`:''}
               <div class="test-cfg-info" style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;">
                 <span>🏢 Đề BD/CS: ${genBDCS}</span>
                 <span>🏛️ Đề Others: ${genOthers}</span>
@@ -779,6 +807,7 @@ function loadCfg(m) {
   document.getElementById('cfgDeadlineOthers').value = c.deadlineOthers||'';
   document.getElementById('cfgLinkOthers').value     = c.testLinkOthers||'';
   document.getElementById('cfgPassOthers').value     = c.passOthers!==undefined ? c.passOthers : 70;
+  document.getElementById('cfgDriveLink').value      = c.driveLink||'';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -794,6 +823,7 @@ function saveTestConfig() {
         passBDCS=parseInt(document.getElementById('cfgPassBDCS').value)||250,
         lietMax=parseInt(document.getElementById('cfgLietMax').value)||2,
         passOthers=parseInt(document.getElementById('cfgPassOthers').value)||70,
+        driveLink=document.getElementById('cfgDriveLink').value.trim(),
         err=document.getElementById('cfgErr');
   err.textContent='';
   if (!month)           { err.textContent='Please select a month.'; return; }
@@ -805,7 +835,7 @@ function saveTestConfig() {
   if (new Date(deadlineOthers)<=new Date(startDateOthers)) { err.textContent='Other Departments: deadline must be after start.'; return; }
   const cfgs=getMC();
   const isNew = !cfgs[month];
-  cfgs[month]={ month, title:title||fmtMonth(month), startDateBDCS, deadlineBDCS, startDateOthers, deadlineOthers, testLinkBDCS, testLinkOthers, passBDCS, lietMax, passOthers,
+  cfgs[month]={ month, title:title||fmtMonth(month), startDateBDCS, deadlineBDCS, startDateOthers, deadlineOthers, testLinkBDCS, testLinkOthers, passBDCS, lietMax, passOthers, driveLink,
     createdAt: cfgs[month]?.createdAt||new Date().toISOString(), updatedAt:new Date().toISOString() };
   saveMC(cfgs);
 
@@ -1356,6 +1386,27 @@ function renderCurrentTestCard() {
       <div>${pf}</div></div>`;
   }
 
+  const driveLink = cfg.driveLink || '';
+  const obsHTML = (st==='active'||st==='upcoming') ? `
+    <div class="obs-callout">
+      <div class="obs-callout-icon">🎥</div>
+      <div class="obs-callout-body">
+        <div class="obs-callout-title">Yêu cầu ghi màn hình bằng OBS</div>
+        <div class="obs-callout-text">
+          Bạn <strong>bắt buộc phải record màn hình</strong> trong suốt thời gian làm bài bằng ứng dụng <strong>OBS Studio</strong>.<br>
+          Sau khi hoàn thành bài thi, upload file recording lên Google Drive theo link bên dưới.<br>
+          <strong>Lưu ý:</strong> Bài thi không có file recording sẽ bị coi là không hợp lệ.
+        </div>
+        ${driveLink?`<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Nộp Recording (Google Drive) →</a>`
+          :`<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin chưa cung cấp link nộp bài. Vui lòng liên hệ Admin.</div>`}
+      </div>
+    </div>` : (driveLink && st==='expired') ? `
+    <div style="margin-top:16px;padding:12px 18px;background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:1.2rem;">🎥</span>
+      <div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">Nếu chưa nộp file OBS recording, vui lòng upload ngay.</div>
+      <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Nộp Recording →</a>
+    </div>` : '';
+
   el.innerHTML=`
     <div class="mt-hero">
       <div class="mt-status ${st}">${stLabel}</div>
@@ -1370,6 +1421,7 @@ function renderCurrentTestCard() {
         <div style="margin-top:14px;font-size:0.8rem;color:var(--text-muted);">${st==='upcoming'?'⏳ Test starts in:':'⏰ Closes in:'}</div>
         <div class="countdown" id="cdBox"></div>`:''}
       <div>${actionHTML}</div>
+      ${obsHTML}
     </div>`;
 
   if (_cdTimer) clearInterval(_cdTimer);
@@ -1459,7 +1511,7 @@ function renderTraineeHistory() {
   }
   const lietTh = userIsBDCSH ? '<th>Điểm Liệt</th>' : '';
   el.innerHTML=`<div class="hist-wrap"><table>
-    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th></tr></thead>
+    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th><th>🎥 Recording</th></tr></thead>
     <tbody>
       ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
@@ -1467,6 +1519,9 @@ function renderTraineeHistory() {
         const startD=userIsBDCSH?cfg?.startDateBDCS:cfg?.startDateOthers;
         const endD  =userIsBDCSH?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietTd=userIsBDCSH?`<td style="text-align:center;color:${sc?.liet>0?'var(--danger)':'var(--text-muted)'}">${sc?.liet??'—'}</td>`:'';
+        const driveTd = cfg?.driveLink
+          ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Nộp</a></td>`
+          : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
         return `<tr>
           <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>
           <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
@@ -1475,6 +1530,7 @@ function renderTraineeHistory() {
           <td><span class="${pfCls}">${sc?(sc.passed?'✓ PASS':'✗ FAIL'):'—'}</span></td>
           <td style="color:${fc>0?'var(--danger)':'var(--success)'};font-weight:700;">${sc?fc:'—'}</td>
           <td style="font-size:0.8rem;color:var(--text-secondary)">${rsTxt}</td>
+          ${driveTd}
         </tr>`;
       }).join('')}
     </tbody></table></div>`;

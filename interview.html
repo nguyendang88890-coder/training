@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -283,6 +283,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 const USERNAME = localStorage.getItem('wmt_user');
@@ -291,18 +294,18 @@ function getInterview() {
   return JSON.parse(localStorage.getItem('wmt_interview_' + USERNAME) || 'null');
 }
 function saveInterview(data) {
-  localStorage.setItem('wmt_interview_' + USERNAME, JSON.stringify(data));
+  dbWrite('wmt_interview_' + USERNAME, JSON.stringify(data));
   // Keep central list in sync
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
   const idx  = list.findIndex(x => x.username === USERNAME);
   if (idx >= 0) list[idx] = data; else list.push(data);
-  localStorage.setItem('wmt_interviews_list', JSON.stringify(list));
+  dbWrite('wmt_interviews_list', JSON.stringify(list));
 }
 
 function removeInterview() {
-  localStorage.removeItem('wmt_interview_' + USERNAME);
+  dbRemove('wmt_interview_' + USERNAME);
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
-  localStorage.setItem('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== USERNAME)));
+  dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== USERNAME)));
 }
 
 // Set minimum date to tomorrow
@@ -310,7 +313,8 @@ const tomorrow = new Date();
 tomorrow.setDate(tomorrow.getDate() + 1);
 document.getElementById('iDate').min = tomorrow.toISOString().split('T')[0];
 
-window.addEventListener('load', function() {
+window.addEventListener('load', async function() {
+  await syncFromFirebase();
   document.getElementById('sidebar').innerHTML = getSidebarHTML('interview');
   updateSidebarProgress();
   initPage();

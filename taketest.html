@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -118,16 +118,19 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 // ===== DATA HELPERS =====
 function getMC()          { return JSON.parse(localStorage.getItem('wmt_monthly_config')||'{}'); }
 function getMS()          { return JSON.parse(localStorage.getItem('wmt_monthly_scores')||'{}'); }
-function saveMS(d)        { localStorage.setItem('wmt_monthly_scores', JSON.stringify(d)); }
+function saveMS(d)        { dbWrite('wmt_monthly_scores', JSON.stringify(d)); }
 function getQBank(g)         { return JSON.parse(localStorage.getItem('wmt_qbank_'+g)||'null'); }
 function getGenTest(g, m)    { return JSON.parse(localStorage.getItem(`wmt_gentest_${g}_${m}`)||'null'); }
 function getSubmission(u,m){ return JSON.parse(localStorage.getItem('wmt_sub_'+u+'_'+m)||'null'); }
-function saveSubmission(u,m,d){ localStorage.setItem('wmt_sub_'+u+'_'+m, JSON.stringify(d)); }
+function saveSubmission(u,m,d){ dbWrite('wmt_sub_'+u+'_'+m, JSON.stringify(d)); }
 
 function isBDCS(dept) {
   if (!dept) return false;
@@ -156,7 +159,8 @@ let _qbank        = null;
 // Parse ?month= from URL
 const urlMonth = new URLSearchParams(location.search).get('month');
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  await syncFromFirebase();
   if (!CUR_USER) { location.href = 'index.html'; return; }
   if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
 

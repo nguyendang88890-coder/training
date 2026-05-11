@@ -1,4 +1,4 @@
-// ===== SHARED MODULE LOGIC =====
+﻿// ===== SHARED MODULE LOGIC =====
 
 function getUsersDB() {
   let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
@@ -8,11 +8,11 @@ function getUsersDB() {
       test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    dbWrite('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    dbWrite('wmt_users_db', JSON.stringify(users));
   }
   return users;
 }
@@ -33,21 +33,34 @@ function getProgress() {
 
 function saveProgress(data) {
   const user = localStorage.getItem('wmt_user') || 'guest';
-  localStorage.setItem('wmt_progress_' + user, JSON.stringify(data));
+  dbWrite('wmt_progress_' + user, JSON.stringify(data));
 }
 
 function getQuizResult(username, moduleId) {
   return JSON.parse(localStorage.getItem(`wmt_quiz_${username}_m${moduleId}`) || 'null');
 }
 function saveQuizResult(username, moduleId, data) {
-  localStorage.setItem(`wmt_quiz_${username}_m${moduleId}`, JSON.stringify(data));
+  dbWrite(`wmt_quiz_${username}_m${moduleId}`, JSON.stringify(data));
 }
 function resetQuizResult(username, moduleId) {
-  localStorage.removeItem(`wmt_quiz_${username}_m${moduleId}`);
+  dbRemove(`wmt_quiz_${username}_m${moduleId}`);
 }
 
 function markModuleComplete(moduleId) {
-  const p = getProgress();
+  const user   = localStorage.getItem('wmt_user') || '';
+  const result = getQuizResult(user, moduleId);
+  const p      = getProgress();
+  const score  = result ? result.score : p[`module${moduleId}_score`];
+
+  if (score === undefined || score === null) {
+    alert('⚠️ You must complete the module quiz before marking this module as complete.');
+    return;
+  }
+  if (score < 60) {
+    alert(`⚠️ You need to score at least 60% on the quiz to complete this module.\nYour score: ${score}%\n\nPlease contact admin to retake the quiz.`);
+    return;
+  }
+
   p[`module${moduleId}_done`] = true;
   saveProgress(p);
   document.getElementById('markCompleteBtn').style.display = 'none';
@@ -110,7 +123,7 @@ function saveProfileModal() {
   if (!users[user]) return;
   users[user].email    = document.getElementById('pmEmail').value.trim();
   users[user].fullName = document.getElementById('pmFullName').value.trim();
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  dbWrite('wmt_users_db', JSON.stringify(users));
   const s = document.getElementById('pmSuccess');
   s.style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 2000);
@@ -136,6 +149,9 @@ function updateSidebarProgress() {
     }
   }
 }
+
+// ===== ANSWER DECODER =====
+function _ans(q) { return parseInt(atob(q._c)); }
 
 // ===== QUIZ ENGINE =====
 class ModuleQuiz {
@@ -209,17 +225,17 @@ class ModuleQuiz {
       <h3 class="review-title">📋 Answer Review</h3>
       ${this.questions.map((q, i) => {
         const userAns   = this.answers[i];
-        const isCorrect = userAns === q.correct;
+        const isCorrect = userAns === _ans(q);
         return `<div class="review-item ${isCorrect ? 'correct' : 'wrong'}">
           <div class="review-q">Q${i+1}. ${q.q}</div>
           <ul class="review-opts">
             ${q.opts.map((opt, oi) => {
               let cls = '';
-              if (oi === q.correct) cls = 'review-correct';
+              if (oi === _ans(q)) cls = 'review-correct';
               else if (oi === userAns && !isCorrect) cls = 'review-wrong';
               return `<li class="review-opt ${cls}">
                 <span class="review-letter">${String.fromCharCode(65+oi)}</span>
-                ${opt}${oi === q.correct ? ' ✓' : (oi === userAns && !isCorrect ? ' ✗' : '')}
+                ${opt}${oi === _ans(q) ? ' ✓' : (oi === userAns && !isCorrect ? ' ✗' : '')}
               </li>`;
             }).join('')}
           </ul>
@@ -242,7 +258,7 @@ class ModuleQuiz {
           ${q.opts.map((opt, oi) => {
             let cls = '';
             if (answered) {
-              if (oi === q.correct) cls = 'correct';
+              if (oi === _ans(q)) cls = 'correct';
               else if (oi === this.answers[idx]) cls = 'wrong';
             } else if (oi === this.answers[idx]) cls = 'selected';
             return `<li class="option-item ${cls}" onclick="${answered ? '' : `quiz.select(${oi})`}">
@@ -251,8 +267,8 @@ class ModuleQuiz {
             </li>`;
           }).join('')}
         </ul>
-        ${answered ? `<div class="feedback-box show ${this.answers[idx] === q.correct ? 'correct' : 'wrong'}">
-          ${this.answers[idx] === q.correct ? '✓ Correct! Well done.' : `✗ Incorrect. The correct answer is: ${q.opts[q.correct]}`}
+        ${answered ? `<div class="feedback-box show ${this.answers[idx] === _ans(q) ? 'correct' : 'wrong'}">
+          ${this.answers[idx] === _ans(q) ? '✓ Correct! Well done.' : `✗ Incorrect. The correct answer is: ${q.opts[_ans(q)]}`}
           ${q.explain ? `<div class="explain-text">💡 ${q.explain}</div>` : ''}
         </div>` : ''}
       </div>
@@ -282,7 +298,7 @@ class ModuleQuiz {
     dots.innerHTML = this.questions.map((q, i) => {
       let cls = i === this.current ? 'current' : '';
       if (this.answers[i] !== null) {
-        cls = this.answers[i] === q.correct ? 'correct' : 'wrong';
+        cls = this.answers[i] === _ans(q) ? 'correct' : 'wrong';
       }
       return `<div class="q-dot ${cls}"></div>`;
     }).join('');
@@ -290,7 +306,7 @@ class ModuleQuiz {
 
   submit() {
     let correct = 0;
-    this.answers.forEach((a, i) => { if (a === this.questions[i].correct) correct++; });
+    this.answers.forEach((a, i) => { if (a === _ans(this.questions[i])) correct++; });
     const score = Math.round((correct / this.questions.length) * 100);
 
     const user = localStorage.getItem('wmt_user') || '';
@@ -300,24 +316,28 @@ class ModuleQuiz {
       answers: this.answers
     });
 
+    const passed = score >= 60;
     const p = getProgress();
     p[`module${this.moduleId}_score`] = score;
-    p[`module${this.moduleId}_done`]  = true;
+    if (passed) p[`module${this.moduleId}_done`] = true;
     saveProgress(p);
 
     const result  = document.getElementById('quizResult');
     const scoreEl = document.getElementById('quizScore');
     result.classList.add('show');
     scoreEl.textContent = `${correct}/${this.questions.length} — ${score}%`;
-    scoreEl.className   = `result-score ${score >= 60 ? 'pass' : 'fail'}`;
+    scoreEl.className   = `result-score ${passed ? 'pass' : 'fail'}`;
 
-    document.getElementById('quizResultMsg').textContent = score >= 60
+    document.getElementById('quizResultMsg').textContent = passed
       ? '🎉 Great job! Module marked as complete.'
-      : '📚 Review the material and retake the quiz to improve your score.';
+      : `⚠️ You scored ${score}%. You need at least 60% to complete this module. Contact admin to retake the quiz.`;
 
     const btn = document.getElementById('markCompleteBtn');
     const chk = document.getElementById('completedCheck');
-    if (btn) btn.style.display = 'none';
+    if (passed) {
+      if (btn) btn.style.display = 'none';
+      if (chk) chk.style.display = 'flex';
+    }
     if (chk) chk.style.display = 'flex';
 
     updateSidebarProgress();
@@ -344,17 +364,33 @@ document.addEventListener('DOMContentLoaded', function() {
 function getSidebarHTML(activeModule) {
   const modules = [
     { id: 1, icon: '📦', title: 'Products',            file: 'module1.html' },
-    { id: 3, icon: '📋', title: 'Trading Rules',       file: 'module3.html' },
-    { id: 4, icon: '💰', title: 'Financial Products',  file: 'module4.html' },
-    { id: 6, icon: '🏆', title: 'Profit & Payouts',    file: 'module6.html' },
-    { id: 5, icon: '💳', title: 'Payment Methods',     file: 'module5.html' },
-    { id: 2, icon: '🤝', title: 'Affiliate & Partners',file: 'module2.html' },
+    { id: 2, icon: '📋', title: 'Trading Rules',       file: 'module2.html' },
+    { id: 3, icon: '🏆', title: 'Profit & Payouts',    file: 'module3.html' },
+    { id: 4, icon: '💳', title: 'Payment Methods',     file: 'module4.html' },
+    { id: 5, icon: '💰', title: 'Financial Products',  file: 'module5.html' },
+    { id: 6, icon: '🤝', title: 'Introducing Partner', file: 'module6.html' },
     { id: 7, icon: '⚖️', title: 'Compliance & Risk',   file: 'module7.html' }
   ];
   const user    = localStorage.getItem('wmt_user') || 'Trainee';
   const users   = getUsersDB();
-  const isAdmin = users[user] && users[user].role === 'admin';
-  const isMod   = users[user] && users[user].role === 'mod';
+  const udata   = users[user] || {};
+  const isAdmin = udata.role === 'admin';
+  const isMod   = udata.role === 'mod';
+
+  // Pre-compute role display string to avoid IIFE inside template literal
+  let userRoleDisplay;
+  if (isAdmin) {
+    userRoleDisplay = 'Administrator';
+  } else if (isMod) {
+    userRoleDisplay = '🛡️ Moderator';
+  } else {
+    const dept  = udata.department || '';
+    const pos   = udata.position   || '';
+    const isOld = (udata.employeeType || 'new') === 'old';
+    const parts = [dept, pos].filter(Boolean);
+    if (!isOld) parts.push('Trainee');
+    userRoleDisplay = parts.length ? parts.join(' · ') : (isOld ? 'Existed Employee' : 'Trainee');
+  }
 
   const examData  = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
   const examPassed = examData.passed || false;
@@ -369,15 +405,7 @@ function getSidebarHTML(activeModule) {
       <div class="user-avatar">${user[0].toUpperCase()}</div>
       <div class="user-info">
         <div class="user-name">${user}</div>
-        <div class="user-role">${(() => {
-          if (isAdmin) return 'Administrator';
-          if (isMod)   return '🛡️ Moderator';
-          const dept = users[user]?.department || '';
-          const pos  = users[user]?.position   || '';
-          const isOld = (users[user]?.employeeType || 'new') === 'old';
-          const base = [dept, pos].filter(Boolean).join(' - ');
-          return base ? (isOld ? base : base + ' - Trainee') : (isOld ? 'Existed Employee' : 'Trainee');
-        })()}</div>
+        <div class="user-role">${userRoleDisplay}</div>
       </div>
     </div>
     ${(!isAdmin && !isMod) ? `<button class="sidebar-edit-profile" onclick="openProfileModal()">✎ Edit Profile</button>` : ''}
@@ -398,7 +426,7 @@ function getSidebarHTML(activeModule) {
         <span class="nav-icon">🗓️</span> Monthly Test
         ${isMod
           ? `<span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">MOD</span>`
-          : !isAdmin && (users[user]?.employeeType || 'new') === 'new'
+          : !isAdmin && (udata.employeeType || 'new') === 'new'
             ? `<span class="nav-badge" style="background:rgba(255,61,113,0.12);color:var(--danger);">🔒</span>`
             : `<span class="nav-badge">MTH</span>`}
       </a>
@@ -487,3 +515,23 @@ function getSidebarHTML(activeModule) {
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll(); // run once on load
 })();
+
+// ===== BACKGROUND FIREBASE SYNC =====
+// Runs after the page has rendered using locally-cached data.
+// On completion, refreshes the sidebar and quiz state so fresh Firebase
+// data is shown without a full page reload.
+window.addEventListener('load', async function() {
+  if (typeof syncFromFirebase !== 'function') return;
+  await syncFromFirebase();
+  // Refresh sidebar
+  const sb = document.getElementById('sidebar');
+  if (sb && typeof getSidebarHTML === 'function') {
+    // Determine active module from the existing active nav item
+    const activeEl = sb.querySelector('.nav-item.active');
+    // Re-render sidebar (data updated in localStorage by syncFromFirebase)
+    sb.innerHTML = getSidebarHTML(
+      activeEl ? (activeEl.id ? +activeEl.id.replace('nav-m','') || activeEl.id.replace('nav-','') : 0) : 0
+    );
+  }
+  updateSidebarProgress();
+});

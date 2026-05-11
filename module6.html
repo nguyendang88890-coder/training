@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Module 6 — Profit Sharing & Payouts | WMT Training</title>
+  <title>Module 6 — Introducing Partner | WMT Training</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div class="main-content">
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="top-bar-title">Module 6 — Profit Sharing & Payouts</span>
+      <span class="top-bar-title">Module 6 — Introducing Partner</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
       </div>
@@ -24,150 +24,186 @@
       <div class="module-header">
         <div class="module-header-num">6</div>
         <div class="module-header-info">
-          <h2>Profit Sharing & Payouts</h2>
-          <p>How traders earn profit splits, payout progression, and certificate rewards</p>
+          <h2>Introducing Partner</h2>
+          <p>Commission structures, partner tiers, cookie tracking, and payout rules</p>
         </div>
       </div>
 
-      <!-- Payout Progression -->
+      <!-- Commission Overview -->
       <div class="content-section">
-        <h3>📈 Payout Progression (Challenge & 51010)</h3>
-        <p>Traders earn increasing profit splits as they demonstrate consistent performance. This rewards reliable, long-term traders.</p>
+        <h3>🤝 Commission Overview</h3>
+        <p>WeMasterTrade operates a <strong>3-level introducing partner system</strong> with generous commissions and lifetime tracking. As a sales partner, you earn commissions on referrals and sub-referrals.</p>
 
         <div class="callout gold">
-          <span class="callout-icon">🏆</span>
+          <span class="callout-icon">⭐</span>
           <div class="callout-content">
-            <strong>Progressive Profit Share — Up to 90%</strong>
-            <p>Traders don't start at 90% — they earn it through consistent performance over multiple payout cycles.</p>
+            <strong>25% First Transaction Commission</strong>
+            <p>Level 1 introducing partners earn 25% commission on the FIRST purchase by each referred client, plus tiered upsell commissions based on monthly volume. Commissions are paid for the lifetime of the customer.</p>
           </div>
         </div>
 
+        <h4>3-Level Commission Structure</h4>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Payout Number</th><th>Trader's Share</th><th>WMT's Share</th></tr>
+              <tr>
+                <th>Level</th>
+                <th>Who</th>
+                <th>First Transaction</th>
+                <th>Upsell / Subsequent</th>
+                <th>Commission Type</th>
+              </tr>
             </thead>
             <tbody>
-              <tr><td>1st Payout</td><td>50%</td><td>50%</td></tr>
-              <tr><td>2nd Payout</td><td>75%</td><td>25%</td></tr>
-              <tr class="highlight-row"><td>3rd Payout onwards</td><td>90%</td><td>10%</td></tr>
+              <tr class="highlight-row">
+                <td>Level 1 (L1)</td>
+                <td>Your direct referrals</td>
+                <td>25%</td>
+                <td>5–10% (tiered by volume)</td>
+                <td>Lifetime</td>
+              </tr>
+              <tr>
+                <td>Level 2 (L2)</td>
+                <td>Referrals of your referrals</td>
+                <td>10%</td>
+                <td>10%</td>
+                <td>Lifetime</td>
+              </tr>
+              <tr>
+                <td>Level 3 (L3)</td>
+                <td>3rd-degree referrals</td>
+                <td>1%</td>
+                <td>1%</td>
+                <td>Lifetime</td>
+              </tr>
             </tbody>
           </table>
         </div>
+
+        <h4>L1 Commission Tiers</h4>
+        <div style="display:flex;flex-direction:column;gap:14px;margin-top:12px">
+
+          <!-- Silver -->
+          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
+            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Silver</div>
+            <div style="padding:16px 20px">
+              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">0 USD</strong> to <strong style="color:#fff">5,000 USD</strong></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
+                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">5%</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gold -->
+          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
+            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Gold</div>
+            <div style="padding:16px 20px">
+              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">5,000 USD</strong> to <strong style="color:#fff">15,000 USD</strong></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
+                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">7.5%</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platinum -->
+          <div style="background:#0f0f1e;border:1px solid #2a2a3a;border-radius:12px;overflow:hidden">
+            <div style="display:inline-block;background:#FFD700;color:#000;font-weight:800;font-size:14px;padding:8px 22px;border-radius:8px 0 12px 0">Platinum</div>
+            <div style="padding:16px 20px">
+              <div style="font-size:13px;color:#aaa;margin-bottom:10px">Total Purchase from <strong style="color:#fff">15,000 USD</strong> to <strong style="color:#fff">10,000,000 USD</strong></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="font-size:13px;color:#ccc">1. &nbsp;First Sale Commission Rate: <strong style="color:#FFD700">25%</strong></div>
+                <div style="font-size:13px;color:#ccc">2. &nbsp;Up Sale Commission Rate: <strong style="color:#FFD700">10%</strong></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Cookie Tracking -->
+      <div class="content-section">
+        <h3>🍪 Cookie Tracking & Attribution</h3>
 
         <div class="callout info">
-          <span class="callout-icon">💡</span>
+          <span class="callout-icon">ℹ️</span>
           <div class="callout-content">
-            <strong>Why Progressive?</strong>
-            <p>The progressive payout system ensures that only consistently profitable traders reach the 90% tier. This aligns incentives between WeMasterTrade and its funded traders.</p>
+            <strong>30-Day Cookie Window</strong>
+            <p>When a user clicks your IP link, a cookie is stored for 30 days. This means if a user clicks your IP link but later visits the website directly to make a purchase — without clicking your link again — you still receive credit and earn the commission.</p>
           </div>
         </div>
 
-        <div class="callout success">
-          <span class="callout-icon">⚡</span>
-          <div class="callout-content">
-            <strong>24-Hour Payout SLA — Effective March 12, 2026</strong>
-            <p>WeMasterTrade guarantees payout processing within <strong>24 hours</strong> of an approved withdrawal request. This applies to all Challenge and Instant Funding payout requests.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 510zero Payout System -->
-      <div class="content-section">
-        <h3>🎯 510zero Payout System (DLB-Based)</h3>
-        <p>The 510zero plan uses a unique payout system based on the <strong>Daily Loss Breached (DLB)</strong> percentage — rewarding traders who keep their losses small.</p>
-
-        <div class="callout gold">
-          <span class="callout-icon">📊</span>
-          <div class="callout-content">
-            <strong>DLB = Daily Loss Breached %</strong>
-            <p>DLB measures what percentage of the allowed daily loss was actually used. Lower DLB = higher profit share reward.</p>
-          </div>
-        </div>
-
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Daily Loss Breached (DLB)</th><th>Trader's Profit Share</th></tr>
-            </thead>
-            <tbody>
-              <tr class="highlight-row"><td>DLB &lt; 1%</td><td>90%</td></tr>
-              <tr><td>DLB ≥ 1% (but &lt; 1.5%)</td><td>50%</td></tr>
-              <tr><td>DLB ≥ 1.5% (but &lt; 2%)</td><td>30%</td></tr>
-              <tr><td>DLB ≥ 2%</td><td>20%</td></tr>
-            </tbody>
-          </table>
-        </div>
-
+        <h4>How Attribution Works</h4>
         <ul>
-          <li>Traders who consistently keep losses below 1% of the daily limit earn the maximum 90% share</li>
-          <li>Encourages disciplined risk management even without a profit target requirement</li>
-          <li>No minimum profit target needed — just request a withdrawal whenever ready</li>
+          <li><strong>Last-click attribution</strong>: The introducing partner whose link was clicked last (within 30 days) gets credit</li>
+          <li>Cookie persists for <strong>30 days</strong> from the click</li>
+          <li>If a client clears cookies before purchasing, the attribution may be lost</li>
+          <li>Commissions are tracked in your IP dashboard in real-time</li>
         </ul>
       </div>
 
-      <!-- Refund Policy -->
+      <!-- Payout Rules -->
       <div class="content-section">
-        <h3>🚫 Refund Policy</h3>
+        <h3>💸 Commission Payout Rules</h3>
 
-        <div class="callout danger">
-          <span class="callout-icon">❌</span>
-          <div class="callout-content">
-            <strong>NO REFUNDS Once Trading Begins</strong>
-            <p>Challenge fees and Instant Funding fees are <strong>strictly non-refundable</strong> once the trader has placed even a single trade. This policy is absolute and must be communicated clearly before clients purchase.</p>
-          </div>
-        </div>
-
-        <h4>Refund Eligibility (Pre-Trading Only)</h4>
-        <ul>
-          <li>A refund <em>may</em> be considered if the trader has <strong>NOT yet started trading</strong></li>
-          <li>Once the first trade is placed, no refund under any circumstances</li>
-          <li>Technical issues that prevented trading may be reviewed case by case</li>
-          <li>Refund requests must be submitted through official support channels</li>
-        </ul>
-
-        <div class="callout success">
-          <span class="callout-icon">✅</span>
-          <div class="callout-content">
-            <strong>Sales Partner Responsibility</strong>
-            <p>Always inform clients about the no-refund policy BEFORE purchase. Explain it clearly so they understand the commitment. This prevents disputes and protects both parties.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Certificates -->
-      <div class="content-section">
-        <h3>🏅 WeMasterTrade Certificates</h3>
-        <p>WeMasterTrade issues official certificates to recognize trader achievements and partner status. These serve as professional credentials.</p>
-
+        <h4>Minimum Withdrawal Thresholds</h4>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Certificate Type</th><th>Who Receives It</th><th>Purpose</th></tr>
+              <tr><th>Region</th><th>Minimum Balance to Withdraw</th></tr>
             </thead>
             <tbody>
-              <tr><td>Profit Split Certificate</td><td>Funded traders who receive payouts</td><td>Proof of profit withdrawal</td></tr>
-              <tr><td>Challenge Certificate</td><td>Traders who pass the Challenge</td><td>Proof of evaluation success</td></tr>
-              <tr><td>Academy Certificate</td><td>Traders completing education programs</td><td>WMT education credential</td></tr>
-              <tr class="highlight-row"><td>Affiliate Partner Certificate</td><td>Active sales affiliates</td><td>Official partner status</td></tr>
+              <tr class="highlight-row"><td>International (Standard)</td><td>$200</td></tr>
+              <tr><td>Bangladesh</td><td>$100</td></tr>
             </tbody>
           </table>
         </div>
 
         <div class="callout gold">
+          <span class="callout-icon">⏰</span>
+          <div class="callout-content">
+            <strong>31-Day Holding Period</strong>
+            <p>Commissions become eligible for withdrawal <strong>31 days after the client's payment</strong>. This accounts for potential refund windows and chargebacks.</p>
+          </div>
+        </div>
+
+        <h4>Important Payout Notes</h4>
+        <ul>
+          <li>Commissions are calculated on the <strong>net amount paid</strong> by the client</li>
+          <li>If a client gets a refund (before trading starts), your commission is reversed</li>
+          <li>Once a client starts trading, <strong>no refunds are issued</strong>, so your commission is secured</li>
+          <li>Withdrawals are processed via the available payment methods in your region</li>
+        </ul>
+      </div>
+
+      <!-- Partner Benefits -->
+      <div class="content-section">
+        <h3>🏅 Partner Benefits & Certificates</h3>
+
+        <div class="callout success">
           <span class="callout-icon">🎖️</span>
           <div class="callout-content">
-            <strong>Your Affiliate Partner Certificate</strong>
-            <p>Upon completing this training and passing the final exam, you will receive your official WeMasterTrade Affiliate Partner Certificate. This can be shared on LinkedIn, social media, and in client conversations to establish credibility.</p>
+            <strong>Introducing Partner Certificate</strong>
+            <p>Active introducing partners receive an official WeMasterTrade Introducing Partner Certificate, valid for use in marketing and personal branding.</p>
           </div>
         </div>
+
+        <h4>Partner Tier Benefits</h4>
+        <ul>
+          <li><strong>Access to marketing materials</strong> — banners, links, landing pages</li>
+          <li><strong>Real-time dashboard</strong> — track clicks, conversions, and commissions</li>
+          <li><strong>Dedicated support</strong> — priority support for active partners</li>
+          <li><strong>Scale-up bonuses</strong> — higher volume introducing partners may negotiate enhanced rates</li>
+          <li><strong>Multi-level visibility</strong> — see your L1, L2, and L3 network in your dashboard</li>
+        </ul>
       </div>
 
       <!-- Mark Complete -->
       <div class="mark-complete-bar">
         <div class="mark-complete-text">
           <h4>Ready to move on?</h4>
-          <p>Complete the quiz below before advancing to Module 7.</p>
+          <p>Complete the quiz below before advancing to Module 3.</p>
         </div>
         <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(6)">✓ Mark as Complete</button>
         <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
@@ -193,6 +229,9 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(6);
@@ -201,39 +240,34 @@ checkCompleted(6);
 
 const questions = [
   {
-    q: "What is the payout percentage for the 1st withdrawal?",
-    opts: ["90%", "75%", "50%", "60%"],
-    correct: 2,
-    explain: "The 1st payout is 50%, the 2nd is 75%, and from the 3rd onwards it reaches 90%. This graduated structure rewards long-term, consistent traders."
+    q: "What commission percentage does a Level 1 introducing partner earn on a referred client's FIRST purchase?",
+    opts: ["10%", "15%", "25%", "30%"],
+    _c: "Mg==",
+    explain: "Level 1 introducing partners earn 25% on a referred client's first purchase and 10% on any upsells or renewals. This generous first-purchase rate rewards active recruitment."
   },
   {
-    q: "From which payout number do traders receive 90% profit share (Challenge/51010)?",
-    opts: ["1st", "2nd", "3rd", "5th"],
-    correct: 2,
-    explain: "The 90% profit share tier is reached from the 3rd payout onward for Challenge and 51010 plans. It's one of the highest profit splits in the funded trader industry."
+    q: "How long is the cookie tracking window for IP referrals?",
+    opts: ["7 days", "14 days", "30 days", "60 days"],
+    _c: "Mg==",
+    explain: "WeMasterTrade uses a 30-day cookie window. If a visitor clicks your IP link and purchases within 30 days, you receive the commission."
   },
   {
-    q: "In the 510zero plan, what profit share is earned when DLB is less than 1%?",
-    opts: ["50%", "75%", "80%", "90%"],
-    correct: 3,
-    explain: "510zero rewards disciplined traders: keeping your Daily Loss Baseline (DLB) below 1% earns the maximum 90% profit share, incentivizing very tight risk management."
+    q: "What is the minimum commission balance to withdraw for international introducing partners (standard)?",
+    opts: ["$50", "$100", "$150", "$200"],
+    _c: "Mw==",
+    explain: "The standard minimum withdrawal for international introducing partners is $200. Bangladesh has a lower minimum of $100 to accommodate regional payment costs."
   },
   {
-    q: "When is a refund allowed under WeMasterTrade's policy?",
-    opts: [
-      "Any time within 30 days",
-      "Only if the trader hasn't placed any trades yet",
-      "After the challenge is failed",
-      "Never — all sales are final"
-    ],
-    correct: 1,
-    explain: "Refunds are only granted if no trades have been placed. Once a trader enters any position, the account fee is non-refundable regardless of outcome."
+    q: "How many days after a client's payment does a commission become withdrawable?",
+    opts: ["7 days", "14 days", "31 days", "60 days"],
+    _c: "Mg==",
+    explain: "Commissions become available 31 days after the client's payment. This waiting period covers the chargeback and refund window to prevent fraudulent claims."
   },
   {
-    q: "What is the 24-hour payout SLA effective date?",
-    opts: ["January 1, 2026", "March 12, 2026", "April 10, 2026", "February 1, 2026"],
-    correct: 1,
-    explain: "The 24-hour payout processing SLA took effect on March 12, 2026. This means approved payout requests are processed within one business day."
+    q: "What commission rate does a Level 2 introducing partner earn?",
+    opts: ["1%", "5%", "10%", "25%"],
+    _c: "Mg==",
+    explain: "Level 2 introducing partners earn 10% on the purchases of clients referred by their Level 1 sub-partners. Level 3 earns 1%, creating a three-tier structure."
   }
 ];
 
