@@ -260,6 +260,12 @@
       color: var(--gold);
     }
     .btn-xs.edit:hover { background: rgba(255,215,0,0.16); }
+    .btn-xs.exam {
+      background: rgba(100,150,255,0.08);
+      border-color: rgba(100,150,255,0.35);
+      color: #6496ff;
+    }
+    .btn-xs.exam:hover { background: rgba(100,150,255,0.18); }
 
     /* Scrollable wide table */
     .users-table-wrap { overflow-x: auto; }
@@ -397,6 +403,21 @@
   </div>
 </div>
 
+<!-- Exam Reset Modal -->
+<div class="modal-overlay" id="examResetModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>📝 Manage Final Exam</h3>
+    <input type="hidden" id="examResetUsername">
+    <div id="examResetStatus" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:0.84rem;line-height:1.8;"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;" id="examResetOptions"></div>
+    <div class="error-msg" id="examResetError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeExamReset()">Cancel</button>
+      <button class="btn btn-primary"   id="examResetSaveBtn" onclick="saveExamReset()">💾 Apply</button>
+    </div>
+  </div>
+</div>
+
 <!-- Edit User Modal -->
 <div class="modal-overlay" id="editUserModal">
   <div class="modal-box" style="max-width:480px;">
@@ -491,12 +512,18 @@ function saveInterviewData(username, data) {
 }
 
 // ===== TAB SWITCH =====
-function switchTab(tab) {
+async function switchTab(tab) {
   ['users','interviews','quiz','proposals'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
   });
-  if (tab === 'quiz')      renderQuizTab();
+  if (tab === 'quiz') {
+    // Show loading state then re-sync so admin always sees fresh data
+    document.getElementById('quizTableBody').innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Đang tải dữ liệu…</td></tr>';
+    await syncFromFirebase();
+    renderQuizTab();
+  }
   if (tab === 'proposals') renderProposalsTab();
 }
 
@@ -568,15 +595,24 @@ function renderAdminPanel() {
     const modPct   = Math.round((doneCnt / 7) * 100);
 
     let examBadge = '';
+    const hasExamData = ex.score !== undefined || ex.passed || ex.disqualified;
     if (ex.passed) {
       examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
     } else if (ex.disqualified) {
       examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
     } else if (ex.score !== undefined) {
-      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1} — ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+      const lockoutActive = ex.fail1Date && !ex.fail2Date && !ex.passed && (() => {
+        const diff = Date.now() - new Date(ex.fail1Date).getTime();
+        return diff < 3 * 24 * 60 * 60 * 1000;
+      })();
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1}/2 — ${Math.round((ex.score/(ex.total||30))*100)}%${lockoutActive?' 🔒':''}</span>`;
     } else {
       examBadge = `<span class="exam-badge none">Not Started</span>`;
     }
+    const examCell = `<div>
+      ${examBadge}
+      ${hasExamData ? `<div style="margin-top:5px;"><button class="btn-xs exam" onclick="openExamReset('${uname}')" style="font-size:0.68rem;padding:3px 8px;">📝 Manage</button></div>` : ''}
+    </div>`;
 
     const ivColors = { pending:'var(--warning)', confirmed:'var(--success)', completed:'#6496ff', cancelled:'var(--danger)', failed:'var(--danger)' };
     const ivLabels = { pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Done', cancelled:'❌ Cancelled', failed:'⛔ Failed' };
@@ -616,7 +652,7 @@ function renderAdminPanel() {
         </div>
       </td>
       <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
-      <td>${examBadge}</td>
+      <td>${examCell}</td>
       <td>${ivCell}</td>
       <td>
         <div class="action-btns">
@@ -783,7 +819,7 @@ function renderQuizTab() {
       const mid    = i + 1;
       const result = JSON.parse(localStorage.getItem(`wmt_quiz_${uname}_m${mid}`) || 'null');
 
-      if (result) {
+      if (result && result.score !== undefined) {
         const color = result.score >= 60 ? 'var(--success)' : 'var(--danger)';
         return `<td style="text-align:center;">
           <div style="font-weight:700;color:${color};font-size:0.88rem;">${result.score}%</div>
@@ -791,9 +827,12 @@ function renderQuizTab() {
           <button class="btn-xs reset" style="margin-top:4px;font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
         </td>`;
       }
-      if (progress[`module${mid}_done`]) {
-        const score = progress[`module${mid}_score`] ?? 0;
+      // Fallback: module marked done in progress (legacy or quiz key missing)
+      const progressScore = progress[`module${mid}_score`];
+      if (progress[`module${mid}_done`] || progressScore !== undefined) {
+        const score = progressScore ?? 0;
         const color = score >= 60 ? 'var(--success)' : 'var(--danger)';
+        const label = progress[`module${mid}_done`] ? 'done' : `${score}%`;
         return `<td style="text-align:center;">
           <div style="font-weight:700;color:${color};font-size:0.88rem;">${score}%</div>
           <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:2px;">legacy</div>
@@ -823,11 +862,15 @@ function renderQuizTab() {
 
 function resetQuiz(uname, moduleId) {
   if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz cho "${uname}"?\nTrainee sẽ có thể làm lại quiz này.`)) return;
+  // Remove quiz result from Firebase + localStorage
   dbRemove(`wmt_quiz_${uname}_m${moduleId}`);
+  // Remove module done/score from progress so trainee can re-mark complete
   const p = getUserProgress(uname);
   delete p[`module${moduleId}_done`];
   delete p[`module${moduleId}_score`];
   dbWrite('wmt_progress_' + uname, JSON.stringify(p));
+  // Also remove the "mark complete" flag locally (for immediate UI update)
+  localStorage.removeItem(`wmt_quiz_${uname}_m${moduleId}`);
   renderQuizTab();
   renderAdminPanel();
 }
@@ -1008,6 +1051,149 @@ function saveIvStatus(uname) {
   renderInterviewsTable();
 }
 
+// ===== EXAM RESET MODAL =====
+function openExamReset(uname) {
+  const ex = getExamData(uname);
+  document.getElementById('examResetUsername').value = uname;
+  document.getElementById('examResetError').textContent = '';
+
+  // Build status summary
+  const fmt = d => d ? new Date(d).toLocaleString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  let statusHTML = `<div style="color:var(--text-muted);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Trạng thái hiện tại — <strong style="color:var(--text-primary)">${uname}</strong></div>`;
+
+  if (ex.passed) {
+    statusHTML += `<div>✅ <strong style="color:var(--success)">Đã Pass</strong> — ${Math.round((ex.score/(ex.total||30))*100)}% (${fmt(ex.passDate)})</div>`;
+  } else if (ex.disqualified) {
+    statusHTML += `<div>🚫 <strong style="color:var(--danger)">Disqualified</strong> (dùng hết 2 lần)</div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Lần 1: ${Math.round((ex.fail1Score/(ex.total||30))*100)}% — ${fmt(ex.fail1Date)}</div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Lần 2: ${Math.round((ex.fail2Score/(ex.total||30))*100)}% — ${fmt(ex.fail2Date)}</div>`;
+  } else if (ex.fail1Date) {
+    const daysLeft = Math.max(0, Math.ceil((new Date(ex.fail1Date).getTime() + 3*864e5 - Date.now()) / 864e5));
+    statusHTML += `<div>⚠️ <strong style="color:var(--warning)">Fail lần 1</strong> — ${Math.round((ex.fail1Score/(ex.total||30))*100)}% (${fmt(ex.fail1Date)})</div>`;
+    if (daysLeft > 0) {
+      statusHTML += `<div style="color:var(--danger);font-size:0.8rem;">🔒 Còn bị khóa <strong>${daysLeft} ngày</strong> nữa mới được retry</div>`;
+    } else {
+      statusHTML += `<div style="color:var(--success);font-size:0.8rem;">✓ Hết thời gian chờ — đủ điều kiện làm lần 2</div>`;
+    }
+  } else if (ex.score !== undefined) {
+    statusHTML += `<div>📋 Đã làm — ${Math.round((ex.score/(ex.total||30))*100)}%</div>`;
+  } else {
+    statusHTML += `<div style="color:var(--text-muted);">Chưa bắt đầu làm bài.</div>`;
+  }
+  document.getElementById('examResetStatus').innerHTML = statusHTML;
+
+  // Build action options
+  const opts = [];
+
+  if (ex.disqualified) {
+    opts.push({
+      value: 'restore_attempt1',
+      icon: '↺',
+      color: 'var(--warning)',
+      label: 'Khôi phục — còn 1 lần thử',
+      sub: 'Xóa kết quả lần 2, user còn 1 lần thử (lần 2). Dữ liệu lần 1 vẫn giữ.'
+    });
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Reset toàn bộ — 2 lần thử mới',
+      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+    });
+  } else if (ex.fail1Date) {
+    opts.push({
+      value: 'restore_attempt1',
+      icon: '↺',
+      color: 'var(--warning)',
+      label: 'Xóa kết quả lần 1 — trả về 2 lần thử',
+      sub: 'Xóa fail lần 1 và thời gian chờ. User bắt đầu lại với 2 lần thử đầy đủ.'
+    });
+    opts.push({
+      value: 'unlock_only',
+      icon: '🔓',
+      color: '#6496ff',
+      label: 'Chỉ mở khóa thời gian chờ',
+      sub: 'Giữ nguyên dữ liệu lần 1 nhưng bỏ qua thời gian chờ 3 ngày. User làm lần 2 ngay.'
+    });
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Reset toàn bộ — 2 lần thử mới',
+      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+    });
+  } else if (ex.passed) {
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Reset toàn bộ (bao gồm Pass)',
+      sub: '⚠️ Xóa hết dữ liệu exam, kể cả trạng thái Pass. Dùng khi cần user thi lại hoàn toàn.'
+    });
+  } else if (ex.score !== undefined) {
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Reset toàn bộ — 2 lần thử mới',
+      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+    });
+  }
+
+  const optContainer = document.getElementById('examResetOptions');
+  if (!opts.length) {
+    optContainer.innerHTML = '<div style="color:var(--text-muted);font-size:0.84rem;text-align:center;">Không có thao tác khả dụng.</div>';
+    document.getElementById('examResetSaveBtn').style.display = 'none';
+  } else {
+    document.getElementById('examResetSaveBtn').style.display = '';
+    optContainer.innerHTML = opts.map((o, idx) => `
+      <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid ${idx===0?o.color:'var(--border)'};border-radius:10px;cursor:pointer;background:${idx===0?'rgba(255,255,255,0.03)':'transparent'};transition:all .15s;">
+        <input type="radio" name="examResetOpt" value="${o.value}" ${idx===0?'checked':''} style="accent-color:var(--gold);flex-shrink:0;margin-top:3px;">
+        <div>
+          <div style="font-weight:700;color:${o.color};font-size:0.88rem;">${o.icon} ${o.label}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;line-height:1.5;">${o.sub}</div>
+        </div>
+      </label>`).join('');
+  }
+
+  document.getElementById('examResetModal').classList.add('show');
+}
+
+function closeExamReset() {
+  document.getElementById('examResetModal').classList.remove('show');
+}
+
+function saveExamReset() {
+  const uname = document.getElementById('examResetUsername').value;
+  const sel   = document.querySelector('input[name="examResetOpt"]:checked');
+  if (!sel) return;
+  const action = sel.value;
+  const ex     = getExamData(uname);
+
+  if (action === 'full_reset') {
+    if (!confirm(`Reset TOÀN BỘ dữ liệu Final Exam của "${uname}"?\nUser sẽ bắt đầu lại từ đầu với 2 lần thử mới.`)) return;
+    dbRemove('wmt_exam_' + uname);
+
+  } else if (action === 'restore_attempt1') {
+    // Clear fail1 data (and fail2 if disqualified) — restore to "not started"
+    if (!confirm(`Xóa kết quả lần 1 và trả về 2 lần thử cho "${uname}"?`)) return;
+    dbRemove('wmt_exam_' + uname);
+
+  } else if (action === 'unlock_only') {
+    // Keep fail1 data but clear the lockout date so user can retry immediately
+    if (!confirm(`Mở khóa thời gian chờ 3 ngày cho "${uname}"?\nUser sẽ có thể làm lần 2 ngay.`)) return;
+    const updated = { ...ex };
+    // Remove fail1Date to bypass lockout check — keep score/attempts so attempt 2 rules still apply
+    delete updated.fail1Date;
+    // Keep attempts at 1 so the system knows this is attempt 2
+    updated.attempts = 1;
+    dbWrite('wmt_exam_' + uname, JSON.stringify(updated));
+  }
+
+  closeExamReset();
+  renderAdminPanel();
+}
+
 // ===== CONFIRM INTERVIEW MODAL =====
 function openConfirmModal(uname) {
   document.getElementById('confirmUsername').value = uname;
@@ -1089,11 +1275,12 @@ function saveEditUser() {
   renderAdminPanel();
 }
 
-document.getElementById('editUserModal').addEventListener('click',  function(e) { if (e.target===this) closeEditUser(); });
-document.getElementById('confirmModal').addEventListener('click',   function(e) { if (e.target===this) closeConfirmModal(); });
+document.getElementById('editUserModal').addEventListener('click',   function(e) { if (e.target===this) closeEditUser(); });
+document.getElementById('confirmModal').addEventListener('click',    function(e) { if (e.target===this) closeConfirmModal(); });
+document.getElementById('examResetModal').addEventListener('click',  function(e) { if (e.target===this) closeExamReset(); });
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); }
+  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); closeExamReset(); }
   if (e.key === 'Enter') {
     if (document.getElementById('editUserModal').classList.contains('show')) saveEditUser();
     if (document.getElementById('confirmModal').classList.contains('show'))  saveConfirmInterview();

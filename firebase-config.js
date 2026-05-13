@@ -156,9 +156,15 @@ window.syncFromFirebase = async function() {
       }));
 
       // Quiz results: quiz/{user}/m{1-7}
+      // Clear existing quiz localStorage entries FIRST so that admin resets propagate correctly.
       await Promise.all(allUsers.map(async u => {
         try {
           const snap = await window.FDB.ref(`quiz/${u}`).once('value');
+          // Always clear all 7 slots for this user first, then repopulate from Firebase.
+          // This ensures that if admin deleted a quiz entry it is also removed from localStorage.
+          for (let m = 1; m <= 7; m++) {
+            localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
+          }
           if (snap.exists()) {
             const quizData = snap.val();
             Object.keys(quizData).forEach(mKey => {

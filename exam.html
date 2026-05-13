@@ -635,10 +635,11 @@ function renderExamQuestion(idx) {
   document.getElementById('examQuestionText').textContent = q.q;
 
   const optsList = document.getElementById('examOptions');
+  const correctIdx = _ans(q);
   optsList.innerHTML = q.opts.map((opt, oi) => {
     let cls = '';
     if (answered) {
-      if (oi === q.correct) cls = 'correct';
+      if (oi === correctIdx) cls = 'correct';
       else if (oi === examAnswers[idx]) cls = 'wrong';
     } else if (oi === examAnswers[idx]) cls = 'selected';
     return `<li class="option-item ${cls}" onclick="${answered ? '' : `selectExamOption(${oi})`}">
@@ -649,10 +650,10 @@ function renderExamQuestion(idx) {
 
   const fb = document.getElementById('examFeedback');
   if (answered) {
-    fb.className = `feedback-box show ${examAnswers[idx] === q.correct ? 'correct' : 'wrong'}`;
-    fb.textContent = examAnswers[idx] === q.correct
+    fb.className = `feedback-box show ${examAnswers[idx] === correctIdx ? 'correct' : 'wrong'}`;
+    fb.textContent = examAnswers[idx] === correctIdx
       ? '✓ Correct!'
-      : `✗ Incorrect. Correct answer: ${q.opts[q.correct]}`;
+      : `✗ Incorrect. Correct answer: ${q.opts[correctIdx]}`;
   } else {
     fb.className = 'feedback-box';
     fb.textContent = '';
