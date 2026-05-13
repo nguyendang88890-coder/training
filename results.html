@@ -54,6 +54,8 @@ body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
 
 const user = localStorage.getItem('wmt_user') || 'trainee';
 const examData = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+const _userData = JSON.parse(localStorage.getItem('wmt_users_db') || '{}')[user] || {};
+const isExisted = (_userData.employeeType || 'new') === 'old';
 const score = examData.score || 0;
 const total = examData.total || 30;
 const attempts = examData.attempts || 0;
@@ -69,6 +71,27 @@ function getDaysLeft() {
 }
 
 function renderPass() {
+  if (isExisted) {
+    // Existed employees: skip interview, show completion message
+    return `
+      <div class="result-icon">🏆</div>
+      <div class="result-title pass">Congratulations! You Passed!</div>
+      <div class="score-display">
+        <div class="score-number">${pct}%</div>
+        <div class="score-label">${score} / ${total} correct answers</div>
+      </div>
+      <div class="result-msg">
+        Outstanding! You have successfully completed the WeMasterTrade training examination.<br>
+        As an <strong>Existed Employee</strong>, your onboarding training is now fully complete. 🎉
+      </div>
+      <div style="background:rgba(0,214,143,0.07);border:1px solid rgba(0,214,143,0.25);border-radius:12px;padding:22px;margin-top:24px;text-align:center;">
+        <div style="font-size:2rem;margin-bottom:8px;">✅</div>
+        <div style="font-weight:700;color:var(--success,#00d68f);font-size:1rem;margin-bottom:6px;">Training Complete</div>
+        <div style="font-size:13px;color:#888;line-height:1.7;">All modules completed &amp; Final Exam passed.<br>No interview required for Existed Employees.</div>
+      </div>
+      <a href="index.html" class="btn-back">← Back to Dashboard</a>
+    `;
+  }
   return `
     <div class="result-icon">🏆</div>
     <div class="result-title pass">Congratulations! You Passed!</div>
@@ -177,7 +200,7 @@ if (!examData.score && !passed) {
   document.getElementById('resultContent').innerHTML = '<div class="result-msg">No exam data found. Please complete the final exam first.</div><a href="exam.html" class="btn-back">Go to Exam →</a>';
 } else if (passed) {
   document.getElementById('resultContent').innerHTML = renderPass();
-  setTimeout(renderInterviewCTA, 50);
+  if (!isExisted) setTimeout(renderInterviewCTA, 50);
 } else if (attempts >= 2) {
   document.getElementById('resultContent').innerHTML = renderDisqualified();
 } else {

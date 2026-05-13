@@ -578,12 +578,14 @@ function renderAdminPanel() {
       examBadge = `<span class="exam-badge none">Not Started</span>`;
     }
 
-    let ivCell = `<span style="color:var(--text-muted);font-size:0.8rem;">—</span>`;
-    if (iv) {
-      const colors = { pending:'var(--warning)', confirmed:'var(--success)', completed:'#6496ff', cancelled:'var(--danger)' };
-      const labels = { pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Done', cancelled:'❌ Cancelled' };
-      ivCell = `<span style="color:${colors[iv.status]||colors.pending};font-size:0.8rem;font-weight:600;">${labels[iv.status]||'⏳ Pending'}</span>`;
-    }
+    const ivColors = { pending:'var(--warning)', confirmed:'var(--success)', completed:'#6496ff', cancelled:'var(--danger)', failed:'var(--danger)' };
+    const ivLabels = { pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Done', cancelled:'❌ Cancelled', failed:'⛔ Failed' };
+    const ivText  = iv ? (ivLabels[iv.status] || '⏳ Pending') : '—';
+    const ivColor = iv ? (ivColors[iv.status] || ivColors.pending) : 'var(--text-muted)';
+    const ivCell  = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="color:${ivColor};font-size:0.8rem;font-weight:600;">${ivText}</span>
+      <button class="btn-xs edi" onclick="openSetIvStatus('${uname}')" title="Change interview status" style="padding:2px 8px;font-size:0.7rem;">🎤 Set</button>
+    </div>`;
 
     const joined = udata.createdAt
       ? new Date(udata.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
@@ -888,8 +890,8 @@ function renderInterviewsTable() {
       : '—';
 
     const statusBadge = `<span class="iv-status ${iv.status||'pending'}">${
-      {pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Completed', cancelled:'❌ Cancelled'}[iv.status] || '⏳ Pending'
-    }</span>`;
+      {pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Completed', cancelled:'❌ Cancelled', failed:'⛔ Failed'}[iv.status] || '⏳ Pending'
+    }${iv.adminSet?' <span style="font-size:0.65rem;opacity:.7;">(admin)</span>':''}</span>`;
 
     const meetingCell = iv.meetingLink
       ? `<div class="meeting-link-cell">
@@ -938,6 +940,70 @@ function cancelInterview(uname) {
   if (!iv) return;
   iv.status = 'cancelled';
   saveInterviewData(uname, iv);
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== SET INTERVIEW STATUS (admin override) =====
+function openSetIvStatus(uname) {
+  const ex = document.getElementById('setIvModal'); if (ex) ex.remove();
+  const iv = getInterviewData(uname);
+  const cur = iv ? iv.status : 'no_record';
+  const opts = [
+    { value:'no_record', icon:'🗑️', label:'No Record',  sub:'Remove interview data entirely',      color:'var(--text-muted)' },
+    { value:'failed',    icon:'⛔', label:'Failed',      sub:'Interview was held but failed',        color:'var(--danger)' },
+    { value:'completed', icon:'🏆', label:'Completed',  sub:'Interview completed successfully',     color:'#6496ff' }
+  ];
+  const modal = document.createElement('div');
+  modal.id = 'setIvModal'; modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:400px;">
+    <h3 style="margin-bottom:4px;">🎤 Set Interview Status</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:18px;">User: <strong style="color:var(--text-primary)">${uname}</strong></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+      ${opts.map(o=>`
+        <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid ${cur===o.value?o.color:'var(--border)'};border-radius:10px;cursor:pointer;background:${cur===o.value?'rgba(255,255,255,0.04)':'transparent'};transition:all .15s;">
+          <input type="radio" name="ivStat" value="${o.value}" ${cur===o.value?'checked':''} style="accent-color:var(--gold);flex-shrink:0;">
+          <div>
+            <div style="font-weight:700;color:${o.color};font-size:0.88rem;">${o.icon} ${o.label}</div>
+            <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">${o.sub}</div>
+          </div>
+        </label>`).join('')}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('setIvModal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIvStatus('${uname}')">💾 Save</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function saveIvStatus(uname) {
+  const sel = document.querySelector('input[name="ivStat"]:checked');
+  if (!sel) return;
+  const status = sel.value;
+
+  if (status === 'no_record') {
+    // Clear interview data completely
+    dbRemove('wmt_interview_' + uname);
+    const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+    dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  } else {
+    const users = getUsersDB();
+    const u = users[uname] || {};
+    let iv = getInterviewData(uname) || {
+      username:    uname,
+      fullName:    u.fullName || '',
+      email:       u.email || '',
+      submittedAt: new Date().toISOString()
+    };
+    iv.status     = status;
+    iv.adminSet   = true;
+    iv.adminSetAt = new Date().toISOString();
+    saveInterviewData(uname, iv);
+  }
+
+  document.getElementById('setIvModal').remove();
   renderAdminPanel();
   renderInterviewsTable();
 }

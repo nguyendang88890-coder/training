@@ -3,16 +3,16 @@
 function getUsersDB() {
   let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
   if (!users) {
+    // Seed local-only defaults — do NOT push to Firebase (would overwrite real registered users)
     users = {
       admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
-      test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    dbWrite('wmt_users_db', JSON.stringify(users));
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    dbWrite('wmt_users_db', JSON.stringify(users));
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
   return users;
 }

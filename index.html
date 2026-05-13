@@ -323,16 +323,16 @@
 function getUsersDB() {
   let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
   if (!users) {
+    // Seed local-only defaults — do NOT push to Firebase (would overwrite real registered users)
     users = {
       admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
-      test:    { password: 'test123',  role: 'trainee', createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    dbWrite('wmt_users_db', JSON.stringify(users));
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    dbWrite('wmt_users_db', JSON.stringify(users));
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
   return users;
 }
@@ -363,10 +363,17 @@ function switchTab(tab) {
 }
 
 // ===== LOGIN =====
-function doLogin() {
+async function doLogin() {
+  const btn = document.querySelector('#loginPanel .btn-primary');
+  const err = document.getElementById('loginError');
+
+  // Wait for Firebase sync to complete before checking credentials
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Connecting…'; }
+  await _syncReady;
+  if (btn) { btn.disabled = false; btn.textContent = 'Sign In'; }
+
   const u = document.getElementById('username').value.trim().toLowerCase();
   const p = document.getElementById('password').value;
-  const err = document.getElementById('loginError');
   const users = getUsersDB();
 
   if (users[u] && users[u].password === p) {
@@ -600,42 +607,61 @@ function initDashboard(user) {
   }
 
   // Interview card — show if exam passed
-  const examData = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+  const examData   = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+  const isExisted  = (users[user]?.employeeType || 'new') === 'old';
+
   if (examData.passed) {
     document.getElementById('interviewCard').style.display = 'block';
-    const iv = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
     const titleEl = document.getElementById('ivCardTitle');
     const descEl  = document.getElementById('ivCardDesc');
     const subEl   = document.getElementById('ivCardSub');
     const btnEl   = document.getElementById('ivCardBtn');
 
-    if (!iv) {
-      // Not booked yet
-      titleEl.textContent = '📅 Book Your Interview';
-      descEl.textContent  = 'You passed the exam! Schedule a video interview with a WeMasterTrade trainer to finalise your onboarding.';
+    if (isExisted) {
+      // Existed employees: no interview needed — show completion badge
+      titleEl.textContent = '✅ Training Complete';
+      descEl.textContent  = 'You are an Existed Employee — no interview required. Your training is fully complete!';
       subEl.textContent   = '';
-      btnEl.textContent   = 'Book Interview →';
+      btnEl.style.display = 'none';
+      document.getElementById('interviewCardInner').style.background = 'linear-gradient(135deg,rgba(0,214,143,0.08),rgba(0,214,143,0.02))';
+      document.getElementById('interviewCardInner').style.borderColor = 'rgba(0,214,143,0.25)';
     } else {
-      const statusMap = {
-        pending:   { icon:'⏳', label:'Pending Confirmation', btn:'View Booking →' },
-        confirmed: { icon:'✅', label:'Interview Confirmed!',  btn:'View Meeting →' },
-        completed: { icon:'🏆', label:'Interview Completed',   btn:'View Details →' },
-        cancelled: { icon:'❌', label:'Booking Cancelled',      btn:'Re-book →' }
-      };
-      const meta = statusMap[iv.status] || statusMap.pending;
-      titleEl.textContent = `${meta.icon} ${meta.label}`;
-      descEl.textContent  = iv.status === 'confirmed' && iv.confirmedSlot
-        ? `${iv.meetingPlatform || 'Meeting'} · ${iv.confirmedSlot}`
-        : `${iv.preferredDate || ''} ${iv.preferredTime || ''} · ${iv.timezone || ''}`.trim();
-      subEl.textContent   = iv.status === 'confirmed' && iv.meetingLink ? '🔗 Meeting link ready' : '';
-      btnEl.textContent   = meta.btn;
+      const iv = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
+      if (!iv) {
+        titleEl.textContent = '📅 Book Your Interview';
+        descEl.textContent  = 'You passed the exam! Schedule a video interview with a WeMasterTrade trainer to finalise your onboarding.';
+        subEl.textContent   = '';
+        btnEl.textContent   = 'Book Interview →';
+      } else {
+        const statusMap = {
+          pending:   { icon:'⏳', label:'Pending Confirmation', btn:'View Booking →' },
+          confirmed: { icon:'✅', label:'Interview Confirmed!',  btn:'View Meeting →' },
+          completed: { icon:'🏆', label:'Interview Completed',   btn:'View Details →' },
+          cancelled: { icon:'❌', label:'Booking Cancelled',      btn:'Re-book →' },
+          failed:    { icon:'⛔', label:'Interview Failed',       btn:'Contact Admin' }
+        };
+        const meta = statusMap[iv.status] || statusMap.pending;
+        titleEl.textContent = `${meta.icon} ${meta.label}`;
+        descEl.textContent  = iv.status === 'confirmed' && iv.confirmedSlot
+          ? `${iv.meetingPlatform || 'Meeting'} · ${iv.confirmedSlot}`
+          : `${iv.preferredDate || ''} ${iv.preferredTime || ''} · ${iv.timezone || ''}`.trim();
+        subEl.textContent   = iv.status === 'confirmed' && iv.meetingLink ? '🔗 Meeting link ready' : '';
+        btnEl.textContent   = meta.btn;
+      }
     }
   }
 }
 
+// ===== SYNC READY GATE =====
+// doLogin() awaits this before checking credentials — prevents race condition
+// where user clicks Sign In before syncFromFirebase() has pulled the latest users.
+let _syncResolver;
+const _syncReady = new Promise(resolve => { _syncResolver = resolve; });
+
 // ===== SESSION CHECK =====
 window.addEventListener('load', async function() {
   await syncFromFirebase();
+  _syncResolver(); // unlock login gate
   getUsersDB(); // seed defaults if first visit
   const user = localStorage.getItem('wmt_user');
   const users = getUsersDB();
