@@ -14,6 +14,32 @@ function getUsersDB() {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
     localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
+
+  // ── Field migration: add new fields to existing accounts ──────────────────
+  // Each entry defines the field name and its default value.
+  // When a user object is missing a field (e.g. accounts created before the
+  // field was introduced), we fill in the default and persist back to Firebase.
+  const FIELD_DEFAULTS = {
+    isLeader:   false,
+    leaderName: '',
+  };
+  let migrated = false;
+  Object.values(users).forEach(u => {
+    Object.entries(FIELD_DEFAULTS).forEach(([field, def]) => {
+      if (!(field in u)) {
+        u[field] = def;
+        migrated = true;
+      }
+    });
+  });
+  if (migrated) {
+    // Persist locally immediately; Firebase write is fire-and-forget
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    if (typeof dbWrite === 'function') {
+      dbWrite('wmt_users_db', JSON.stringify(users));
+    }
+  }
+
   return users;
 }
 
@@ -376,13 +402,19 @@ function getSidebarHTML(activeModule) {
   const udata   = users[user] || {};
   const isAdmin = udata.role === 'admin';
   const isMod   = udata.role === 'mod';
+  const isLeader = udata.isLeader === true;
 
   // Pre-compute role display string to avoid IIFE inside template literal
   let userRoleDisplay;
   if (isAdmin) {
     userRoleDisplay = 'Administrator';
+  } else if (isMod && isLeader) {
+    userRoleDisplay = '🛡️ Moderator · 🏆 Leader';
   } else if (isMod) {
     userRoleDisplay = '🛡️ Moderator';
+  } else if (isLeader) {
+    const dept = udata.department || '';
+    userRoleDisplay = dept ? `🏆 Leader · ${dept}` : '🏆 Team Leader';
   } else {
     const dept  = udata.department || '';
     const pos   = udata.position   || '';
@@ -444,6 +476,12 @@ function getSidebarHTML(activeModule) {
       <div class="nav-section-title">Moderator</div>
       <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
         <span class="nav-icon">📝</span> Final Exam <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">VIEW</span>
+      </a>` : ''}
+      ${isLeader ? `
+      <div class="nav-section-title">Team Leader</div>
+      <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
+        <span class="nav-icon">🏆</span> My Team
+        <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
       </a>` : ''}
     </nav>
     <div class="sidebar-footer">
@@ -534,4 +572,134 @@ window.addEventListener('load', async function() {
     );
   }
   updateSidebarProgress();
+  initModProposalBtn();
 });
+
+// ===== MODERATOR CONTENT PROPOSAL =====
+const _MOD_PAGE_MAP = {
+  'module1.html': { moduleId: 1, moduleName: 'Products' },
+  'module2.html': { moduleId: 2, moduleName: 'Trading Rules' },
+  'module3.html': { moduleId: 3, moduleName: 'Profit & Payouts' },
+  'module4.html': { moduleId: 4, moduleName: 'Payment Methods' },
+  'module5.html': { moduleId: 5, moduleName: 'Financial Products' },
+  'module6.html': { moduleId: 6, moduleName: 'Introducing Partner' },
+  'module7.html': { moduleId: 7, moduleName: 'Compliance & Risk' },
+  'exam.html':    { moduleId: 0, moduleName: 'Final Exam' },
+  'monthlytest.html': { moduleId: 0, moduleName: 'Monthly Test' },
+  'leader.html':      { moduleId: 0, moduleName: 'Leader Dashboard' },
+};
+
+function initModProposalBtn() {
+  const user  = localStorage.getItem('wmt_user') || '';
+  const users = typeof getUsersDB === 'function' ? getUsersDB() : {};
+  const udata = users[user] || {};
+  if (udata.role !== 'mod') return; // only for moderators
+
+  const page = window.location.pathname.split('/').pop() || window.location.pathname.split('\\').pop();
+  const pageInfo = _MOD_PAGE_MAP[page];
+  if (!pageInfo) return; // not a supported page
+
+  // Create floating propose-edit button
+  const fab = document.createElement('button');
+  fab.id = 'modProposeFAB';
+  fab.title = 'Đề xuất chỉnh sửa nội dung';
+  fab.innerHTML = '✏️ Đề xuất';
+  fab.style.cssText = [
+    'position:fixed', 'bottom:24px', 'right:24px', 'z-index:9000',
+    'background:linear-gradient(135deg,#6496ff,#4a6fe0)',
+    'color:#fff', 'border:none', 'border-radius:28px',
+    'padding:10px 20px', 'font-size:0.88rem', 'font-weight:700',
+    'cursor:pointer', 'box-shadow:0 4px 16px rgba(100,150,255,0.45)',
+    'display:flex', 'align-items:center', 'gap:6px',
+    'transition:transform 0.15s,box-shadow 0.15s'
+  ].join(';');
+  fab.onmouseenter = () => { fab.style.transform = 'translateY(-2px)'; fab.style.boxShadow = '0 6px 20px rgba(100,150,255,0.6)'; };
+  fab.onmouseleave = () => { fab.style.transform = ''; fab.style.boxShadow = '0 4px 16px rgba(100,150,255,0.45)'; };
+  fab.onclick = () => openModProposalModal(pageInfo);
+  document.body.appendChild(fab);
+}
+
+function openModProposalModal(pageInfo) {
+  const existing = document.getElementById('modProposalModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'modProposalModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);padding:16px;';
+  modal.innerHTML = `
+    <div style="background:#12122a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.6);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+        <h3 style="margin:0;color:#fff;font-size:1rem;">✏️ Đề xuất chỉnh sửa — Module ${pageInfo.moduleId || ''} ${pageInfo.moduleName}</h3>
+        <button onclick="document.getElementById('modProposalModal').remove()" style="background:none;border:none;color:#888;font-size:1.3rem;cursor:pointer;padding:0 4px;">✕</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Mục / Phần cần chỉnh sửa <span style="color:#ff6b6b">*</span></label>
+          <input id="mpSection" placeholder="Ví dụ: Bảng leverage, Callout 510zero, Câu hỏi quiz #3…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Nội dung hiện tại (bản gốc)</label>
+          <textarea id="mpOriginal" rows="3" placeholder="Dán nội dung hiện tại cần thay đổi (nếu có)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Nội dung đề xuất <span style="color:#ff6b6b">*</span></label>
+          <textarea id="mpProposed" rows="4" placeholder="Nhập nội dung chỉnh sửa đề xuất…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Ghi chú / Lý do</label>
+          <input id="mpNote" placeholder="Lý do đề xuất chỉnh sửa (tùy chọn)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
+        </div>
+        <div id="mpError" style="color:#ff6b6b;font-size:0.82rem;display:none;"></div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button onclick="submitModProposal(${JSON.stringify(pageInfo)})" style="flex:1;padding:10px;background:linear-gradient(135deg,#6496ff,#4a6fe0);color:#fff;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;">📤 Gửi đề xuất</button>
+          <button onclick="document.getElementById('modProposalModal').remove()" style="padding:10px 18px;background:#1e1e3a;color:#aaa;border:1px solid #2a2a4a;border-radius:8px;font-size:0.88rem;cursor:pointer;">Hủy</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('mpSection').focus();
+}
+
+function submitModProposal(pageInfo) {
+  const section  = (document.getElementById('mpSection')?.value  || '').trim();
+  const original = (document.getElementById('mpOriginal')?.value || '').trim();
+  const proposed = (document.getElementById('mpProposed')?.value || '').trim();
+  const note     = (document.getElementById('mpNote')?.value     || '').trim();
+  const errEl    = document.getElementById('mpError');
+
+  if (!section || !proposed) {
+    if (errEl) { errEl.textContent = '⚠️ Vui lòng điền Mục cần chỉnh sửa và Nội dung đề xuất.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  const user = localStorage.getItem('wmt_user') || 'mod';
+  const proposals = JSON.parse(localStorage.getItem('wmt_proposals') || '[]');
+  const entry = {
+    id:         Date.now().toString(),
+    source:     'module',
+    moduleId:   pageInfo.moduleId,
+    moduleName: pageInfo.moduleName,
+    section,
+    original:   original ? { text: original } : null,
+    proposed:   { text: proposed },
+    note,
+    proposedBy: user,
+    proposedAt: new Date().toISOString(),
+    status:     'pending'
+  };
+  proposals.push(entry);
+  if (typeof dbWrite === 'function') {
+    dbWrite('wmt_proposals', JSON.stringify(proposals));
+  } else {
+    localStorage.setItem('wmt_proposals', JSON.stringify(proposals));
+  }
+
+  document.getElementById('modProposalModal')?.remove();
+  // Brief success toast
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:9600;background:#1e3a2a;border:1px solid var(--success,#4CAF50);color:#4CAF50;border-radius:10px;padding:12px 20px;font-size:0.88rem;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+  toast.textContent = '✅ Đề xuất đã được gửi thành công!';
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}

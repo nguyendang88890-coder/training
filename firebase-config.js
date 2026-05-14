@@ -139,17 +139,29 @@ window.syncFromFirebase = async function() {
       const allUsers = Object.keys(usersSnap.val());
       const perUserPaths = [];
 
+      // Paths that are SAFE to clear from localStorage when Firebase doesn't have them
+      // (admin may have explicitly deleted these — e.g. exam reset, interview reset).
+      const clearableKeys = new Set();
+
       allUsers.forEach(u => {
-        perUserPaths.push({ fb: `progress/${u}`,    ls: `wmt_progress_${u}` });
-        perUserPaths.push({ fb: `exam/${u}`,         ls: `wmt_exam_${u}` });
-        perUserPaths.push({ fb: `interview/${u}`,    ls: `wmt_interview_${u}` });
-        perUserPaths.push({ fb: `reschedule/${u}`,   ls: `wmt_monthly_reschedule_${u}` });
+        // progress: only update, never clear — user might have offline data not yet synced
+        perUserPaths.push({ fb: `progress/${u}`,  ls: `wmt_progress_${u}`,  clearable: false });
+        // exam/interview/reschedule: admin can delete these, so clear when missing
+        perUserPaths.push({ fb: `exam/${u}`,       ls: `wmt_exam_${u}`,       clearable: true  });
+        perUserPaths.push({ fb: `interview/${u}`,  ls: `wmt_interview_${u}`,  clearable: true  });
+        perUserPaths.push({ fb: `reschedule/${u}`, ls: `wmt_monthly_reschedule_${u}`, clearable: true });
       });
 
-      await Promise.all(perUserPaths.map(async ({ fb, ls }) => {
+      await Promise.all(perUserPaths.map(async ({ fb, ls, clearable }) => {
         try {
           const snap = await window.FDB.ref(fb).once('value');
-          if (snap.exists()) localStorage.setItem(ls, JSON.stringify(snap.val()));
+          if (snap.exists()) {
+            localStorage.setItem(ls, JSON.stringify(snap.val()));
+          } else if (clearable) {
+            // Firebase is the source of truth for this key type —
+            // if it was deleted (e.g. admin reset exam), clear the stale localStorage copy.
+            localStorage.removeItem(ls);
+          }
         } catch (e) {
           console.warn(`[Firebase] sync failed (${fb}):`, e.message);
         }

@@ -44,6 +44,9 @@ body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
   <div id="resultContent">Loading...</div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script>
 // Auth guard
 (function() {
@@ -52,16 +55,21 @@ body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
   if (!u || !users[u]) window.location.href = 'index.html';
 })();
 
-const user = localStorage.getItem('wmt_user') || 'trainee';
-const examData = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
-const _userData = JSON.parse(localStorage.getItem('wmt_users_db') || '{}')[user] || {};
-const isExisted = (_userData.employeeType || 'new') === 'old';
-const score = examData.score || 0;
-const total = examData.total || 30;
-const attempts = examData.attempts || 0;
-const failDate = examData.failDate || null;
-const passed = examData.passed || false;
-const pct = Math.round((score / total) * 100);
+// These will be populated after sync
+let user, examData, _userData, isExisted, score, total, attempts, failDate, passed, pct;
+
+function _loadState() {
+  user      = localStorage.getItem('wmt_user') || 'trainee';
+  examData  = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
+  _userData = JSON.parse(localStorage.getItem('wmt_users_db') || '{}')[user] || {};
+  isExisted = (_userData.employeeType || 'new') === 'old';
+  score     = examData.score || 0;
+  total     = examData.total || 30;
+  attempts  = examData.attempts || 0;
+  failDate  = examData.failDate || null;
+  passed    = examData.passed || false;
+  pct       = Math.round((score / total) * 100);
+}
 
 function getDaysLeft() {
   if (!failDate) return 0;
@@ -195,17 +203,30 @@ function renderInterviewCTA() {
     </div>`;
 }
 
-// Render based on state
-if (!examData.score && !passed) {
-  document.getElementById('resultContent').innerHTML = '<div class="result-msg">No exam data found. Please complete the final exam first.</div><a href="exam.html" class="btn-back">Go to Exam →</a>';
-} else if (passed) {
-  document.getElementById('resultContent').innerHTML = renderPass();
-  if (!isExisted) setTimeout(renderInterviewCTA, 50);
-} else if (attempts >= 2) {
-  document.getElementById('resultContent').innerHTML = renderDisqualified();
-} else {
-  document.getElementById('resultContent').innerHTML = renderFail1();
+// Render based on state (called after sync)
+function renderResults() {
+  _loadState();
+  if (!examData.score && !passed) {
+    document.getElementById('resultContent').innerHTML = '<div class="result-msg">No exam data found. Please complete the final exam first.</div><a href="exam.html" class="btn-back">Go to Exam →</a>';
+  } else if (passed) {
+    document.getElementById('resultContent').innerHTML = renderPass();
+    if (!isExisted) setTimeout(renderInterviewCTA, 50);
+  } else if (attempts >= 2) {
+    document.getElementById('resultContent').innerHTML = renderDisqualified();
+  } else {
+    document.getElementById('resultContent').innerHTML = renderFail1();
+  }
 }
+
+// Sync from Firebase first so admin resets are reflected immediately, then render
+(async function() {
+  if (typeof syncFromFirebase === 'function') {
+    document.getElementById('resultContent').innerHTML =
+      '<div class="result-msg" style="color:var(--text-muted);">⏳ Loading…</div>';
+    await syncFromFirebase();
+  }
+  renderResults();
+})();
 </script>
 </body>
 </html>

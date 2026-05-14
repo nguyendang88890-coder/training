@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Team | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Stats */
+    .team-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .team-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+    .team-stat-card.gold  { border-color: var(--border-gold); }
+    .team-stat-card.green { border-color: rgba(0,214,143,0.3); }
+    .team-stat-card.blue  { border-color: rgba(100,150,255,0.3); }
+    .team-stat-card.orange{ border-color: rgba(255,165,0,0.35); }
+    .team-stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .team-stat-card.green  .team-stat-value { color: var(--success); }
+    .team-stat-card.blue   .team-stat-value { color: #6496ff; }
+    .team-stat-card.orange .team-stat-value { color: #ffaa33; }
+    .team-stat-label {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 4px;
+    }
+
+    /* Filter bar */
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .filter-bar input, .filter-bar select {
+      padding:7px 12px;
+      background:var(--bg-secondary);
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:var(--text-primary);
+      font-size:0.83rem;
+      min-width:140px;
+    }
+    .filter-bar input { min-width:200px; }
+    .filter-bar .filter-clear {
+      padding:7px 14px;
+      background:transparent;
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:var(--text-muted);
+      font-size:0.83rem;
+      cursor:pointer;
+    }
+    .filter-bar .filter-clear:hover { color:var(--text-primary); border-color:var(--text-muted); }
+
+    /* Table */
+    .team-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+    }
+    .team-table-wrap table { min-width: 900px; font-size: 0.85rem; }
+    .team-table-wrap thead th {
+      background: var(--bg-secondary);
+      padding: 13px 14px;
+    }
+    .team-table-wrap tbody td { padding: 12px 14px; vertical-align: middle; }
+
+    /* Progress bar */
+    .mod-progress { display:flex; align-items:center; gap:8px; }
+    .mod-progress-bar { flex:1; height:6px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; min-width:60px; }
+    .mod-progress-fill { height:100%; background:linear-gradient(90deg,var(--gold),#e6b800); border-radius:4px; transition:width 0.3s; }
+    .mod-progress-fill.complete { background:linear-gradient(90deg,var(--success),#00a86b); }
+
+    /* Badges */
+    .role-badge { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+    .exam-badge { display:inline-block; font-size:0.72rem; padding:3px 8px; border-radius:6px; font-weight:600; }
+    .exam-badge.passed       { background:rgba(0,214,143,0.15); color:var(--success); }
+    .exam-badge.failed       { background:rgba(255,61,113,0.12); color:var(--danger); }
+    .exam-badge.disqualified { background:rgba(255,61,113,0.2);  color:var(--danger); }
+    .exam-badge.none         { background:rgba(255,255,255,0.05); color:var(--text-muted); }
+
+    /* Member card (mobile view) */
+    @media (max-width: 700px) {
+      .team-table-wrap { border-radius:10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">🏆 My Team</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <div class="module-header">
+        <div class="module-header-num" style="background:linear-gradient(135deg,#ffaa33,#e6850a);color:#000;">🏆</div>
+        <div class="module-header-info">
+          <h2 id="leaderPageTitle">My Team</h2>
+          <p id="leaderPageSub">Overview of your team's training progress</p>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="team-stats" id="teamStats"></div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <input type="text" id="teamSearch" placeholder="🔍 Search member name…" oninput="renderTeamTable()">
+        <select id="teamFilterDept" onchange="renderTeamTable()">
+          <option value="">All Departments</option>
+        </select>
+        <select id="teamFilterProgress" onchange="renderTeamTable()">
+          <option value="">All Progress</option>
+          <option value="complete">✅ All Modules Done</option>
+          <option value="inprogress">⏳ In Progress</option>
+          <option value="notstarted">🔴 Not Started</option>
+        </select>
+        <select id="teamFilterExam" onchange="renderTeamTable()">
+          <option value="">All Exam Status</option>
+          <option value="passed">✓ Passed</option>
+          <option value="failed">✗ Failed / Attempt</option>
+          <option value="none">Not Started</option>
+        </select>
+        <button class="filter-clear" onclick="clearTeamFilters()">✕ Clear</button>
+        <span id="teamCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+      </div>
+
+      <!-- Table -->
+      <div class="team-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Type</th>
+              <th>Modules</th>
+              <th>Avg Score</th>
+              <th>Exam</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="teamTableBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="module-common.js"></script>
+<script>
+// ===== LEADER GUARD =====
+(function() {
+  const user  = localStorage.getItem('wmt_user');
+  const users = getUsersDB();
+  if (!user || !users[user]) { window.location.href = 'index.html'; return; }
+  if (!users[user].isLeader) {
+    // Not a leader — redirect unless admin
+    if (users[user].role !== 'admin') { window.location.href = 'index.html'; return; }
+  }
+})();
+
+document.getElementById('sidebar').innerHTML = getSidebarHTML('leader');
+updateSidebarProgress();
+
+// ===== HELPERS =====
+function getUserProgress(uname) {
+  return JSON.parse(localStorage.getItem('wmt_progress_' + uname) || '{}');
+}
+function getExamData(uname) {
+  return JSON.parse(localStorage.getItem('wmt_exam_' + uname) || '{}');
+}
+
+// ===== MAIN RENDER =====
+function renderLeaderPage() {
+  const currentUser = localStorage.getItem('wmt_user') || '';
+  const users       = getUsersDB();
+  const udata       = users[currentUser] || {};
+
+  // Update header
+  const displayName = udata.fullName || currentUser;
+  document.getElementById('leaderPageTitle').textContent = `${displayName}'s Team`;
+
+  // Get team members (users where leaderName === currentUser)
+  const members = Object.entries(users).filter(([uname, u]) =>
+    u.leaderName === currentUser && uname !== currentUser
+  );
+
+  // Populate dept filter
+  const depts = new Set(members.map(([, u]) => u.department).filter(Boolean));
+  const deptSel = document.getElementById('teamFilterDept');
+  const prevDept = deptSel.value;
+  deptSel.innerHTML = '<option value="">All Departments</option>' +
+    [...depts].sort().map(d => `<option value="${d}"${d===prevDept?' selected':''}>${d}</option>`).join('');
+
+  // Stats
+  let totalDone = 0, totalPassed = 0, totalStarted = 0;
+  members.forEach(([uname]) => {
+    const p = getUserProgress(uname);
+    let done = 0;
+    for (let i = 1; i <= 7; i++) if (p[`module${i}_done`]) done++;
+    if (done > 0) totalStarted++;
+    if (done === 7) totalDone++;
+    if (getExamData(uname).passed) totalPassed++;
+  });
+
+  document.getElementById('teamStats').innerHTML = `
+    <div class="team-stat-card orange">
+      <div class="team-stat-value">${members.length}</div>
+      <div class="team-stat-label">Team Members</div>
+    </div>
+    <div class="team-stat-card">
+      <div class="team-stat-value">${totalStarted}</div>
+      <div class="team-stat-label">Training Started</div>
+    </div>
+    <div class="team-stat-card green">
+      <div class="team-stat-value">${totalDone}</div>
+      <div class="team-stat-label">All Modules Done</div>
+    </div>
+    <div class="team-stat-card blue">
+      <div class="team-stat-value">${totalPassed}</div>
+      <div class="team-stat-label">Exam Passed</div>
+    </div>`;
+
+  document.getElementById('leaderPageSub').textContent =
+    `${members.length} member${members.length !== 1 ? 's' : ''} · ${totalDone} completed all modules · ${totalPassed} passed final exam`;
+
+  renderTeamTable();
+}
+
+function renderTeamTable() {
+  const currentUser = localStorage.getItem('wmt_user') || '';
+  const users       = getUsersDB();
+  const search      = (document.getElementById('teamSearch')?.value || '').toLowerCase().trim();
+  const filterDept  = document.getElementById('teamFilterDept')?.value  || '';
+  const filterProg  = document.getElementById('teamFilterProgress')?.value || '';
+  const filterExam  = document.getElementById('teamFilterExam')?.value || '';
+
+  let members = Object.entries(users).filter(([uname, u]) =>
+    u.leaderName === currentUser && uname !== currentUser
+  );
+
+  // Apply filters
+  members = members.filter(([uname, udata]) => {
+    if (search) {
+      const hay = (uname + ' ' + (udata.fullName || '') + ' ' + (udata.workName || '')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (filterDept && udata.department !== filterDept) return false;
+
+    if (filterProg || filterExam) {
+      const p = getUserProgress(uname);
+      let done = 0;
+      for (let i = 1; i <= 7; i++) if (p[`module${i}_done`]) done++;
+      if (filterProg === 'complete'   && done < 7) return false;
+      if (filterProg === 'inprogress' && (done === 0 || done === 7)) return false;
+      if (filterProg === 'notstarted' && done > 0) return false;
+
+      const ex = getExamData(uname);
+      if (filterExam === 'passed' && !ex.passed) return false;
+      if (filterExam === 'failed' && (ex.passed || ex.score === undefined)) return false;
+      if (filterExam === 'none'   && ex.score !== undefined) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('teamCount').textContent =
+    `${members.length} member${members.length !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('teamTableBody');
+  if (members.length === 0) {
+    const isFiltered = search || filterDept || filterProg || filterExam;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">
+      ${isFiltered
+        ? '🔍 No members match the current filters.'
+        : '👥 No team members yet. Members who put your username as their Leader Name will appear here.'}
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = members.map(([uname, udata]) => {
+    const p  = getUserProgress(uname);
+    const ex = getExamData(uname);
+
+    let doneCnt = 0, scoreSum = 0, scoreCnt = 0;
+    for (let i = 1; i <= 7; i++) {
+      if (p[`module${i}_done`]) doneCnt++;
+      if (p[`module${i}_score`] !== undefined) { scoreSum += p[`module${i}_score`]; scoreCnt++; }
+    }
+    const avgScore = scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) + '%' : '—';
+    const modPct   = Math.round((doneCnt / 7) * 100);
+
+    let examBadge;
+    if (ex.passed) {
+      examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else if (ex.disqualified) {
+      examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
+    } else if (ex.score !== undefined) {
+      const lockout = ex.fail1Date && !ex.fail2Date && !ex.passed &&
+        (Date.now() - new Date(ex.fail1Date).getTime()) < 3 * 24 * 60 * 60 * 1000;
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1}/2 — ${Math.round((ex.score/(ex.total||30))*100)}%${lockout?' 🔒':''}</span>`;
+    } else {
+      examBadge = `<span class="exam-badge none">Not Started</span>`;
+    }
+
+    const joined = udata.createdAt
+      ? new Date(udata.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    const empBadge = (udata.employeeType||'new') === 'old'
+      ? `<span class="role-badge" style="background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+      : `<span class="role-badge" style="background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary);">${uname}</div>
+        ${udata.fullName  ? `<div style="font-size:0.78rem;color:var(--text-secondary);margin-top:1px;">${udata.fullName}</div>` : ''}
+        ${udata.workName  ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">${udata.workName}</div>` : ''}
+      </td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">${udata.department || '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
+      <td>${empBadge}</td>
+      <td>
+        <div class="mod-progress">
+          <div class="mod-progress-bar">
+            <div class="mod-progress-fill ${doneCnt===7?'complete':''}" style="width:${modPct}%"></div>
+          </div>
+          <span style="font-size:0.8rem;color:${doneCnt===7?'var(--success)':'var(--text-secondary)'};">${doneCnt}/7</span>
+        </div>
+      </td>
+      <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
+      <td>${examBadge}</td>
+      <td style="color:var(--text-muted);font-size:0.8rem;">${joined}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearTeamFilters() {
+  document.getElementById('teamSearch').value        = '';
+  document.getElementById('teamFilterDept').value    = '';
+  document.getElementById('teamFilterProgress').value= '';
+  document.getElementById('teamFilterExam').value    = '';
+  renderTeamTable();
+}
+
+// ===== INIT =====
+renderLeaderPage();
+</script>
+</body>
+</html>

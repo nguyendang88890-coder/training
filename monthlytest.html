@@ -257,7 +257,9 @@ const IS_MOD   = ALL_USERS[CUR_USER] && ALL_USERS[CUR_USER].role === 'mod';
 function isBDCS(dept) {
   if (!dept) return false;
   const d = dept.toLowerCase().trim();
-  return d==='bd' || d.includes('business dev') || d==='cs' || d.includes('customer serv');
+  return d==='bd' || d.includes('business dev') ||
+         d==='cs' || d.includes('customer serv') ||
+         d.includes('sales');
 }
 function fmtDT(iso) {
   if (!iso) return '—';
@@ -737,7 +739,7 @@ function renderSetupTab() {
         <div class="form-group"><label>Test Link (URL)</label><input type="url" id="cfgLinkBDCS" placeholder="https://forms.google.com/... (BD &amp; CS)"></div>
         <div class="form-row" style="margin-bottom:0">
           <div class="form-group" style="margin-bottom:0"><label>Pass Score <span style="font-weight:400;color:#5a5a7a">(out of 300)</span></label><input type="number" id="cfgPassBDCS" value="250" min="0" max="300"></div>
-          <div class="form-group" style="margin-bottom:0"><label>Max "Điểm Liệt" sai cho phép</label><input type="number" id="cfgLietMax" value="2" min="0" max="20"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Max "Điểm Liệt" sai cho phép</label><input type="number" id="cfgLietMax" value="10" min="0" max="99"></div>
         </div>
       </div>
       <div style="background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.14);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
@@ -774,7 +776,7 @@ function renderSetupTab() {
             <div style="flex:1;min-width:0">
               <div class="test-cfg-month">${fmtMonth(m)}</div>
               <div class="test-cfg-info">${c.title||''}</div>
-              <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Liệt max: ${c.lietMax??2}</div>
+              <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Liệt max: ${c.lietMax??10}</div>
               <div class="test-cfg-info">🏛️ Others: ${fmtDT(c.startDateOthers)} → ${fmtDT(c.deadlineOthers)} &nbsp;·&nbsp; Pass: ${c.passOthers??70}/100</div>
               ${c.driveLink?`<div class="test-cfg-info">🎥 Drive: <a href="${c.driveLink}" target="_blank" rel="noopener" style="color:#ff7096;word-break:break-all;">${c.driveLink.length>60?c.driveLink.slice(0,60)+'…':c.driveLink}</a></div>`:''}
               <div class="test-cfg-info" style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;">
@@ -802,7 +804,7 @@ function loadCfg(m) {
   document.getElementById('cfgDeadlineBDCS').value = c.deadlineBDCS||'';
   document.getElementById('cfgLinkBDCS').value     = c.testLinkBDCS||'';
   document.getElementById('cfgPassBDCS').value     = c.passBDCS!==undefined ? c.passBDCS : 250;
-  document.getElementById('cfgLietMax').value      = c.lietMax!==undefined  ? c.lietMax  : 2;
+  document.getElementById('cfgLietMax').value      = c.lietMax!==undefined  ? c.lietMax  : 10;
   document.getElementById('cfgStartOthers').value    = c.startDateOthers||'';
   document.getElementById('cfgDeadlineOthers').value = c.deadlineOthers||'';
   document.getElementById('cfgLinkOthers').value     = c.testLinkOthers||'';
@@ -821,7 +823,7 @@ function saveTestConfig() {
         testLinkBDCS=document.getElementById('cfgLinkBDCS').value.trim(),
         testLinkOthers=document.getElementById('cfgLinkOthers').value.trim(),
         passBDCS=parseInt(document.getElementById('cfgPassBDCS').value)||250,
-        lietMax=parseInt(document.getElementById('cfgLietMax').value)||2,
+        lietMax=parseInt(document.getElementById('cfgLietMax').value)||10,
         passOthers=parseInt(document.getElementById('cfgPassOthers').value)||70,
         driveLink=document.getElementById('cfgDriveLink').value.trim(),
         err=document.getElementById('cfgErr');
@@ -891,7 +893,7 @@ function renderScoresTables() {
   const others = trainees.filter(([,u])=>!isBDCS(u.department));
 
   const passBDCS   = cfg.passBDCS   ?? 250;
-  const lietMax    = cfg.lietMax    ?? 2;
+  const lietMax    = cfg.lietMax    ?? 10;
   const passOthers = cfg.passOthers ?? 70;
 
   function pfBDCS(sc) {

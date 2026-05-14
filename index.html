@@ -128,6 +128,11 @@
         <input type="text" id="regPosition" placeholder="e.g. Sales Trainee">
       </div>
       <div class="form-group">
+        <label for="regLeaderName">Leader Name <span style="font-weight:400;color:#5a5a7a">(optional)</span></label>
+        <input type="text" id="regLeaderName" placeholder="e.g. alice — username of your team leader">
+        <div class="input-hint">Enter the username of your team leader if you have one.</div>
+      </div>
+      <div class="form-group">
         <label>Employee Type *</label>
         <input type="hidden" id="regEmpType" value="new">
         <div class="emp-type-group">
@@ -440,6 +445,7 @@ function doRegister() {
     department:   document.getElementById('regDepartment').value.trim(),
     position:     document.getElementById('regPosition').value.trim(),
     employeeType: document.getElementById('regEmpType').value || 'new',
+    leaderName:   document.getElementById('regLeaderName').value.trim(),
     createdAt:    new Date().toISOString()
   };
   dbWrite('wmt_users_db', JSON.stringify(users));

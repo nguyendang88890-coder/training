@@ -72,6 +72,12 @@
     .role-badge.admin   { background: rgba(255,215,0,0.15); color: var(--gold); }
     .role-badge.trainee { background: rgba(144,144,176,0.15); color: var(--text-muted); }
     .role-badge.mod     { background: rgba(100,150,255,0.15); color: #6496ff; }
+    .role-badge.leader { background: rgba(255,165,0,0.18); color: #ffaa33; }
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .filter-bar input, .filter-bar select { padding:7px 12px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:0.83rem; min-width:140px; }
+    .filter-bar input { min-width:200px; }
+    .filter-bar .filter-clear { padding:7px 14px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:0.83rem; cursor:pointer; }
+    .filter-bar .filter-clear:hover { color:var(--text-primary); border-color:var(--text-muted); }
     .prop-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
     .prop-card.pending  { border-left: 3px solid var(--warning); }
     .prop-card.approved { border-left: 3px solid var(--success); opacity: .75; }
@@ -269,7 +275,7 @@
 
     /* Scrollable wide table */
     .users-table-wrap { overflow-x: auto; }
-    .users-table-wrap table { min-width: 1100px; }
+    .users-table-wrap table { min-width: 1250px; }
 
   </style>
 </head>
@@ -305,12 +311,30 @@
         <div class="admin-stats" id="adminStats"></div>
 
         <div class="section-title">Registered Users</div>
+        <div class="filter-bar" id="filterBar">
+          <input type="text" id="filterSearch" placeholder="🔍 Search username / name…" oninput="applyUserFilters()">
+          <select id="filterDept" onchange="applyUserFilters()">
+            <option value="">All Departments</option>
+          </select>
+          <select id="filterRole" onchange="applyUserFilters()">
+            <option value="">All Roles</option>
+            <option value="trainee">Trainee</option>
+            <option value="mod">Moderator</option>
+            <option value="admin">Admin</option>
+            <option value="leader">Leaders only</option>
+          </select>
+          <select id="filterLeader" onchange="applyUserFilters()">
+            <option value="">All Teams</option>
+          </select>
+          <button class="filter-clear" onclick="clearUserFilters()">✕ Clear</button>
+          <span id="filterCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+        </div>
         <div class="users-table-wrap">
           <table id="usersTable">
             <thead>
               <tr>
                 <th>User</th><th>Full Name</th><th>Email</th>
-                <th>Department</th><th>Position</th><th>Role</th><th>Type</th><th>Joined</th>
+                <th>Department</th><th>Position</th><th>Role</th><th>Leader</th><th>Type</th><th>Joined</th>
                 <th>Modules</th><th>Avg Score</th><th>Exam</th>
                 <th>Interview</th><th>Actions</th>
               </tr>
@@ -453,7 +477,19 @@
         <select id="editRole">
           <option value="trainee">Trainee</option>
           <option value="mod">🛡️ Moderator</option>
+          <option value="admin">⭐ Admin</option>
         </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="editIsLeader" style="width:16px;height:16px;accent-color:#ffaa33;">
+          <span>🏆 This user is a Team Leader</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">(can be set alongside any role)</span>
+        </label>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Leader Name <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(username of this user's team leader)</span></label>
+        <input type="text" id="editLeaderName" placeholder="e.g. alice — leave blank if none">
       </div>
       <div class="form-group">
         <label>Employee Type</label>
@@ -527,57 +563,73 @@ async function switchTab(tab) {
   if (tab === 'proposals') renderProposalsTab();
 }
 
-// ===== USERS TABLE =====
-function renderAdminPanel() {
-  const users    = getUsersDB();
-  const userList = Object.entries(users);
+// ===== USER FILTERS =====
+let _filterState = { search: '', dept: '', role: '', leader: '' };
 
-  let totalTrainees = 0, totalCompleted = 0, totalPassed = 0, totalInterviews = 0, pendingCount = 0;
-
-  userList.forEach(([uname, udata]) => {
-    if (udata.role !== 'admin') totalTrainees++;
-    const p = getUserProgress(uname);
-    let done = 0;
-    for (let i = 1; i <= 7; i++) { if (p[`module${i}_done`]) done++; }
-    if (done === 7) totalCompleted++;
-    if (getExamData(uname).passed) totalPassed++;
-    const iv = getInterviewData(uname);
-    if (iv) { totalInterviews++; if (iv.status === 'pending') pendingCount++; }
+function populateFilterDropdowns() {
+  const users = getUsersDB();
+  const depts = new Set(), leaders = new Set();
+  Object.entries(users).forEach(([uname, u]) => {
+    if (u.department) depts.add(u.department);
+    if (u.leaderName) leaders.add(u.leaderName);
+    if (u.isLeader)   leaders.add(uname);
   });
 
-  // Update interview badge
-  const badge = document.getElementById('pendingBadge');
-  if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
-  else badge.classList.add('hidden');
+  const deptSel = document.getElementById('filterDept');
+  const prevDept = deptSel.value;
+  deptSel.innerHTML = '<option value="">All Departments</option>' +
+    [...depts].sort().map(d => `<option value="${d}"${d===prevDept?' selected':''}>${d}</option>`).join('');
 
-  // Update proposals badge
-  updateProposalsBadge();
+  const ldrSel = document.getElementById('filterLeader');
+  const prevLdr = ldrSel.value;
+  ldrSel.innerHTML = '<option value="">All Teams</option>' +
+    [...leaders].sort().map(l => {
+      const lname = users[l]?.fullName ? `${l} (${users[l].fullName})` : l;
+      return `<option value="${l}"${l===prevLdr?' selected':''}>${lname}'s Team</option>`;
+    }).join('');
+}
 
-  document.getElementById('adminStats').innerHTML = `
-    <div class="admin-stat-card gold">
-      <div class="admin-stat-value">${userList.length}</div>
-      <div class="admin-stat-label">Total Users</div>
-    </div>
-    <div class="admin-stat-card">
-      <div class="admin-stat-value">${totalTrainees}</div>
-      <div class="admin-stat-label">Trainees</div>
-    </div>
-    <div class="admin-stat-card green">
-      <div class="admin-stat-value">${totalCompleted}</div>
-      <div class="admin-stat-label">Modules Completed</div>
-    </div>
-    <div class="admin-stat-card blue">
-      <div class="admin-stat-value">${totalPassed}</div>
-      <div class="admin-stat-label">Exam Passed</div>
-    </div>
-    <div class="admin-stat-card warn">
-      <div class="admin-stat-value">${totalInterviews}</div>
-      <div class="admin-stat-label">Interviews Booked</div>
-    </div>`;
+function applyUserFilters() {
+  _filterState.search = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
+  _filterState.dept   = document.getElementById('filterDept')?.value   || '';
+  _filterState.role   = document.getElementById('filterRole')?.value   || '';
+  _filterState.leader = document.getElementById('filterLeader')?.value || '';
+  renderUsersTableBody();
+}
 
-  const tbody = document.getElementById('usersTableBody');
+function clearUserFilters() {
+  document.getElementById('filterSearch').value = '';
+  document.getElementById('filterDept').value   = '';
+  document.getElementById('filterRole').value   = '';
+  document.getElementById('filterLeader').value = '';
+  _filterState = { search: '', dept: '', role: '', leader: '' };
+  renderUsersTableBody();
+}
+
+function renderUsersTableBody() {
+  const users    = getUsersDB();
+  const tbody    = document.getElementById('usersTableBody');
+  const { search, dept, role, leader } = _filterState;
+
+  let userList = Object.entries(users);
+
+  // Apply filters
+  userList = userList.filter(([uname, udata]) => {
+    if (search) {
+      const hay = (uname + ' ' + (udata.fullName||'') + ' ' + (udata.workName||'')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (dept   && udata.department !== dept) return false;
+    if (role === 'leader') { if (!udata.isLeader) return false; }
+    else if (role && udata.role !== role) return false;
+    if (leader && udata.leaderName !== leader) return false;
+    return true;
+  });
+
+  document.getElementById('filterCount').textContent = `${userList.length} user${userList.length!==1?'s':''}`;
+
   if (userList.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="13"><div class="empty-state"><div class="empty-icon">👤</div><div>No users found.</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--text-muted);">No users match the current filters.</td></tr>`;
     return;
   }
 
@@ -636,7 +688,18 @@ function renderAdminPanel() {
       <td style="color:var(--text-muted);font-size:0.82rem;">${udata.email || '—'}</td>
       <td style="color:var(--text-secondary);font-size:0.82rem;">${udata.department || '—'}</td>
       <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
-      <td><span class="role-badge ${udata.role}">${udata.role==='mod'?'🛡️ Mod':udata.role}</span></td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span class="role-badge ${udata.role}">${udata.role==='mod'?'🛡️ Mod':udata.role==='admin'?'⭐ Admin':udata.role}</span>
+          ${udata.isLeader ? `<span class="role-badge leader">🏆 Leader</span>` : ''}
+          ${udata.role !== 'admin' ? `
+          <button class="btn-xs ${udata.role==='mod'?'reset':'edi'}" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
+            onclick="toggleModRole('${uname}')" title="${udata.role==='mod'?'Thu hồi quyền Moderator':'Trao quyền Moderator'}">
+            ${udata.role==='mod' ? '↩ Unset Mod' : '🛡️ Set Mod'}
+          </button>` : ''}
+        </div>
+      </td>
+      <td style="font-size:0.8rem;color:var(--text-secondary);">${udata.leaderName || '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${(udata.role==='admin'||udata.role==='mod') ? '<span style="color:var(--text-muted);font-size:0.8rem;">—</span>' :
         (udata.employeeType||'new')==='old'
           ? `<span class="role-badge" style="background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
@@ -663,6 +726,69 @@ function renderAdminPanel() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ===== USERS TABLE =====
+function renderAdminPanel() {
+  const users    = getUsersDB();
+  const userList = Object.entries(users);
+
+  let totalTrainees = 0, totalCompleted = 0, totalPassed = 0, totalInterviews = 0, pendingCount = 0;
+
+  userList.forEach(([uname, udata]) => {
+    if (udata.role !== 'admin') totalTrainees++;
+    const p = getUserProgress(uname);
+    let done = 0;
+    for (let i = 1; i <= 7; i++) { if (p[`module${i}_done`]) done++; }
+    if (done === 7) totalCompleted++;
+    if (getExamData(uname).passed) totalPassed++;
+    const iv = getInterviewData(uname);
+    if (iv) { totalInterviews++; if (iv.status === 'pending') pendingCount++; }
+  });
+
+  // Update interview badge
+  const badge = document.getElementById('pendingBadge');
+  if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+
+  // Update proposals badge
+  updateProposalsBadge();
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="admin-stat-card gold">
+      <div class="admin-stat-value">${userList.length}</div>
+      <div class="admin-stat-label">Total Users</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">${totalTrainees}</div>
+      <div class="admin-stat-label">Trainees</div>
+    </div>
+    <div class="admin-stat-card green">
+      <div class="admin-stat-value">${totalCompleted}</div>
+      <div class="admin-stat-label">Modules Completed</div>
+    </div>
+    <div class="admin-stat-card blue">
+      <div class="admin-stat-value">${totalPassed}</div>
+      <div class="admin-stat-label">Exam Passed</div>
+    </div>
+    <div class="admin-stat-card warn">
+      <div class="admin-stat-value">${totalInterviews}</div>
+      <div class="admin-stat-label">Interviews Booked</div>
+    </div>`;
+
+  populateFilterDropdowns();
+  renderUsersTableBody();
+}
+
+function toggleModRole(uname) {
+  const users = getUsersDB();
+  if (!users[uname] || users[uname].role === 'admin') return;
+  const isMod = users[uname].role === 'mod';
+  const action = isMod ? 'Thu hồi quyền Moderator' : 'Trao quyền Moderator';
+  if (!confirm(`${action} cho "${uname}"?`)) return;
+  users[uname].role = isMod ? 'trainee' : 'mod';
+  dbWrite('wmt_users_db', JSON.stringify(users));
+  renderAdminPanel();
 }
 
 function resetUser(uname) {
@@ -705,7 +831,9 @@ function renderProposalsTab() {
   function cardHTML(p) {
     const srcLabel = p.source === 'exam'
       ? `Final Exam${p.action==='add'?' — Thêm câu':` — Câu #${(p.idx??0)+1} (Module ${p.proposed?.module??''} ${EQ_MOD_NAMES[p.proposed?.module]??''})`}`
-      : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Thêm câu':`— Câu #${(p.idx??0)+1}`}`;
+      : p.source === 'module'
+        ? `📝 Module ${p.moduleId||''} — ${p.moduleName||''}${p.section ? ` · <em style="color:var(--text-secondary);font-weight:400;">${p.section}</em>` : ''}`
+        : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Thêm câu':`— Câu #${(p.idx??0)+1}`}`;
     const statusColor = {pending:'var(--warning)',approved:'var(--success)',rejected:'var(--danger)'}[p.status];
     const statusLabel = {pending:'⏳ Chờ duyệt',approved:'✅ Đã duyệt',rejected:'❌ Đã từ chối'}[p.status];
     const dt = d => d ? new Date(d).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
@@ -777,13 +905,18 @@ function approveProposal(id) {
     else { qb.questions.push(p.proposed); qb.totalPoints = qb.questions.reduce((s,q)=>s+(q.points||0),0); }
     dbWrite('wmt_qbank_' + p.group, JSON.stringify(qb));
   }
+  // source === 'module': no automatic apply — admin must manually update module HTML
 
   const curUser = localStorage.getItem('wmt_user') || '';
   proposals[idx] = { ...p, status:'approved', reviewedBy:curUser, reviewedAt:new Date().toISOString(), reviewNote:'' };
   saveProposals(proposals);
   renderProposalsTab();
   updateProposalsBadge();
-  alert('✅ Đề xuất đã được phê duyệt và áp dụng vào Question Bank.');
+  if (p.source === 'module') {
+    alert(`✅ Đề xuất đã được phê duyệt.\n\n📌 Lưu ý: Đây là đề xuất chỉnh sửa nội dung Module ${p.moduleId} — ${p.moduleName}.\nVui lòng cập nhật file HTML tương ứng thủ công.`);
+  } else {
+    alert('✅ Đề xuất đã được phê duyệt và áp dụng vào Question Bank.');
+  }
 }
 
 function rejectProposal(id) {
@@ -1192,6 +1325,11 @@ function saveExamReset() {
 
   closeExamReset();
   renderAdminPanel();
+
+  // Remind admin that user must refresh their page
+  setTimeout(() => {
+    alert(`✅ Đã reset exam cho "${uname}".\n\n📌 Yêu cầu user "${uname}" refresh (F5) trang exam.html để áp dụng thay đổi.`);
+  }, 200);
 }
 
 // ===== CONFIRM INTERVIEW MODAL =====
@@ -1253,6 +1391,8 @@ function openEditUser(uname) {
   document.getElementById('editPosition').value        = u.position   || '';
   document.getElementById('editRole').value            = u.role         || 'trainee';
   document.getElementById('editEmpType').value         = u.employeeType || 'new';
+  document.getElementById('editIsLeader').checked      = u.isLeader    || false;
+  document.getElementById('editLeaderName').value      = u.leaderName  || '';
   document.getElementById('editUserError').textContent = '';
   document.getElementById('editUserModal').classList.add('show');
   setTimeout(() => document.getElementById('editFullName').focus(), 100);
@@ -1270,6 +1410,8 @@ function saveEditUser() {
   users[uname].position   = document.getElementById('editPosition').value.trim();
   users[uname].role         = document.getElementById('editRole').value;
   users[uname].employeeType = document.getElementById('editEmpType').value;
+  users[uname].isLeader     = document.getElementById('editIsLeader').checked;
+  users[uname].leaderName   = document.getElementById('editLeaderName').value.trim();
   dbWrite('wmt_users_db', JSON.stringify(users));
   closeEditUser();
   renderAdminPanel();
