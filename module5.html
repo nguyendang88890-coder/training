@@ -42,7 +42,7 @@
             <tbody>
               <tr class="highlight-row"><td>Challenge (Phase 1 & 2)</td><td>1:100</td><td>Full leverage during evaluation</td></tr>
               <tr><td>Instant Funding — 51010</td><td>1:100</td><td>Standard leverage</td></tr>
-              <tr><td>Instant Funding — 510zero</td><td>1:33</td><td>Lower leverage, more conservative</td></tr>
+              <tr><td>Instant Funding — 510zero</td><td>1:100</td><td>Same leverage as 51010 (Stocks: 1:20)</td></tr>
               <tr><td>Funded (Challenge graduates)</td><td>1:10</td><td>Reduced leverage on funded account</td></tr>
             </tbody>
           </table>
@@ -51,8 +51,8 @@
         <div class="callout info">
           <span class="callout-icon">💡</span>
           <div class="callout-content">
-            <strong>Why 510zero has Lower Leverage?</strong>
-            <p>The 510zero plan is designed for traders who prefer frequent withdrawals without profit targets. Lower leverage (1:33) encourages more conservative position sizing, balancing the flexibility of no profit targets with reduced risk exposure.</p>
+            <strong>510zero Leverage Update</strong>
+            <p>The 510zero plan now uses 1:100 leverage for Forex, Crypto, and Indices — matching the 51010 plan. Stocks leverage is 1:20 for all Instant Funding plans. This gives traders maximum flexibility while maintaining structured risk management via the Profit Consistency Rule.</p>
           </div>
         </div>
       </div>
@@ -69,7 +69,7 @@
             </thead>
             <tbody>
               <tr><td>Forex (all pairs)</td><td>$5.00</td><td>Per lot (round turn)</td></tr>
-              <tr class="highlight-row"><td>XAUUSD (Gold)</td><td>$4.00</td><td>Per lot (round turn)</td></tr>
+              <tr class="highlight-row"><td>XAUUSD (Gold)</td><td>$6.00</td><td>Per lot (round turn)</td></tr>
               <tr><td>Cryptocurrency</td><td>0.035%</td><td>Per trade value</td></tr>
               <tr><td>Stocks / Equities</td><td>$0.07</td><td>Per lot</td></tr>
               <tr><td>Indices (US30, NAS100, SPX500)</td><td>$0.50</td><td>Per lot</td></tr>
@@ -104,7 +104,7 @@
               <tr>
                 <td><strong>Commodities</strong></td>
                 <td>Gold (XAUUSD), Silver (XAGUSD), Oil (WTI, Brent)</td>
-                <td>$4/lot (Gold), varies</td>
+                <td>$6/lot (Gold), varies</td>
               </tr>
               <tr>
                 <td><strong>Indices</strong></td>
@@ -206,20 +206,20 @@ const questions = [
   {
     q: "What leverage is offered for the 510zero Instant Funding plan?",
     opts: ["1:100", "1:50", "1:33", "1:200"],
-    _c: "Mg==",
-    explain: "510zero uses 1:33 leverage — lower than the standard 1:100 on Challenge (Phase 1 & 2) and 51010 plans. The lower leverage reflects the plan's focus on disciplined, lower-risk trading."
+    _c: "MA==",
+    explain: "510zero now uses 1:100 leverage for Forex, Crypto, and Indices — the same as the 51010 plan. Stocks leverage is 1:20 across all Instant Funding plans."
   },
   {
     q: "What is the commission for trading XAUUSD (Gold)?",
-    opts: ["$5 per lot", "$4 per lot", "0.035%", "$1 per lot"],
+    opts: ["$5 per lot", "$6 per lot", "0.035%", "$1 per lot"],
     _c: "MQ==",
-    explain: "XAUUSD (Gold) commissions are $4 per lot. Forex pairs charge $5/lot, indices charge $0.5/lot, and crypto uses a percentage-based fee of 0.035% per trade."
+    explain: "XAUUSD (Gold) commissions are $6 per lot. Forex pairs charge $5/lot, indices charge $0.5/lot, and crypto uses a percentage-based fee of 0.035% per trade."
   },
   {
     q: "Which index is NOT listed as a tradeable instrument on WeMasterTrade?",
-    opts: ["US30", "NAS100", "SPX500", "DAX40"],
+    opts: ["US30", "NAS100", "SPX500", "US40"],
     _c: "Mw==",
-    explain: "DAX40 (German stock index) is not currently available. Available indices include US30 (Dow Jones), NAS100 (Nasdaq), and SPX500 (S&P 500)."
+    explain: "US40 (German stock index) is not currently available. Available indices include US30 (Dow Jones), NAS100 (Nasdaq), and SPX500 (S&P 500)."
   },
   {
     q: "What commission applies to cryptocurrency trades?",

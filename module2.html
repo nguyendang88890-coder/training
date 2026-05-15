@@ -60,7 +60,7 @@
               Best single day profit: $1,000<br>
               PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit)<br><br>
               If best day was $1,500:<br>
-              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — violation)
+              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — not qualified for payout)
             </p>
           </div>
         </div>
@@ -140,12 +140,12 @@
           <span class="callout-icon">📉</span>
           <div class="callout-content">
             <strong>5% Daily Loss Limit</strong>
-            <p>Calculated from the <strong>higher of: current equity OR current balance</strong>. Ensures that each day has its own risk ceiling.</p>
+            <p>Calculated from the <strong>higher of: Starting day's equity OR starting day's balance</strong>. Ensures that each day has its own risk ceiling.</p>
           </div>
         </div>
 
         <h4>Definition</h4>
-        <p>The Maximum Daily Loss uses the <strong>higher value between equity and balance</strong> as the baseline. The day's equity includes:</p>
+        <p>The Maximum Daily Loss uses the <strong>higher value between starting day's equity and starting day's balance</strong> as the baseline. The day's equity includes:</p>
         <ul>
           <li>Floating P&amp;L (open positions)</li>
           <li>All closed positions for that day</li>
@@ -266,21 +266,21 @@ const questions = [
     explain: "PCR = (Best Day Profit ÷ Total Profit) × 100. If this exceeds 20%, one day dominated your results — violating the consistency rule. The goal is balanced, steady trading."
   },
   {
-    q: "What is the maximum risk per trade for 51010 and Funded accounts?",
+    q: "What is the maximum risk per trade for Funded accounts?",
     opts: ["2%", "5%", "1%", "3%"],
     _c: "Mg==",
-    explain: "51010 and Funded accounts have a stricter 1% max risk per trade. Standard Challenge accounts allow 2%. This tighter rule protects funded capital."
+    explain: "Funded accounts have a stricter 1% max risk per trade. Standard Challenge accounts allow 2%. This tighter rule protects funded capital."
   },
   {
     q: "The Daily Loss Limit is calculated from which value?",
     opts: [
       "Initial account balance only",
       "Current balance only",
-      "The HIGHER of yesterday's closing balance or current equity",
+      "The HIGHER of starting day's equity or starting day's balance",
       "The LOWER of balance or equity"
     ],
     _c: "Mg==",
-    explain: "The baseline uses the HIGHER of yesterday's closing balance or current equity. This prevents traders from locking in large gains and then risking them all the next day."
+    explain: "The baseline uses the HIGHER of starting day's equity or starting day's balance. This ensures the daily loss ceiling is fixed at the start of each trading day, preventing traders from risking beyond that day's opening position."
   },
   {
     q: "When a trader hits the Daily Loss Limit, what happens?",
@@ -294,10 +294,10 @@ const questions = [
     explain: "Hitting the DLL triggers automatic liquidation of all open positions. This is a rule violation — trading cannot resume and you must purchase a new package to start again."
   },
   {
-    q: "How long must a trader wait before re-trading the same symbol after a losing position?",
+    q: "How long must a trader wait before re-trading the same symbol on a different account after a losing position?",
     opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
     _c: "MQ==",
-    explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol. This cooling-off rule prevents emotional revenge trading."
+    explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol on a different account. Note: re-trading the same symbol on the same account is not a violation — only re-trading on a different account is restricted. This cooling-off rule prevents emotional revenge trading across accounts."
   }
 ];
 

@@ -15,10 +15,9 @@ function getUsersDB() {
     localStorage.setItem('wmt_users_db', JSON.stringify(users));
   }
 
-  // ── Field migration: add new fields to existing accounts ──────────────────
-  // Each entry defines the field name and its default value.
-  // When a user object is missing a field (e.g. accounts created before the
-  // field was introduced), we fill in the default and persist back to Firebase.
+  // ── Field migration: add new fields to existing accounts (local only) ───────
+  // Only updates localStorage. Firebase push is handled separately by
+  // adminPushUserMigration() which is called by admin after syncFromFirebase().
   const FIELD_DEFAULTS = {
     isLeader:   false,
     leaderName: '',
@@ -26,21 +25,33 @@ function getUsersDB() {
   let migrated = false;
   Object.values(users).forEach(u => {
     Object.entries(FIELD_DEFAULTS).forEach(([field, def]) => {
-      if (!(field in u)) {
-        u[field] = def;
-        migrated = true;
-      }
+      if (!(field in u)) { u[field] = def; migrated = true; }
     });
   });
-  if (migrated) {
-    // Persist locally immediately; Firebase write is fire-and-forget
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
-    if (typeof dbWrite === 'function') {
-      dbWrite('wmt_users_db', JSON.stringify(users));
-    }
-  }
+  if (migrated) localStorage.setItem('wmt_users_db', JSON.stringify(users));
 
   return users;
+}
+
+// ── Admin-only: push field migration defaults to Firebase ────────────────────
+// Safe to call after syncFromFirebase() — Firebase data is already in
+// localStorage, so we only fill in fields that are truly missing in Firebase.
+// Existing non-default values (e.g. isLeader: true) are preserved.
+function adminPushUserMigration() {
+  if (typeof dbWrite !== 'function' || !window.FDB) return;
+  const FIELD_DEFAULTS = { isLeader: false, leaderName: '' };
+  const users = JSON.parse(localStorage.getItem('wmt_users_db') || '{}');
+  let needsPush = false;
+  Object.values(users).forEach(u => {
+    Object.entries(FIELD_DEFAULTS).forEach(([field, def]) => {
+      if (!(field in u)) { u[field] = def; needsPush = true; }
+    });
+  });
+  if (needsPush) {
+    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    dbWrite('wmt_users_db', JSON.stringify(users));
+    console.info('[WMT] adminPushUserMigration: pushed field defaults to Firebase for', Object.keys(users).length, 'users.');
+  }
 }
 
 // Auth guard
@@ -471,6 +482,10 @@ function getSidebarHTML(activeModule) {
       <a href="admin.html" class="nav-item ${activeModule === 'admin' ? 'active' : ''}">
         <span class="nav-icon">⚙️</span> Admin Panel
         <span class="nav-badge" style="background:rgba(255,215,0,0.2);color:var(--gold)">ADMIN</span>
+      </a>
+      <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
+        <span class="nav-icon">👥</span> Member Management
+        <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
       </a>` : ''}
       ${isMod ? `
       <div class="nav-section-title">Moderator</div>
@@ -480,7 +495,7 @@ function getSidebarHTML(activeModule) {
       ${isLeader ? `
       <div class="nav-section-title">Team Leader</div>
       <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
-        <span class="nav-icon">🏆</span> My Team
+        <span class="nav-icon">👥</span> Member Management
         <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
       </a>` : ''}
     </nav>

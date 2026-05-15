@@ -224,58 +224,56 @@ const QUESTION_BANK = [
   { q: "What is the fee for a $50K 51010 Instant account?", opts: ["$370","$175","$288","$552"], _c: "Mg==", module: 1 },
   { q: "What is the fee for the NEW $5K 51010 Instant account?", opts: ["$52","$44","$78","$35"], _c: "MQ==", module: 1 },
   { q: "Which plan does NOT apply the Profit Consistency Rule?", opts: ["Challenge Phase 2","510Zero","Challenge Phase 1 & Funded","51010"], _c: "Mg==", module: 1 },
-  { q: "The Customize plan allows accounts up to what maximum size?", opts: ["$200,000","$500,000","$750,000","$1,000,000"], _c: "Mw==", module: 1 },
-  { q: "The 510zero plan has what leverage?", opts: ["1:100","1:50","1:33","1:200"], _c: "Mg==", module: 1 },
+  { q: "The Customize plan allows accounts up to what maximum size?", opts: ["$200,000","$400,000","$750,000","$1,000,000"], _c: "MQ==", module: 1 },
+  { q: "The 510zero plan has what leverage?", opts: ["1:100","1:50","1:33","1:200"], _c: "MA==", module: 1 },
   { q: "What are the customizable Daily Loss options for the Customizable Instant plan?", opts: ["1–3%","2–5%","3–8%","5–10%"], _c: "MQ==", module: 1 },
 
   // MODULE 2 — Introducing Partner
-  { q: "What commission does Level 1 earn on a client's first purchase?", opts: ["10%","15%","25%","30%"], _c: "Mg==", module: 2 },
+  { q: "What commission does an IP earn on a client's first purchase?", opts: ["10%","15%","25%","30%"], _c: "Mg==", module: 2 },
   { q: "How long is the IP cookie tracking window?", opts: ["7 days","14 days","30 days","60 days"], _c: "Mg==", module: 2 },
-  { q: "What is the standard minimum balance to withdraw IP commissions?", opts: ["$50","$100","$150","$200"], _c: "Mw==", module: 2 },
+  { q: "What is the standard minimum balance to withdraw IP commissions?", opts: ["$50","$100","$150","$200"], _c: "MQ==", module: 2 },
   { q: "How many days after client payment before commission is withdrawable?", opts: ["7","14","31","60"], _c: "Mg==", module: 2 },
-  { q: "What commission rate does Level 2 earn?", opts: ["1%","5%","10%","25%"], _c: "Mg==", module: 2 },
-  { q: "What commission rate does Level 3 earn?", opts: ["1%","5%","10%","25%"], _c: "MA==", module: 2 },
-  { q: "What is the minimum withdrawal balance for introducing partners in Bangladesh?", opts: ["$50","$100","$200","$300"], _c: "MQ==", module: 2 },
-  { q: "WeMasterTrade's IP commission on upsells for Level 1 ranges from?", opts: ["1–5%","5–10%","10–15%","15–20%"], _c: "MQ==", module: 2 },
+  { q: "What is the minimum withdrawal balance for introducing partners in Bangladesh?", opts: ["$50","$100","$200","$300"], _c: "Mg==", module: 2 },
+  { q: "What is the Up Sale Commission Rate for the Silver tier?", opts: ["5%","7.5%","10%","25%"], _c: "MA==", module: 2 },
 
   // MODULE 3 — Trading Rules
   { q: "What is the Profit Consistency Rule formula?", opts: ["Total Profit ÷ Best Day × 100","Best Day ÷ Total Profit × 100 ≤ 20%","Best Day × Total Profit ÷ 100","Daily Loss ÷ Balance × 100"], _c: "MQ==", module: 3 },
   { q: "What is the maximum risk per trade for 51010 accounts?", opts: ["2%","5%","1%","3%"], _c: "MA==", module: 3 },
   { q: "What is the maximum risk per trade for Funded accounts?", opts: ["2%","5%","1%","3%"], _c: "Mg==", module: 3 },
-  { q: "The Daily Loss Limit is calculated from which baseline?", opts: ["Initial balance only","Current balance only","The HIGHER of current equity or current balance","The LOWER of balance or equity"], _c: "Mg==", module: 3 },
+  { q: "The Daily Loss Limit is calculated from which baseline?", opts: ["Initial balance only","Current balance only","The HIGHER of starting day's equity or starting day's balance","The LOWER of balance or equity"], _c: "Mg==", module: 3 },
   { q: "Hitting the Daily Loss Limit causes what?", opts: ["A daily pause — not a violation","Auto-liquidated — it IS a rule violation, need new package","Failed challenge","7-day suspension"], _c: "MQ==", module: 3 },
   { q: "What is the Daily Loss Limit for all account types?", opts: ["3%","5%","8%","10%"], _c: "MQ==", module: 3 },
   { q: "What is the Max Loss Limit?", opts: ["5%","8%","10%","15%"], _c: "Mg==", module: 3 },
-  { q: "How long must a trader wait after closing a losing position before reopening the same symbol?", opts: ["30 minutes","60 minutes","4 hours","24 hours"], _c: "MQ==", module: 3 },
+  { q: "How long must a trader wait after closing a losing position before reopening the same symbol on a different account?", opts: ["30 minutes","60 minutes","4 hours","24 hours"], _c: "MQ==", module: 3 },
   { q: "The Scale-Up plan eventually allows accounts to grow to?", opts: ["$500,000","$750,000","$1,000,000","$2,000,000"], _c: "Mg==", module: 3 },
-  { q: "The Max Loss Limit includes which of the following?", opts: ["Closed trades only","Open floating positions","Commission fees only","Withdrawals"], _c: "MQ==", module: 3 },
+  { q: "The Max Loss Limit includes which of the following?", opts: ["Closed trades only","Open floating positions including fees and closed trades","Commission fees only","Withdrawals"], _c: "MQ==", module: 3 },
 
   // MODULE 4 — Financial Products
   { q: "What leverage is available for the Challenge account?", opts: ["1:33","1:50","1:10","1:100"], _c: "Mg==", module: 4 },
   { q: "What is the commission for trading Forex?", opts: ["$4/lot","$5/lot","0.035%","$1/lot"], _c: "MQ==", module: 4 },
-  { q: "What is the commission for trading XAUUSD (Gold)?", opts: ["$5/lot","$4/lot","0.035%","$1/lot"], _c: "MQ==", module: 4 },
-  { q: "What commission applies to trading Indices (US30, NAS100)?", opts: ["$5/lot","$4/lot","0.035%","$1/lot"], _c: "Mw==", module: 4 },
+  { q: "What is the commission for trading XAUUSD (Gold)?", opts: ["$5/lot","$6/lot","0.035%","$1/lot"], _c: "MQ==", module: 4 },
+  { q: "What commission applies to trading Indices (US30, NAS100)?", opts: ["$5/lot","$6/lot","0.035%","$0.5/lot"], _c: "Mw==", explain: "Indices (US30, NAS100, SPX500) are charged $0.5 per lot — the lowest fixed commission among all instrument types. Forex is $5/lot, Gold is $6/lot, and Crypto uses 0.035% per trade.", module: 4 },
   { q: "Which platform supports Expert Advisors (EAs) for automated trading?", opts: ["MatchTrader","MetaTrader 5","TradingView","cTrader"], _c: "MQ==", module: 4 },
   { q: "Which platform supports algorithmic trading via cBots?", opts: ["MetaTrader 5","MatchTrader","cTrader","All platforms"], _c: "Mg==", module: 4 },
   { q: "Which cryptocurrencies are tradeable on WeMasterTrade?", opts: ["Only BTC","Only ETH","BTC and ETH","BTC, ETH, and XRP"], _c: "Mg==", module: 4 },
   { q: "What is the crypto trading commission?", opts: ["$5 per trade","$4 per lot","0.035% per trade","$1 per lot"], _c: "Mg==", module: 4 },
 
   // MODULE 5 — Payments
-  { q: "Which crypto stablecoin is accepted for international deposits?", opts: ["BTC","ETH","USDT","BNB"], _c: "Mg==", module: 5 },
+  { q: "Which crypto stablecoin is accepted for international deposits?", opts: ["BTC","ETH","USDT","All of the above"], _c: "Mw==", module: 5 },
   { q: "Which platform does WeMasterTrade use for global profit payouts to traders?", opts: ["PayPal","Wise","Riseworks","Western Union"], _c: "Mg==", module: 5 },
   { q: "Which of the following is a local wallet accepted for package purchases?", opts: ["Venmo","GCash","Revolut","Skrill"], _c: "MQ==", module: 5 },
   { q: "What is the average profit payout processing time at WeMasterTrade?", opts: ["48 business hours","7 business days","24 business hours","3 business days"], _c: "Mg==", module: 5 },
-  { q: "BTC and USDT withdrawals at WeMasterTrade are processed at what cost?", opts: ["$5 flat fee","0.5% fee","Free of charge","$10 flat fee"], _c: "Mg==", module: 5 },
+  { q: "BTC and USDT withdrawals at WeMasterTrade are processed at what cost?", opts: ["$5 flat fee","0.5% fee","Free of charge","Applicable fees apply"], _c: "Mw==", module: 5 },
   { q: "Which payment method for purchasing packages is available via paypal.me/wecopytrade?", opts: ["Cryptocurrency","Local bank transfer","PayPal","Local wallet"], _c: "Mg==", module: 5 },
 
   // MODULE 6 — Profit & Payouts
   { q: "What is the payout percentage for the 1st withdrawal?", opts: ["90%","75%","50%","60%"], _c: "Mg==", module: 6 },
   { q: "What profit share on the 2nd payout (Challenge/51010)?", opts: ["50%","75%","90%","60%"], _c: "MQ==", module: 6 },
   { q: "From which payout number do traders receive 90% (51010)?", opts: ["1st","2nd","3rd","5th"], _c: "Mg==", module: 6 },
-  { q: "When was the 24-hour payout SLA made effective?", opts: ["January 1, 2026","March 12, 2026","April 10, 2026","February 28, 2026"], _c: "MQ==", module: 6 },
+  { q: "Which certificate will traders be granted after a successful payout?", opts: ["Profit Split Certificate","Challenge Certificate","Introducing Partner Certificate","Academy Certificate"], _c: "MA==", explain: "The Profit Split Certificate is issued to funded traders who receive payouts — it serves as official proof of profit withdrawal. The Challenge Certificate is for passing the evaluation, the Introducing Partner Certificate is for active sales partners, and the Academy Certificate is for education program completions.", module: 6 },
   { q: "In 510Zero, what happens to the profit share if profit is less than 6%?", opts: ["Stays the same","Reduced to fixed 10%","Reduced to 20%","Account suspended"], _c: "MQ==", module: 6 },
   { q: "In 510Zero, under 8% profit, which customers also have their profit share reduced to 10%?", opts: ["Vietnam and Philippines","Indonesia and Thailand","USA and UK","All customers"], _c: "MQ==", module: 6 },
-  { q: "When is a refund allowed?", opts: ["Any time","Within 30 days","Only if no trades placed","Never"], _c: "Mg==", module: 6 },
+  { q: "When is a refund of an Instant Funding account allowed under WeMasterTrade's policy?", opts: ["Any time","Within 30 days","Only if no trades placed","Never"], _c: "Mg==", module: 6 },
   { q: "Which certificate is awarded to Active introducing partners?", opts: ["Profit Split Certificate","Challenge Certificate","Introducing Partner Certificate","Academy Certificate"], _c: "Mg==", module: 6 },
 
   // MODULE 7 — Compliance
@@ -285,9 +283,7 @@ const QUESTION_BANK = [
   { q: "For Indonesia and Thailand, first rule violation results in?", opts: ["Warning","2-week suspension","Immediate termination","50% profit reduction"], _c: "Mg==", module: 7 },
   { q: "Which of these is a prohibited trading practice?", opts: ["Using stop losses","Hedging across accounts for guaranteed profit","Trading Gold","Using MT5 EAs"], _c: "MQ==", module: 7 },
   { q: "When must KYC be completed?", opts: ["Before first trade","Within 7 days of signup","Before first payout request","KYC is optional"], _c: "Mg==", module: 7 },
-  { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], _c: "Mg==", module: 7 },
-  { q: "How long after failing attempt 1 can a trainee retry the final exam?", opts: ["1 day","3 days","5 days","7 days"], _c: "MQ==", module: 7 },
-  { q: "What happens if a trainee fails the final exam a second time?", opts: ["They can retry in 30 days","They are permanently disqualified","They need to redo all modules","They get a third attempt"], _c: "MQ==", module: 7 }
+  { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], _c: "Mg==", module: 7 }
 ];
 
 // ===== EXAM STATE =====
