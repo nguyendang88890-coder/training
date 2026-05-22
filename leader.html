@@ -200,7 +200,7 @@ let _currentUser = '';
   if (!user) { window.location.href = 'index.html'; return; }
 
   document.querySelector('.page-content').innerHTML =
-    '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">⏳ Đang tải dữ liệu…</div>';
+    '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">⏳ Loading data…</div>';
 
   if (typeof syncFromFirebase === 'function') await syncFromFirebase();
 
@@ -277,6 +277,11 @@ let _currentUser = '';
 })();
 
 // ===== HELPERS =====
+// Normalize a leaderName for comparison: lowercase + trim.
+// Usernames are always lowercase (forced on registration), but leaderName
+// typed by admin may have mixed case or extra spaces — normalize both sides.
+const normL = s => (s || '').toLowerCase().trim();
+
 function getUserProgress(uname) {
   return JSON.parse(localStorage.getItem('wmt_progress_' + uname) || '{}');
 }
@@ -292,11 +297,12 @@ function renderLeaderPage() {
     // ── Admin: show team selector ──────────────────────────────────────────
     document.getElementById('adminTeamSelector').style.display = 'block';
 
-    // Collect all leader names from users
+    // Collect leaders only from actual member assignments (u.leaderName).
+    // Do NOT add from isLeader flag alone — a leader with no assigned members
+    // should not create an empty team in the dropdown.
     const leaderSet = new Set();
-    Object.entries(users).forEach(([uname, u]) => {
-      if (u.isLeader) leaderSet.add(uname);           // users flagged as leader
-      if (u.leaderName) leaderSet.add(u.leaderName);  // names referenced by members
+    Object.entries(users).forEach(([, u]) => {
+      if (u.leaderName) leaderSet.add(normL(u.leaderName));
     });
     const leaders = [...leaderSet].sort();
 
@@ -347,7 +353,7 @@ function onAdminLeaderChange() {
     document.getElementById('leaderPageTitle').textContent = `${label}'s Team`;
     document.getElementById('leaderPageSub').textContent   = 'Team member training progress';
     const members = Object.entries(users).filter(([uname, u]) =>
-      u.leaderName === chosen && uname !== chosen && u.role !== 'admin'
+      normL(u.leaderName) === normL(chosen) && uname !== chosen && u.role !== 'admin'
     );
     document.getElementById('adminTeamMeta').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
     allTeamsView.style.display = 'none';
@@ -363,11 +369,10 @@ function onAdminLeaderChange() {
 function renderAllTeamsOverview() {
   const users = getUsersDB();
 
-  // Collect leaders
+  // Collect leaders from actual member assignments only (same logic as dropdown).
   const leaderSet = new Set();
-  Object.entries(users).forEach(([uname, u]) => {
-    if (u.isLeader) leaderSet.add(uname);
-    if (u.leaderName) leaderSet.add(u.leaderName);
+  Object.entries(users).forEach(([, u]) => {
+    if (u.leaderName) leaderSet.add(normL(u.leaderName));
   });
 
   // Global stats
@@ -376,7 +381,7 @@ function renderAllTeamsOverview() {
   const teamCards = [...leaderSet].sort().map(leaderName => {
     const ludata  = users[leaderName] || {};
     const members = Object.entries(users).filter(([uname, u]) =>
-      u.leaderName === leaderName && uname !== leaderName && u.role !== 'admin'
+      normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
     );
     let tDone = 0, tPassed = 0, tStarted = 0;
     members.forEach(([uname]) => {
@@ -448,7 +453,7 @@ function renderAllTeamsOverview() {
 function renderTeamStats(leaderName) {
   const users   = getUsersDB();
   const members = Object.entries(users).filter(([uname, u]) =>
-    u.leaderName === leaderName && uname !== leaderName && u.role !== 'admin'
+    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
   );
 
   let totalDone = 0, totalPassed = 0, totalStarted = 0;
@@ -506,7 +511,7 @@ function renderTeamTable() {
     : _currentUser;
 
   let members = Object.entries(users).filter(([uname, u]) =>
-    u.leaderName === leaderName && uname !== leaderName && u.role !== 'admin'
+    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
   );
 
   // Apply filters

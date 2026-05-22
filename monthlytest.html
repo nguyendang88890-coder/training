@@ -254,7 +254,18 @@ const ALL_USERS= getUsersDB();
 const IS_ADMIN = ALL_USERS[CUR_USER] && ALL_USERS[CUR_USER].role === 'admin';
 const IS_MOD   = ALL_USERS[CUR_USER] && ALL_USERS[CUR_USER].role === 'mod';
 
-function isBDCS(dept) {
+// isBDCS accepts a user object OR a department string.
+// User object: checks testGroup override first, then falls back to department.
+// String: checks department name directly (no override possible).
+function isBDCS(userOrDept) {
+  if (userOrDept && typeof userOrDept === 'object') {
+    if (userOrDept.testGroup === 'bdcs')   return true;
+    if (userOrDept.testGroup === 'others') return false;
+    return _checkDeptBDCS(userOrDept.department);
+  }
+  return _checkDeptBDCS(userOrDept);
+}
+function _checkDeptBDCS(dept) {
   if (!dept) return false;
   const d = dept.toLowerCase().trim();
   return d==='bd' || d.includes('business dev') ||
@@ -323,7 +334,7 @@ function generateTest(month) {
     const pickedMCQ   = mcqPool.slice(0, TEST_QUOTA.bdcs.mcq);
     const pickedEssay = essayPool.slice(0, TEST_QUOTA.bdcs.essay);
     if (!pickedMCQ.length && !pickedEssay.length) {
-      results.bdcs = { error: 'Không có câu hỏi nào trong bank BD/CS.' };
+      results.bdcs = { error: 'No questions found in the BD/CS bank.' };
     } else {
       const questions = shuffle([...pickedMCQ, ...pickedEssay]);
       const totalPts  = questions.reduce((s,q)=>s+q.points, 0);
@@ -342,7 +353,7 @@ function generateTest(month) {
     const mcqPool = shuffle(qbOthers.questions.filter(q=>q.type==='MCQ'));
     const picked  = mcqPool.slice(0, TEST_QUOTA.others.mcq);
     if (!picked.length) {
-      results.others = { error: 'Không có câu hỏi nào trong bank Others.' };
+      results.others = { error: 'No questions found in the Others bank.' };
     } else {
       const questions = shuffle(picked);
       const totalPts  = questions.reduce((s,q)=>s+q.points, 0);
@@ -359,15 +370,15 @@ function generateTest(month) {
 }
 
 function regenTest(m) {
-  if (!confirm(`Tạo lại đề thi cho ${fmtMonth(m)}?\n\nLưu ý: Nếu đã có trainee đang làm bài, họ sẽ gặp lỗi. Nên regenerate trước khi kỳ thi bắt đầu.`)) return;
+  if (!confirm(`Regenerate test for ${fmtMonth(m)}?\n\nNote: If trainees are currently taking the test, they may encounter errors. Regenerate before the test period begins.`)) return;
   const r = generateTest(m);
   const msgs = [];
   if (r.bdcs?.error)   msgs.push('BD/CS: ' + r.bdcs.error);
   if (r.others?.error) msgs.push('Others: ' + r.others.error);
-  if (r.bdcs && !r.bdcs.error)   msgs.push(`✅ BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} tự luận`);
+  if (r.bdcs && !r.bdcs.error)   msgs.push(`✅ BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} Essay`);
   if (r.others && !r.others.error) msgs.push(`✅ Others: ${r.others.mcq} MCQ`);
-  if (!r.bdcs && !r.others) msgs.push('⚠️ Chưa có bộ đề nào được upload.');
-  alert('Kết quả tạo đề:\n\n' + msgs.join('\n'));
+  if (!r.bdcs && !r.others) msgs.push('⚠️ No question bank uploaded yet.');
+  alert('Test generation result:\n\n' + msgs.join('\n'));
   renderSetupTab();
 }
 function getSubmission(un, month) { return JSON.parse(localStorage.getItem('wmt_sub_'+un+'_'+month)||'null'); }
@@ -378,8 +389,8 @@ function renderQBankTab() {
   el.innerHTML = `
     <div style="margin-bottom:20px;">
       <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">
-        Upload file Excel/CSV với các cột: <strong>Question, Type (MCQ/Essay), A, B, C, D, Answer, Points, Liet, Rubric</strong>.<br>
-        Khi file được cập nhật và upload lại, bộ đề sẽ tự động thay đổi cho lần thi tiếp theo.
+        Upload an Excel/CSV file with columns: <strong>Question, Type (MCQ/Essay), A, B, C, D, Answer, Points, Liet, Rubric</strong>.<br>
+        When a new file is uploaded, the question bank updates automatically for the next test session.
       </p>
     </div>
     ${renderQBankSection('bdcs','🏢','BD & CS','qbank-card-bdcs', true)}
@@ -393,27 +404,27 @@ function renderQBankSection(group, icon, label, cls, allowEssay) {
     const essay = qb.questions.filter(q=>q.type==='Essay').length;
     const liet  = qb.questions.filter(q=>q.isLiet).length;
     return `<div class="qbank-stats">
-      <div class="qbank-stat">Tổng câu: <strong>${qb.questions.length}</strong></div>
+      <div class="qbank-stat">Total Questions: <strong>${qb.questions.length}</strong></div>
       <div class="qbank-stat">MCQ: <strong>${mcq}</strong></div>
-      ${allowEssay?`<div class="qbank-stat">Tự luận: <strong>${essay}</strong></div>`:''}
-      <div class="qbank-stat">Điểm liệt: <strong>${liet}</strong></div>
-      <div class="qbank-stat">Tổng điểm: <strong>${qb.totalPoints}</strong></div>
-      <div class="qbank-stat" style="color:var(--text-muted);">Cập nhật: ${new Date(qb.updatedAt).toLocaleString('vi-VN')}</div>
+      ${allowEssay?`<div class="qbank-stat">Essay: <strong>${essay}</strong></div>`:''}
+      <div class="qbank-stat">Liet Points: <strong>${liet}</strong></div>
+      <div class="qbank-stat">Total Points: <strong>${qb.totalPoints}</strong></div>
+      <div class="qbank-stat" style="color:var(--text-muted);">Updated: ${new Date(qb.updatedAt).toLocaleString('en-GB')}</div>
     </div>
     <div class="qbank-preview">
       ${qb.questions.map((q,i)=>`
         <div class="qbank-q-row">
           <span class="qbank-q-num">${i+1}.</span>
           <span class="qbank-q-text">${q.text.length>80?q.text.slice(0,80)+'…':q.text}</span>
-          <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Tự luận':'MCQ'}</span>
-          ${q.isLiet?'<span class="qbank-tag liet">Liệt</span>':''}
-          <span class="qbank-tag pts">${q.points}đ</span>
+          <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Essay':'MCQ'}</span>
+          ${q.isLiet?'<span class="qbank-tag liet">Liet</span>':''}
+          <span class="qbank-tag pts">${q.points}pts</span>
         </div>`).join('')}
     </div>
     <div style="margin-top:12px;display:flex;gap:10px;">
-      <button class="btn-xs del" onclick="clearQBank('${group}')">✕ Xóa bộ đề</button>
+      <button class="btn-xs del" onclick="clearQBank('${group}')">✕ Delete Bank</button>
     </div>`;
-  })() : `<div style="color:var(--text-muted);font-size:0.84rem;padding:8px 0;">Chưa có bộ đề. Upload file để bắt đầu.</div>`;
+  })() : `<div style="color:var(--text-muted);font-size:0.84rem;padding:8px 0;">No question bank. Upload a file to get started.</div>`;
 
   return `<div class="qbank-card ${cls}">
     <div class="qbank-card-hdr">
@@ -424,7 +435,7 @@ function renderQBankSection(group, icon, label, cls, allowEssay) {
         <input type="file" id="qbFile_${group}" accept=".xlsx,.xls,.csv" style="display:none"
           onchange="parseQBankFile(this.files[0],'${group}',${allowEssay})">
         <div style="font-size:1.8rem;margin-bottom:6px;">📂</div>
-        <div style="font-size:0.84rem;color:var(--text-secondary);">Click để chọn file Excel/CSV</div>
+        <div style="font-size:0.84rem;color:var(--text-secondary);">Click to select Excel/CSV file</div>
         <div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">.xlsx, .xls, .csv</div>
       </label>
       ${statsHTML}
@@ -433,21 +444,21 @@ function renderQBankSection(group, icon, label, cls, allowEssay) {
 }
 
 function clearQBank(group) {
-  if (!confirm('Xóa toàn bộ bộ đề này?')) return;
+  if (!confirm('Delete this entire question bank?')) return;
   dbRemove('wmt_qbank_'+group);
   renderQBankTab();
 }
 
 function parseQBankFile(file, group, allowEssay) {
   if (!file) return;
-  if (typeof XLSX === 'undefined') { alert('SheetJS chưa load, thử lại sau.'); return; }
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded, please try again.'); return; }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const wb  = XLSX.read(e.target.result, {type:'binary'});
       const ws  = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      if (raw.length < 2) { alert('File không có dữ liệu.'); return; }
+      if (raw.length < 2) { alert('File contains no data.'); return; }
       const hdr = raw[0].map(h=>String(h).toLowerCase().replace(/[_\s]/g,''));
       const col = (...names) => { for (const n of names) { const i=hdr.indexOf(n); if(i>=0) return i; } return -1; };
       const qCol  = col('question','câuhỏi','cauhoi','q','nộidung');
@@ -460,7 +471,7 @@ function parseQBankFile(file, group, allowEssay) {
       const ptsCol = col('points','điểm','diem','pts','score','đ');
       const lietCol = col('liet','liệt','isliet','điểmliệt','kl');
       const rubricCol = col('rubric','tiêuchí','tieuchi','criteria','hướngdẫn');
-      if (qCol < 0) { alert('Không tìm thấy cột câu hỏi. Kiểm tra lại tên cột.'); return; }
+      if (qCol < 0) { alert('Question column not found. Please check the column names.'); return; }
       const questions = [];
       for (let i=1; i<raw.length; i++) {
         const row = raw[i];
@@ -481,7 +492,7 @@ function parseQBankFile(file, group, allowEssay) {
           rubric: String(row[rubricCol]||'')
         });
       }
-      if (!questions.length) { alert('Không parse được câu hỏi nào.'); return; }
+      if (!questions.length) { alert('No questions could be parsed.'); return; }
       const totalPoints = questions.reduce((s,q)=>s+q.points,0);
       saveQBank(group, { updatedAt:new Date().toISOString(), totalPoints, questions });
 
@@ -494,11 +505,11 @@ function parseQBankFile(file, group, allowEssay) {
             (group==='others' && r.others && !r.others.error)) regenCount++;
       });
       const regenMsg = regenCount > 0
-        ? `\n✅ Đã tạo lại đề cho ${regenCount} tháng: ${months.join(', ')}`
-        : '\n⚠️ Chưa có tháng thi nào được cấu hình.';
-      alert(`Upload thành công: ${questions.length} câu hỏi, ${totalPoints} điểm.${regenMsg}`);
+        ? `\n✅ Test regenerated for ${regenCount} month(s): ${months.join(', ')}`
+        : '\n⚠️ No test months configured yet.';
+      alert(`Upload successful: ${questions.length} questions, ${totalPoints} points.${regenMsg}`);
       renderQBankTab();
-    } catch(err) { alert('Lỗi đọc file: '+err.message); }
+    } catch(err) { alert('File read error: '+err.message); }
   };
   reader.readAsBinaryString(file);
 }
@@ -520,17 +531,17 @@ function renderModQBankTab() {
     const qb = getQBank(group);
     if (!qb) return `<div class="qbank-card" style="margin-bottom:20px;">
       <div class="qbank-card-hdr"><h4>${icon} ${label}</h4></div>
-      <div class="qbank-card-body" style="color:var(--text-muted);font-size:0.84rem;">Chưa có bộ đề. Admin cần upload file trước.</div>
+      <div class="qbank-card-body" style="color:var(--text-muted);font-size:0.84rem;">No question bank available. Admin must upload a file first.</div>
     </div>`;
 
     const rows = qb.questions.map((q,i) => `
       <div class="qbank-q-row" style="align-items:center;">
         <span class="qbank-q-num">${i+1}.</span>
         <span class="qbank-q-text">${q.text.length>90?q.text.slice(0,90)+'…':q.text}</span>
-        <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Tự luận':'MCQ'}</span>
-        ${q.isLiet?'<span class="qbank-tag liet">Liệt</span>':''}
-        <span class="qbank-tag pts">${q.points}đ</span>
-        <button class="btn-xs edi" style="margin-left:6px;flex-shrink:0;" onclick="openProposeMonthlyEditQ('${group}',${i})">💡 Đề xuất</button>
+        <span class="qbank-tag ${q.type==='Essay'?'essay':'mcq'}">${q.type==='Essay'?'Essay':'MCQ'}</span>
+        ${q.isLiet?'<span class="qbank-tag liet">Liet</span>':''}
+        <span class="qbank-tag pts">${q.points}pts</span>
+        <button class="btn-xs edi" style="margin-left:6px;flex-shrink:0;" onclick="openProposeMonthlyEditQ('${group}',${i})">💡 Propose Edit</button>
       </div>`).join('');
 
     const mcq   = qb.questions.filter(q=>q.type==='MCQ').length;
@@ -540,16 +551,16 @@ function renderModQBankTab() {
     return `<div class="qbank-card" style="margin-bottom:20px;">
       <div class="qbank-card-hdr" style="flex-wrap:wrap;gap:10px;">
         <h4>${icon} ${label}</h4>
-        <button class="btn-xs edi" onclick="openProposeMonthlyAddQ('${group}')">💡 Đề xuất thêm câu</button>
+        <button class="btn-xs edi" onclick="openProposeMonthlyAddQ('${group}')">💡 Propose New Question</button>
       </div>
       <div class="qbank-card-body">
         <div class="qbank-stats">
-          <div class="qbank-stat">Tổng: <strong>${qb.questions.length}</strong></div>
+          <div class="qbank-stat">Total: <strong>${qb.questions.length}</strong></div>
           <div class="qbank-stat">MCQ: <strong>${mcq}</strong></div>
-          ${essay?`<div class="qbank-stat">Tự luận: <strong>${essay}</strong></div>`:''}
-          <div class="qbank-stat">Liệt: <strong>${liet}</strong></div>
-          <div class="qbank-stat">Tổng điểm: <strong>${qb.totalPoints}</strong></div>
-          <div class="qbank-stat" style="color:var(--text-muted);">Cập nhật: ${new Date(qb.updatedAt).toLocaleString('vi-VN')}</div>
+          ${essay?`<div class="qbank-stat">Essay: <strong>${essay}</strong></div>`:''}
+          <div class="qbank-stat">Liet: <strong>${liet}</strong></div>
+          <div class="qbank-stat">Total Points: <strong>${qb.totalPoints}</strong></div>
+          <div class="qbank-stat" style="color:var(--text-muted);">Updated: ${new Date(qb.updatedAt).toLocaleString('en-GB')}</div>
         </div>
         <div class="qbank-preview">${rows}</div>
       </div>
@@ -557,7 +568,7 @@ function renderModQBankTab() {
   }
 
   el.innerHTML = `
-    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Chế độ xem — bạn có thể đề xuất chỉnh sửa để Admin xem xét và phê duyệt.</p>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">View mode — you can propose edits for Admin review and approval.</p>
     ${sectionHTML('bdcs','🏢','BD & CS')}
     ${sectionHTML('others','🏛️','Other Departments')}`;
 }
@@ -567,13 +578,13 @@ function renderModScheduleTab() {
   const mc = getMC();
   const months = Object.keys(mc).sort();
   if (!months.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div>Chưa có lịch thi nào được cấu hình.</div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div>No test schedule configured yet.</div></div>`;
     return;
   }
   const rows = months.map(m => {
     const cfg = mc[m];
     const status = getStatus(cfg);
-    const statusLabel = {active:'🟢 Đang diễn ra',upcoming:'🔵 Sắp tới',expired:'⚫ Đã kết thúc',none:'—'}[status]||'—';
+    const statusLabel = {active:'🟢 Active',upcoming:'🔵 Upcoming',expired:'⚫ Ended',none:'—'}[status]||'—';
     return `<div class="test-cfg-row">
       <div>
         <div class="test-cfg-month">${fmtMonth(m)}</div>
@@ -582,11 +593,11 @@ function renderModScheduleTab() {
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span style="font-size:0.82rem;">${statusLabel}</span>
-        <button class="btn-xs edi" onclick="openProposeSchedule('${m}')">💡 Đề xuất chỉnh sửa</button>
+        <button class="btn-xs edi" onclick="openProposeSchedule('${m}')">💡 Propose Edit</button>
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Lịch thi hiện tại (chỉ xem). Đề xuất chỉnh sửa để Admin xem xét.</p>${rows}`;
+  el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Current test schedule (read-only). Propose edits for Admin review.</p>${rows}`;
 }
 
 // Proposal helpers
@@ -600,29 +611,29 @@ function _monthlyPropModal(title, group, q, idx, isNew) {
   modal.id = 'mPropModal'; modal.className = 'modal-overlay show';
   modal.innerHTML = `<div class="modal-box" style="max-width:540px;max-height:90vh;overflow-y:auto;">
     <h3 style="margin-bottom:6px;">${title}</h3>
-    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Đề xuất sẽ được Admin xem xét. Bộ đề gốc giữ nguyên cho đến khi được phê duyệt.</div>
-    <div class="form-group"><label>Nội dung câu hỏi</label>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Proposal will be reviewed by Admin. The original bank remains unchanged until approved.</div>
+    <div class="form-group"><label>Question Content</label>
       <textarea id="mpQ" rows="3" style="${s}resize:vertical;">${q?q.text:''}</textarea></div>
-    <div class="form-group"><label>Loại</label>
+    <div class="form-group"><label>Type</label>
       <select id="mpType" style="${s}">
-        <option value="MCQ" ${!q||q.type==='MCQ'?'selected':''}>MCQ (Trắc nghiệm)</option>
-        <option value="Essay" ${q&&q.type==='Essay'?'selected':''}>Tự luận</option>
+        <option value="MCQ" ${!q||q.type==='MCQ'?'selected':''}>MCQ (Multiple Choice)</option>
+        <option value="Essay" ${q&&q.type==='Essay'?'selected':''}>Essay</option>
       </select></div>
-    <div class="form-group"><label>Đáp án A</label><input id="mpA" style="${s}" value="${q&&q.opts?q.opts.A:''}"></div>
-    <div class="form-group"><label>Đáp án B</label><input id="mpB" style="${s}" value="${q&&q.opts?q.opts.B:''}"></div>
-    <div class="form-group"><label>Đáp án C</label><input id="mpC" style="${s}" value="${q&&q.opts?q.opts.C:''}"></div>
-    <div class="form-group"><label>Đáp án D</label><input id="mpD" style="${s}" value="${q&&q.opts?q.opts.D:''}"></div>
-    <div class="form-group"><label>Đáp án đúng</label>
+    <div class="form-group"><label>Option A</label><input id="mpA" style="${s}" value="${q&&q.opts?q.opts.A:''}"></div>
+    <div class="form-group"><label>Option B</label><input id="mpB" style="${s}" value="${q&&q.opts?q.opts.B:''}"></div>
+    <div class="form-group"><label>Option C</label><input id="mpC" style="${s}" value="${q&&q.opts?q.opts.C:''}"></div>
+    <div class="form-group"><label>Option D</label><input id="mpD" style="${s}" value="${q&&q.opts?q.opts.D:''}"></div>
+    <div class="form-group"><label>Correct Answer</label>
       <select id="mpCorrect" style="${s}">
         ${['A','B','C','D'].map(l=>`<option value="${l}" ${q&&q.correct===l?'selected':''}>${l}</option>`).join('')}
       </select></div>
-    <div class="form-group"><label>Điểm</label>
+    <div class="form-group"><label>Points</label>
       <input type="number" id="mpPts" style="${s}" value="${q?q.points:0}" min="0" step="0.5"></div>
-    <div class="form-group"><label>Lý do / Ghi chú cho Admin</label>
-      <textarea id="mpNote" rows="2" placeholder="Giải thích lý do đề xuất…" style="${s}resize:vertical;"></textarea></div>
+    <div class="form-group"><label>Reason / Notes for Admin</label>
+      <textarea id="mpNote" rows="2" placeholder="Explain the reason for your proposal…" style="${s}resize:vertical;"></textarea></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('mPropModal').remove()">Hủy</button>
-      <button class="btn btn-primary" onclick="submitMonthlyProposal('${group}',${isNew?'null':idx},${isNew})">📩 Gửi đề xuất</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('mPropModal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitMonthlyProposal('${group}',${isNew?'null':idx},${isNew})">📩 Submit Proposal</button>
     </div>
   </div>`;
   modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
@@ -631,14 +642,14 @@ function _monthlyPropModal(title, group, q, idx, isNew) {
 
 function openProposeMonthlyEditQ(group, idx) {
   const qb = getQBank(group); if (!qb) return;
-  _monthlyPropModal(`💡 Đề xuất chỉnh sửa câu #${idx+1} (${group.toUpperCase()})`, group, qb.questions[idx], idx, false);
+  _monthlyPropModal(`💡 Propose Question Edit #${idx+1} (${group.toUpperCase()})`, group, qb.questions[idx], idx, false);
 }
 function openProposeMonthlyAddQ(group) {
-  _monthlyPropModal(`💡 Đề xuất thêm câu (${group.toUpperCase()})`, group, null, null, true);
+  _monthlyPropModal(`💡 Propose New Question (${group.toUpperCase()})`, group, null, null, true);
 }
 
 function openProposeSchedule(month) {
-  const note = prompt(`Đề xuất chỉnh sửa lịch thi ${fmtMonth(month)}:\n\nMô tả thay đổi bạn muốn đề xuất:`);
+  const note = prompt(`Propose Schedule Edit for ${fmtMonth(month)}:\n\nDescribe the change you want to propose:`);
   if (!note) return;
   const mc = getMC();
   addProposal({
@@ -654,12 +665,12 @@ function openProposeSchedule(month) {
     original: { month, config: mc[month] },
     proposed: { month, description: note }
   });
-  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+  alert('✅ Proposal submitted. Admin will review and respond shortly.');
 }
 
 function submitMonthlyProposal(group, idx, isNew) {
   const text = document.getElementById('mpQ').value.trim();
-  if (!text) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
+  if (!text) { alert('Please enter the question content.'); return; }
   const proposed = {
     text,
     type:    document.getElementById('mpType').value,
@@ -686,7 +697,7 @@ function submitMonthlyProposal(group, idx, isNew) {
     proposed
   });
   document.getElementById('mPropModal').remove();
-  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+  alert('✅ Proposal submitted. Admin will review and respond shortly.');
 }
 
 // ===== INIT =====
@@ -739,7 +750,7 @@ function renderSetupTab() {
         <div class="form-group"><label>Test Link (URL)</label><input type="url" id="cfgLinkBDCS" placeholder="https://forms.google.com/... (BD &amp; CS)"></div>
         <div class="form-row" style="margin-bottom:0">
           <div class="form-group" style="margin-bottom:0"><label>Pass Score <span style="font-weight:400;color:#5a5a7a">(out of 300)</span></label><input type="number" id="cfgPassBDCS" value="250" min="0" max="300"></div>
-          <div class="form-group" style="margin-bottom:0"><label>Max "Điểm Liệt" sai cho phép</label><input type="number" id="cfgLietMax" value="10" min="0" max="99"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Max "Liet Score" allowed wrong</label><input type="number" id="cfgLietMax" value="10" min="0" max="99"></div>
         </div>
       </div>
       <div style="background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.14);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
@@ -753,7 +764,7 @@ function renderSetupTab() {
       </div>
       <div style="background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
         <div style="font-size:0.78rem;font-weight:700;color:var(--danger);margin-bottom:10px;">🎥 OBS Recording — Drive Submission Link</div>
-        <div class="form-group" style="margin-bottom:0"><label>Google Drive Link <span style="font-weight:400;color:var(--text-muted)">(folder để nhận file recording của trainee)</span></label>
+        <div class="form-group" style="margin-bottom:0"><label>Google Drive Link <span style="font-weight:400;color:var(--text-muted)">(folder to receive trainee recording files)</span></label>
           <input type="url" id="cfgDriveLink" placeholder="https://drive.google.com/drive/folders/..."></div>
       </div>
       <div class="error-msg" id="cfgErr"></div>
@@ -768,27 +779,27 @@ function renderSetupTab() {
           const stLbl={upcoming:'Upcoming',active:'🟢 Active',expired:'Expired',none:'Draft'}[st];
           const gbBDCS   = getGenTest('bdcs', m);
           const gbOthers = getGenTest('others', m);
-          const genBDCS   = gbBDCS   ? `<span style="color:var(--success)">✅ ${gbBDCS.mcqCount} MCQ + ${gbBDCS.essayCount} tự luận</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbBDCS.generatedAt).toLocaleString('vi-VN')})</span>`
-                                     : `<span style="color:var(--warning)">⚠ Chưa có đề</span>`;
-          const genOthers = gbOthers ? `<span style="color:var(--success)">✅ ${gbOthers.mcqCount} MCQ</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbOthers.generatedAt).toLocaleString('vi-VN')})</span>`
-                                     : `<span style="color:var(--warning)">⚠ Chưa có đề</span>`;
+          const genBDCS   = gbBDCS   ? `<span style="color:var(--success)">✅ ${gbBDCS.mcqCount} MCQ + ${gbBDCS.essayCount} Essay</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbBDCS.generatedAt).toLocaleString('en-GB')})</span>`
+                                     : `<span style="color:var(--warning)">⚠ No test generated</span>`;
+          const genOthers = gbOthers ? `<span style="color:var(--success)">✅ ${gbOthers.mcqCount} MCQ</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbOthers.generatedAt).toLocaleString('en-GB')})</span>`
+                                     : `<span style="color:var(--warning)">⚠ No test generated</span>`;
           return `<div class="test-cfg-row">
             <div style="flex:1;min-width:0">
               <div class="test-cfg-month">${fmtMonth(m)}</div>
               <div class="test-cfg-info">${c.title||''}</div>
-              <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Liệt max: ${c.lietMax??10}</div>
+              <div class="test-cfg-info">🏢 BD/CS: ${fmtDT(c.startDateBDCS)} → ${fmtDT(c.deadlineBDCS)} &nbsp;·&nbsp; Pass: ${c.passBDCS??250}/300, Max Liet: ${c.lietMax??10}</div>
               <div class="test-cfg-info">🏛️ Others: ${fmtDT(c.startDateOthers)} → ${fmtDT(c.deadlineOthers)} &nbsp;·&nbsp; Pass: ${c.passOthers??70}/100</div>
               ${c.driveLink?`<div class="test-cfg-info">🎥 Drive: <a href="${c.driveLink}" target="_blank" rel="noopener" style="color:#ff7096;word-break:break-all;">${c.driveLink.length>60?c.driveLink.slice(0,60)+'…':c.driveLink}</a></div>`:''}
               <div class="test-cfg-info" style="margin-top:6px;display:flex;gap:16px;flex-wrap:wrap;">
-                <span>🏢 Đề BD/CS: ${genBDCS}</span>
-                <span>🏛️ Đề Others: ${genOthers}</span>
+                <span>🏢 BD/CS Bank: ${genBDCS}</span>
+                <span>🏛️ Others Bank: ${genOthers}</span>
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0">
               <span style="color:${stColor};font-size:0.78rem;font-weight:700;">${stLbl}</span>
-              <button class="btn-xs edi" onclick="regenTest('${m}')">🔄 Tạo đề</button>
-              ${gbBDCS   ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','bdcs')">👁 Đề BD/CS</button>` : ''}
-              ${gbOthers ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','others')">👁 Đề Others</button>` : ''}
+              <button class="btn-xs edi" onclick="regenTest('${m}')">🔄 Generate Test</button>
+              ${gbBDCS   ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','bdcs')">👁 BD/CS Bank</button>` : ''}
+              ${gbOthers ? `<button class="btn-xs ok" onclick="openTestPreviewModal('${m}','others')">👁 Others Bank</button>` : ''}
               <button class="btn-xs edi" onclick="loadCfg('${m}')">✎ Edit</button>
               <button class="btn-xs del" onclick="deleteCfg('${m}')">✕</button>
             </div>
@@ -845,18 +856,18 @@ function saveTestConfig() {
   if (isNew) {
     const r = generateTest(month);
     const genMsgs = [];
-    if (r.bdcs && !r.bdcs.error)   genMsgs.push(`🏢 BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} tự luận`);
+    if (r.bdcs && !r.bdcs.error)   genMsgs.push(`🏢 BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} Essay`);
     if (r.others && !r.others.error) genMsgs.push(`🏛️ Others: ${r.others.mcq} MCQ`);
     if (genMsgs.length) {
       document.getElementById('cfgErr').style.color = 'var(--success)';
-      document.getElementById('cfgErr').textContent = '✅ Đã lưu & tạo đề tự động: ' + genMsgs.join(' · ');
+      document.getElementById('cfgErr').textContent = '✅ Saved & test generated automatically: ' + genMsgs.join(' · ');
     } else {
       document.getElementById('cfgErr').style.color = 'var(--warning)';
-      document.getElementById('cfgErr').textContent = '✅ Đã lưu. Chưa có bộ đề — upload file ở tab Question Bank để tạo đề.';
+      document.getElementById('cfgErr').textContent = '✅ Saved. No question bank yet — upload a file in the Question Bank tab to generate a test.';
     }
   } else {
     document.getElementById('cfgErr').style.color = 'var(--success)';
-    document.getElementById('cfgErr').textContent = '✅ Đã cập nhật cấu hình.';
+    document.getElementById('cfgErr').textContent = '✅ Configuration updated.';
   }
   renderSetupTab();
 }
@@ -889,8 +900,8 @@ function renderScoresTables() {
   const cfg    = getMC()[month];
   const scores = getMS()[month]||{};
   const trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
-  const bdcs   = trainees.filter(([,u])=>isBDCS(u.department));
-  const others = trainees.filter(([,u])=>!isBDCS(u.department));
+  const bdcs   = trainees.filter(([,u])=>isBDCS(u));
+  const others = trainees.filter(([,u])=>!isBDCS(u));
 
   const passBDCS   = cfg.passBDCS   ?? 250;
   const lietMax    = cfg.lietMax    ?? 10;
@@ -908,8 +919,8 @@ function renderScoresTables() {
   function buildRowsBDCS(list) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
-      <th>#</th><th>Full Name</th><th>Username</th><th>Trạng thái nộp</th>
-      <th>Score (0–300)</th><th>Liệt ×</th><th>Pass / Fail</th><th></th>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Submission Status</th>
+      <th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
         const sc  = scores[un];
@@ -919,10 +930,10 @@ function renderScoresTables() {
         const liet = sc?.liet  ?? (sub?.lietWrong ?? null);
         const pf   = pfBDCS(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
         const subBadge = sub
-          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Đã nộp</span>
-             ${sub.essayPending?`<br><button class="btn-xs edi" style="margin-top:4px;font-size:0.7rem" onclick="openEssayModal('${un}','${month}')">📝 Tự luận</button>`:''}
-             ${suggestScore!==null?`<br><span style="font-size:0.7rem;color:var(--text-muted)">MCQ: ${sub.mcqScore}đ</span>`:''}`
-          : `<span style="font-size:0.72rem;color:var(--text-muted)">Chưa nộp</span>`;
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>
+             ${sub.essayPending?`<br><button class="btn-xs edi" style="margin-top:4px;font-size:0.7rem" onclick="openEssayModal('${un}','${month}')">📝 Essay</button>`:''}
+             ${suggestScore!==null?`<br><span style="font-size:0.7rem;color:var(--text-muted)">MCQ: ${sub.mcqScore}pts</span>`:''}`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
           <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
@@ -932,7 +943,7 @@ function renderScoresTables() {
             <input class="score-inp" id="sc_bdcs_${un}" type="number" min="0" max="300"
               value="${pct!==null?pct:(suggestScore!==null?suggestScore:'')}" placeholder="—"
               oninput="liveUpdatePFBDCS('${un}',${passBDCS},${lietMax})">
-            ${suggestScore!==null&&pct===null?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Gợi ý MCQ</div>`:''}
+            ${suggestScore!==null&&pct===null?`<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">MCQ Hint</div>`:''}
           </td>
           <td><input class="score-inp" id="liet_${un}" type="number" min="0" max="99" style="width:50px"
             value="${liet!==null?liet:''}" placeholder="0"
@@ -947,7 +958,7 @@ function renderScoresTables() {
   function buildRowsOthers(list) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
-      <th>#</th><th>Full Name</th><th>Username</th><th>Trạng thái nộp</th>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Submission Status</th>
       <th>Score (0–100)</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
@@ -957,8 +968,8 @@ function renderScoresTables() {
         const pf  = pfOthers(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
         const autoTag = sc?.autoGraded ? `<span style="font-size:0.68rem;color:var(--success);margin-left:4px;">(auto)</span>` : '';
         const subBadge = sub
-          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Đã nộp</span>`
-          : `<span style="font-size:0.72rem;color:var(--text-muted)">Chưa nộp</span>`;
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
           <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
@@ -986,7 +997,7 @@ function renderScoresTables() {
           <span class="score-section-icon">🏢</span>
           <div>
             <div class="score-section-title">Business Development (BD) &amp; Customer Services (CS)</div>
-            <div class="score-section-sub">${bdcs.length} trainee${bdcs.length!==1?'s':''} · ${passedBdcs} passed · Pass: ${passBDCS}/300 · Max liệt sai: ${lietMax}</div>
+            <div class="score-section-sub">${bdcs.length} trainee${bdcs.length!==1?'s':''} · ${passedBdcs} passed · Pass: ${passBDCS}/300 · Max Liet wrong: ${lietMax}</div>
           </div>
         </div>
         <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
@@ -1048,7 +1059,7 @@ function saveOneOthers(un, month, passOthers) {
 function openEssayModal(un, month) {
   const sub  = getSubmission(un, month);
   const qb   = getQBank('bdcs');
-  if (!sub || !sub.essayAnswers) { alert('Không tìm thấy bài nộp.'); return; }
+  if (!sub || !sub.essayAnswers) { alert('Submission not found.'); return; }
 
   const existing = document.getElementById('essayModal');
   if (existing) existing.remove();
@@ -1058,11 +1069,11 @@ function openEssayModal(un, month) {
     const q = qb?.questions?.find(q=>String(q.id)===String(qid));
     return `<div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);">
       <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:4px;">
-        ${q ? `Câu ${q.id} — ${q.points}đ${q.isLiet?' ⚠ Điểm liệt':''}` : `Câu ${qid}`}
+        ${q ? `Question ${q.id} — ${q.points}pts${q.isLiet?' ⚠ Liet Points':''}` : `Question ${qid}`}
       </div>
       <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||''}</div>
       ${q?.rubric?`<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>`:''}
-      <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;">${ans||'<em style="color:var(--text-muted)">Không có câu trả lời</em>'}</div>
+      <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;">${ans||'<em style="color:var(--text-muted)">No answer provided</em>'}</div>
     </div>`;
   }).join('');
 
@@ -1070,13 +1081,13 @@ function openEssayModal(un, month) {
   modal.id = 'essayModal';
   modal.className = 'modal-overlay show';
   modal.innerHTML = `<div class="modal-box" style="max-width:600px;max-height:85vh;display:flex;flex-direction:column;">
-    <h3 style="margin-bottom:4px;">📝 Câu trả lời tự luận — ${un}</h3>
+    <h3 style="margin-bottom:4px;">📝 Essay Answers — ${un}</h3>
     <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">
-      Nộp lúc: ${new Date(sub.submittedAt).toLocaleString('vi-VN')} &nbsp;·&nbsp; MCQ: ${sub.mcqScore}đ &nbsp;·&nbsp; Liệt sai: ${sub.lietWrong}
+      Submitted at: ${new Date(sub.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp; MCQ: ${sub.mcqScore}pts &nbsp;·&nbsp; Liet Wrong: ${sub.lietWrong}
     </div>
-    <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows.length ? rows : '<div style="color:var(--text-muted)">Không có câu tự luận.</div>'}</div>
+    <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows.length ? rows : '<div style="color:var(--text-muted)">No essay questions.</div>'}</div>
     <div class="modal-footer" style="margin-top:16px;">
-      <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove()">Đóng</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove()">Close</button>
     </div>
   </div>`;
   modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
@@ -1085,7 +1096,7 @@ function openEssayModal(un, month) {
 
 function openTestPreviewModal(m, group) {
   const gt = getGenTest(group, m);
-  if (!gt || !gt.questions?.length) { alert('Chưa có đề cho nhóm này.'); return; }
+  if (!gt || !gt.questions?.length) { alert('No test available for this group.'); return; }
 
   const existing = document.getElementById('testPreviewModal');
   if (existing) existing.remove();
@@ -1093,10 +1104,10 @@ function openTestPreviewModal(m, group) {
   const groupLabel = group === 'bdcs' ? '🏢 BD & CS' : '🏛️ Other Departments';
   const rows = gt.questions.map((q, idx) => {
     const typeBadge = q.type === 'Essay'
-      ? `<span class="preview-q-type-badge preview-q-type-essay">Tự luận</span>`
+      ? `<span class="preview-q-type-badge preview-q-type-essay">Essay</span>`
       : `<span class="preview-q-type-badge preview-q-type-mcq">MCQ</span>`;
-    const lietBadge = q.isLiet ? `<span class="preview-q-liet">⚠ Điểm liệt</span>` : '';
-    const ptsBadge  = `<span class="preview-q-pts">${q.points}đ</span>`;
+    const lietBadge = q.isLiet ? `<span class="preview-q-liet">⚠ Liet Points</span>` : '';
+    const ptsBadge  = `<span class="preview-q-pts">${q.points}pts</span>`;
 
     let bodyHTML = `<div class="preview-q-text">${q.text}</div>`;
 
@@ -1106,7 +1117,7 @@ function openTestPreviewModal(m, group) {
         optKeys.map(k => `<div class="preview-q-opt ${q.correct===k?'correct':''}">
           <span class="preview-q-opt-lbl">${k}.</span>
           <span>${q.opts[k]}</span>
-          ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Đáp án</span>' : ''}
+          ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Answer</span>' : ''}
         </div>`).join('') +
         `</div>`;
     } else if (q.type === 'Essay') {
@@ -1129,13 +1140,13 @@ function openTestPreviewModal(m, group) {
   modal.className = 'modal-overlay show';
   modal.innerHTML = `<div class="modal-box" style="max-width:700px;max-height:88vh;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:12px;flex-wrap:wrap;">
-      <h3 style="margin:0;">👁 Xem trước đề — ${groupLabel}</h3>
-      <button class="btn-xs del" onclick="document.getElementById('testPreviewModal').remove()">✕ Đóng</button>
+      <h3 style="margin:0;">👁 Preview Test — ${groupLabel}</h3>
+      <button class="btn-xs del" onclick="document.getElementById('testPreviewModal').remove()">✕ Close</button>
     </div>
     <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">
-      ${fmtMonth(m)} &nbsp;·&nbsp; Tạo lúc: ${new Date(gt.generatedAt).toLocaleString('vi-VN')}
-      &nbsp;·&nbsp; ${gt.mcqCount} MCQ${gt.essayCount ? ' + ' + gt.essayCount + ' tự luận' : ''}
-      &nbsp;·&nbsp; ${gt.totalPoints}đ tổng
+      ${fmtMonth(m)} &nbsp;·&nbsp; Generated at: ${new Date(gt.generatedAt).toLocaleString('en-GB')}
+      &nbsp;·&nbsp; ${gt.mcqCount} MCQ${gt.essayCount ? ' + ' + gt.essayCount + ' Essay' : ''}
+      &nbsp;·&nbsp; ${gt.totalPoints}pts total
     </div>
     <div style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:10px;" class="preview-q-wrap">
       ${rows}
@@ -1148,7 +1159,7 @@ function openTestPreviewModal(m, group) {
 function buildExportRows(list, month, isBDCSGroup) {
   const scores=getMS()[month]||{};
   const hdr = isBDCSGroup
-    ? ['Full Name','Work Name','Username','Department','Position','Score (/300)','Điểm Liệt Sai','Pass/Fail','Graded At']
+    ? ['Full Name','Work Name','Username','Department','Position','Score (/300)','Liet Wrong','Pass/Fail','Graded At']
     : ['Full Name','Work Name','Username','Department','Position','Score (/100)','Pass/Fail','Graded At'];
   const rows=list.map(([un,ud])=>{
     const sc=scores[un];
@@ -1163,7 +1174,7 @@ function buildExportRows(list, month, isBDCSGroup) {
 function exportGroup(month, group) {
   const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
   const isBDCSG = group==='bdcs';
-  const list = isBDCSG ? trainees.filter(([,u])=>isBDCS(u.department)) : trainees.filter(([,u])=>!isBDCS(u.department));
+  const list = isBDCSG ? trainees.filter(([,u])=>isBDCS(u)) : trainees.filter(([,u])=>!isBDCS(u));
   const sheetName = isBDCSG ? 'BD & CS' : 'Other Departments';
   doExport([buildExportRows(list,month,isBDCSG)],[sheetName],`Monthly_${month}_${sheetName.replace(/ /g,'_')}`);
 }
@@ -1171,8 +1182,8 @@ function exportGroup(month, group) {
 function exportAll() {
   const month=document.getElementById('scMonth')?.value; if (!month) return;
   const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
-  const bdcs=trainees.filter(([,u])=>isBDCS(u.department));
-  const others=trainees.filter(([,u])=>!isBDCS(u.department));
+  const bdcs=trainees.filter(([,u])=>isBDCS(u));
+  const others=trainees.filter(([,u])=>!isBDCS(u));
   doExport([buildExportRows(bdcs,month,true),buildExportRows(others,month,false)],['BD & CS','Other Departments'],`Monthly_Test_${month}_All`);
 }
 
@@ -1215,7 +1226,7 @@ function renderHistTable() {
   const months=Object.keys(cfgs).sort();
   const el=document.getElementById('histTableWrap');
   const udata=getUsersDB()[uname]||{};
-  const userIsBDCS=isBDCS(udata.department);
+  const userIsBDCS=isBDCS(udata);
   const maxScore=userIsBDCS?300:100;
   let fc=0;
   const rows=months.map(m=>{
@@ -1226,7 +1237,7 @@ function renderHistTable() {
   if (!rows.some(r=>r.sc)) {
     el.innerHTML=`<div style="color:var(--text-muted);padding:16px;">No test records for this trainee yet.</div>`; return;
   }
-  const lietCol=userIsBDCS?'<th>Điểm Liệt</th>':'';
+  const lietCol=userIsBDCS?'<th>Liet Score</th>':'';
   el.innerHTML=`<div class="hist-wrap"><table>
     <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScore})</th>${lietCol}<th>Result</th><th>Failed Count</th><th>Rescheduled</th></tr></thead>
     <tbody>
@@ -1319,15 +1330,15 @@ function renderTraineeView() {
 function renderNewEmployeeLocked() {
   document.getElementById('currentTestCard').innerHTML = `
     <div class="mt-hero">
-      <div class="mt-status none">🔒 Chưa được cấp quyền</div>
+      <div class="mt-status none">🔒 Access Not Granted</div>
       <div class="mt-title">Monthly Test</div>
       <p style="color:var(--text-muted);margin-top:10px;line-height:1.7;font-size:0.9rem;">
-        Monthly Test chỉ dành cho <strong style="color:var(--text-primary)">nhân sự cũ</strong> đã hoàn thành giai đoạn đào tạo.<br>
-        Vui lòng liên hệ Admin để được cấp quyền truy cập.
+        Monthly Test is only available to <strong style="color:var(--text-primary)">existing staff</strong> who have completed the training period.<br>
+        Please contact Admin to be granted access.
       </p>
       <div style="margin-top:20px;display:inline-flex;align-items:center;gap:10px;padding:12px 20px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.22);border-radius:10px;">
         <span style="font-size:1.2rem;">🔒</span>
-        <span style="font-size:0.85rem;color:var(--danger);font-weight:600;">New Employee — Liên hệ Admin để mở khóa</span>
+        <span style="font-size:0.85rem;color:var(--danger);font-weight:600;">New Employee — Contact Admin to unlock</span>
       </div>
     </div>`;
   document.getElementById('rescheduleSection').innerHTML = '';
@@ -1356,9 +1367,9 @@ function renderCurrentTestCard() {
   const myScore=getMS()[m]?.[CUR_USER];
   const myRs=getRS(CUR_USER)[m];
 
-  const myDept = ALL_USERS[CUR_USER]?.department || '';
-  const myLink = isBDCS(myDept) ? cfg.testLinkBDCS : cfg.testLinkOthers;
-  const myGroup = isBDCS(myDept) ? 'bdcs' : 'others';
+  const myUser = ALL_USERS[CUR_USER] || {};
+  const myLink = isBDCS(myUser) ? cfg.testLinkBDCS : cfg.testLinkOthers;
+  const myGroup = isBDCS(myUser) ? 'bdcs' : 'others';
   const qbank = getQBank ? getQBank(myGroup) : null;
   const existingSub = getSubmission ? getSubmission(CUR_USER, m) : null;
 
@@ -1367,10 +1378,10 @@ function renderCurrentTestCard() {
     if (existingSub && existingSub.submittedAt) {
       actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">
         <span style="font-size:1.3rem">✅</span>
-        <div><div style="font-size:0.72rem;color:var(--text-muted);">ĐÃ NỘP BÀI</div>
-        <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">Submitted ${new Date(existingSub.submittedAt).toLocaleString('vi-VN')}</div></div></div>`;
+        <div><div style="font-size:0.72rem;color:var(--text-muted);">SUBMITTED</div>
+        <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">Submitted ${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div></div></div>`;
     } else if (qbank && qbank.questions && qbank.questions.length) {
-      actionHTML = `<a class="test-link-btn" href="taketest.html?month=${m}" style="text-decoration:none;">📝 Làm bài ngay →</a>`;
+      actionHTML = `<a class="test-link-btn" href="taketest.html?month=${m}" style="text-decoration:none;">📝 Start Test →</a>`;
     } else if (myLink) {
       actionHTML = `<a class="test-link-btn" href="${myLink}" target="_blank" rel="noopener">🚀 Access Test →</a>`;
     } else {
@@ -1380,9 +1391,9 @@ function renderCurrentTestCard() {
     actionHTML=`<span class="test-link-btn locked">🔒 Test Not Started Yet</span>`;
   } else if (myScore) {
     const pf=myScore.passed?`<span class="pf-badge pass">✓ PASS</span>`:`<span class="pf-badge fail">✗ FAIL</span>`;
-    const maxSc = isBDCS(myDept) ? 300 : 100;
-    const lietInfo = (isBDCS(myDept) && myScore.liet!==undefined)
-      ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Điểm liệt sai: ${myScore.liet}</div>` : '';
+    const maxSc = isBDCS(myUser) ? 300 : 100;
+    const lietInfo = (isBDCS(myUser) && myScore.liet!==undefined)
+      ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Liet wrong: ${myScore.liet}</div>` : '';
     actionHTML=`<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;">
       <div><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${myScore.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>${lietInfo}</div>
       <div>${pf}</div></div>`;
@@ -1393,20 +1404,20 @@ function renderCurrentTestCard() {
     <div class="obs-callout">
       <div class="obs-callout-icon">🎥</div>
       <div class="obs-callout-body">
-        <div class="obs-callout-title">Yêu cầu ghi màn hình bằng OBS</div>
+        <div class="obs-callout-title">Screen recording required (OBS)</div>
         <div class="obs-callout-text">
-          Bạn <strong>bắt buộc phải record màn hình</strong> trong suốt thời gian làm bài bằng ứng dụng <strong>OBS Studio</strong>.<br>
-          Sau khi hoàn thành bài thi, upload file recording lên Google Drive theo link bên dưới.<br>
-          <strong>Lưu ý:</strong> Bài thi không có file recording sẽ bị coi là không hợp lệ.
+          You <strong>must record your screen</strong> throughout the entire test using <strong>OBS Studio</strong>.<br>
+          After completing the test, upload the recording file to Google Drive via the link below.<br>
+          <strong>Note:</strong> Tests submitted without a recording file will be considered invalid.
         </div>
-        ${driveLink?`<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Nộp Recording (Google Drive) →</a>`
-          :`<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin chưa cung cấp link nộp bài. Vui lòng liên hệ Admin.</div>`}
+        ${driveLink?`<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Submit Recording (Google Drive) →</a>`
+          :`<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin has not provided a submission link. Please contact Admin.</div>`}
       </div>
     </div>` : (driveLink && st==='expired') ? `
     <div style="margin-top:16px;padding:12px 18px;background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:1.2rem;">🎥</span>
-      <div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">Nếu chưa nộp file OBS recording, vui lòng upload ngay.</div>
-      <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Nộp Recording →</a>
+      <div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">If you have not submitted your OBS recording file, please upload it now.</div>
+      <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Submit Recording →</a>
     </div>` : '';
 
   el.innerHTML=`
@@ -1498,8 +1509,7 @@ function submitReschedule(m, minDate, maxDate) {
 function renderTraineeHistory() {
   const scores=getMS(), cfgs=getMC(), months=Object.keys(cfgs).sort();
   const el=document.getElementById('traineeHistoryWrap');
-  const myDeptH = ALL_USERS[CUR_USER]?.department || '';
-  const userIsBDCSH = isBDCS(myDeptH);
+  const userIsBDCSH = isBDCS(ALL_USERS[CUR_USER] || {});
   const maxScoreH = userIsBDCSH ? 300 : 100;
   let fc=0;
   const rows=months.map(m=>{
@@ -1511,7 +1521,7 @@ function renderTraineeHistory() {
     el.innerHTML=`<div style="color:var(--text-muted);padding:20px 0;font-size:0.9rem;">No test results yet. Results will appear here after each monthly test.</div>`;
     return;
   }
-  const lietTh = userIsBDCSH ? '<th>Điểm Liệt</th>' : '';
+  const lietTh = userIsBDCSH ? '<th>Liet Score</th>' : '';
   el.innerHTML=`<div class="hist-wrap"><table>
     <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th><th>🎥 Recording</th></tr></thead>
     <tbody>
@@ -1522,7 +1532,7 @@ function renderTraineeHistory() {
         const endD  =userIsBDCSH?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietTd=userIsBDCSH?`<td style="text-align:center;color:${sc?.liet>0?'var(--danger)':'var(--text-muted)'}">${sc?.liet??'—'}</td>`:'';
         const driveTd = cfg?.driveLink
-          ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Nộp</a></td>`
+          ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Submit</a></td>`
           : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
         return `<tr>
           <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>

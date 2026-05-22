@@ -139,7 +139,7 @@ function isBDCS(dept) {
 }
 function fmtDT(s) {
   if (!s) return '—';
-  return new Date(s).toLocaleString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  return new Date(s).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
 // ===== INIT =====
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
 
   if (!_currentMonth) {
-    renderError('Không tìm thấy bài thi đang mở. Quay lại <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
+    renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
     return;
   }
 
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', async function() {
   const now    = Date.now();
 
   if (!startD || !endD) {
-    renderError('Bài thi chưa được cấu hình cho bộ phận của bạn.');
+    renderError('No test has been configured for your department.');
     return;
   }
 
@@ -196,18 +196,18 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 
   if (now < new Date(startD).getTime()) {
-    renderError(`Bài thi chưa bắt đầu. Thời gian mở: <strong>${fmtDT(startD)}</strong>`);
+    renderError(`Test has not started yet. Opens at: <strong>${fmtDT(startD)}</strong>`);
     return;
   }
   if (now > new Date(endD).getTime()) {
-    renderError('Thời gian làm bài đã kết thúc.');
+    renderError('The test period has ended.');
     return;
   }
 
   // Load generated test for this month (falls back to qbank if not generated yet)
   _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
   if (!_qbank || !_qbank.questions || !_qbank.questions.length) {
-    renderError('Chưa có đề thi cho nhóm của bạn tháng này. Vui lòng liên hệ admin.');
+    renderError('No test available for your group this month. Please contact admin.');
     return;
   }
 
@@ -235,14 +235,14 @@ function renderTest(deadlineTs) {
     <div class="test-header" id="testHeader">
       <div class="test-header-info">
         <h2>${mc.title || 'Monthly Test'}</h2>
-        <p>${_qbank.questions.length} câu &nbsp;·&nbsp; Tổng ${_qbank.totalPoints} điểm
-          ${IS_BDCS ? '&nbsp;·&nbsp; Pass: '+(mc.passBDCS??250)+'/300, Liệt max: '+(mc.lietMax??2) : '&nbsp;·&nbsp; Pass: '+(mc.passOthers??70)+'/100'}
+        <p>${_qbank.questions.length} questions &nbsp;·&nbsp; Total ${_qbank.totalPoints} pts
+          ${IS_BDCS ? '&nbsp;·&nbsp; Pass: '+(mc.passBDCS??250)+'/300, Max Liet: '+(mc.lietMax??2) : '&nbsp;·&nbsp; Pass: '+(mc.passOthers??70)+'/100'}
         </p>
       </div>
       <div class="test-timer">
         <div class="timer-box ok" id="timerBox">
           <div>
-            <div class="timer-lbl">⏰ Còn lại</div>
+            <div class="timer-lbl">⏰ Remaining</div>
             <div class="timer-val ok" id="timerVal">--:--:--</div>
           </div>
         </div>
@@ -259,11 +259,11 @@ function renderTest(deadlineTs) {
 
     <div class="submit-zone">
       <div class="submit-info">
-        Đã trả lời: <span class="answered-count" id="answeredCount">0</span> / ${qs.length} câu
-        ${IS_BDCS ? '<br><span style="font-size:0.78rem;color:var(--text-muted);">Câu tự luận sẽ được admin chấm sau.</span>' : ''}
+        Answered: <span class="answered-count" id="answeredCount">0</span> / ${qs.length} questions
+        ${IS_BDCS ? '<br><span style="font-size:0.78rem;color:var(--text-muted);">Essay questions will be graded by admin later.</span>' : ''}
       </div>
       <button class="btn btn-primary" onclick="submitTest()" style="padding:12px 32px;font-size:0.95rem;">
-        📤 Nộp bài
+        📤 Submit
       </button>
     </div>`;
 
@@ -276,17 +276,17 @@ function renderQuestion(q, idx) {
   if (q.type === 'Essay') {
     return `<div class="q-card essay-card" id="qcard_${q.id}">
       <div class="q-num">
-        Câu ${idx+1}
-        <span class="q-tag essay">Tự luận</span>
-        ${q.isLiet ? '<span class="q-tag liet">⚠ Điểm liệt</span>' : ''}
-        <span class="q-tag pts">${q.points}đ</span>
+        Question ${idx+1}
+        <span class="q-tag essay">Essay</span>
+        ${q.isLiet ? '<span class="q-tag liet">⚠ Liet Points</span>' : ''}
+        <span class="q-tag pts">${q.points}pts</span>
       </div>
       <div class="q-text">${q.text}</div>
       ${q.rubric ? `<div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.78rem;color:var(--text-muted);">
-        📋 Tiêu chí: ${q.rubric}</div>` : ''}
-      <textarea class="q-essay-area" id="ans_${q.id}" placeholder="Nhập câu trả lời của bạn..."
+        📋 Rubric: ${q.rubric}</div>` : ''}
+      <textarea class="q-essay-area" id="ans_${q.id}" placeholder="Enter your answer here..."
         oninput="onEssayInput(${q.id}, this.value)"></textarea>
-      <div class="q-essay-hint">Trình bày đầy đủ, rõ ràng. Câu trả lời sẽ được admin xem xét và chấm điểm.</div>
+      <div class="q-essay-hint">Write a clear and complete answer. Your response will be reviewed and graded by admin.</div>
     </div>`;
   }
 
@@ -294,10 +294,10 @@ function renderQuestion(q, idx) {
   const opts = Object.entries(q.opts || {}).filter(([,v])=>v);
   return `<div class="q-card" id="qcard_${q.id}">
     <div class="q-num">
-      Câu ${idx+1}
-      <span class="q-tag mcq">Trắc nghiệm</span>
-      ${q.isLiet ? '<span class="q-tag liet">⚠ Điểm liệt</span>' : ''}
-      <span class="q-tag pts">${q.points}đ</span>
+      Question ${idx+1}
+      <span class="q-tag mcq">Multiple Choice</span>
+      ${q.isLiet ? '<span class="q-tag liet">⚠ Liet Points</span>' : ''}
+      <span class="q-tag pts">${q.points}pts</span>
     </div>
     <div class="q-text">${q.text}</div>
     <div class="q-opts">
@@ -371,7 +371,7 @@ function startTimer(deadlineTs) {
 
 // ===== SUBMIT =====
 function autoSubmit() {
-  alert('⏰ Hết giờ! Bài của bạn sẽ được tự động nộp.');
+  alert('⏰ Time\'s up! Your test will be submitted automatically.');
   doSubmit(true);
 }
 
@@ -381,10 +381,10 @@ function submitTest() {
   const unansweredMCQ = mcq.filter(q=>!_answers[q.id]);
 
   if (unansweredMCQ.length > 0) {
-    const proceed = confirm(`Bạn còn ${unansweredMCQ.length} câu trắc nghiệm chưa trả lời.\n\nBạn có muốn nộp bài không?`);
+    const proceed = confirm(`You have ${unansweredMCQ.length} unanswered multiple-choice questions.\n\nDo you want to submit?`);
     if (!proceed) return;
   } else {
-    if (!confirm('Xác nhận nộp bài? Bạn sẽ không thể chỉnh sửa sau khi nộp.')) return;
+    if (!confirm('Confirm submission? You will not be able to edit after submitting.')) return;
   }
   doSubmit(false);
 }
@@ -462,10 +462,10 @@ function renderResult(sub, mc) {
 
   let statusHTML = '';
   if (isBDCSU && sub.essayPending) {
-    statusHTML = `<div class="result-badge" style="background:rgba(255,165,0,0.1);color:#FFA500;">⏳ Đang chờ chấm tự luận</div>
+    statusHTML = `<div class="result-badge" style="background:rgba(255,165,0,0.1);color:#FFA500;">⏳ Awaiting essay grading</div>
       <p style="color:var(--text-muted);font-size:0.84rem;margin-top:4px;">
-        Điểm MCQ của bạn: <strong style="color:var(--gold)">${sub.mcqScore}</strong> đ.<br>
-        Admin sẽ chấm phần tự luận và cập nhật điểm cuối cùng.
+        MCQ Score: <strong style="color:var(--gold)">${sub.mcqScore}</strong> pts.<br>
+        Admin will grade the essay section and update your final score.
       </p>`;
   } else {
     const passed = sub.provisionalPassed;
@@ -477,35 +477,35 @@ function renderResult(sub, mc) {
   const essayCount = qs.filter(q=>q.type==='Essay').length;
   const correctMCQ = sub.mcqResults ? Object.values(sub.mcqResults).filter(r=>r.correct).length : '—';
 
-  document.getElementById('pageTitle').textContent = 'Kết quả bài thi';
+  document.getElementById('pageTitle').textContent = 'Test Results';
   document.getElementById('pageContent').innerHTML = `
     <div class="result-hero">
       <div class="result-icon">${isBDCSU&&sub.essayPending ? '📝' : (sub.provisionalPassed?'🏆':'📋')}</div>
       <div class="result-score">${sub.mcqScore}<span class="result-max">/${maxScore}${isBDCSU&&sub.essayPending?' (MCQ)':''}</span></div>
       ${statusHTML}
       <div class="result-details">
-        <div class="result-detail"><strong>${correctMCQ}/${mcqCount}</strong><span>MCQ đúng</span></div>
-        ${isBDCSU ? `<div class="result-detail"><strong style="color:${sub.lietWrong>lietMax?'var(--danger)':'var(--success)'}">${sub.lietWrong}</strong><span>Liệt sai (max ${lietMax})</span></div>` : ''}
-        ${essayCount > 0 ? `<div class="result-detail"><strong style="color:#6496ff">${essayCount}</strong><span>Câu tự luận</span></div>` : ''}
-        <div class="result-detail"><strong>${new Date(sub.submittedAt).toLocaleString('vi-VN',{hour:'2-digit',minute:'2-digit'})}</strong><span>Giờ nộp</span></div>
+        <div class="result-detail"><strong>${correctMCQ}/${mcqCount}</strong><span>MCQ Correct</span></div>
+        ${isBDCSU ? `<div class="result-detail"><strong style="color:${sub.lietWrong>lietMax?'var(--danger)':'var(--success)'}">${sub.lietWrong}</strong><span>Liet Wrong (max ${lietMax})</span></div>` : ''}
+        ${essayCount > 0 ? `<div class="result-detail"><strong style="color:#6496ff">${essayCount}</strong><span>Essay Questions</span></div>` : ''}
+        <div class="result-detail"><strong>${new Date(sub.submittedAt).toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit'})}</strong><span>Submitted at</span></div>
       </div>
     </div>
 
     ${isBDCSU && sub.essayPending ? `
     <div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <div style="font-weight:700;color:#6496ff;margin-bottom:12px;">📝 Câu trả lời tự luận của bạn</div>
+      <div style="font-weight:700;color:#6496ff;margin-bottom:12px;">📝 Your Essay Answers</div>
       ${Object.entries(sub.essayAnswers).map(([qid,ans])=>{
         const q = qs.find(q=>String(q.id)===String(qid));
         return `<div style="margin-bottom:14px;">
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">${q?q.text.slice(0,80):'Câu hỏi'}</div>
-          <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text-secondary);white-space:pre-wrap;">${ans||'(Không có câu trả lời)'}</div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">${q?q.text.slice(0,80):'Question'}</div>
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text-secondary);white-space:pre-wrap;">${ans||'(No answer provided)'}</div>
         </div>`;
       }).join('')}
     </div>` : ''}
 
     <div style="text-align:center;margin-top:10px;">
       <a href="monthlytest.html" class="btn btn-secondary" style="text-decoration:none;padding:10px 24px;">
-        ← Quay lại Monthly Test
+        ← Back to Monthly Test
       </a>
     </div>`;
 }
@@ -516,7 +516,7 @@ function renderError(msg) {
       <div style="font-size:2.5rem;margin-bottom:14px;">🔒</div>
       <div style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;">${msg}</div>
       <a href="monthlytest.html" class="btn btn-secondary" style="text-decoration:none;margin-top:20px;display:inline-block;padding:10px 24px;">
-        ← Quay lại Monthly Test
+        ← Back to Monthly Test
       </a>
     </div>`;
 }

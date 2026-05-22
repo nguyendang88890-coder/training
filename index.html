@@ -233,13 +233,27 @@
         <span class="nav-icon">🗓️</span> Monthly Test
         <span class="nav-badge">MTH</span>
       </a>
-      <a href="interview.html" class="nav-item" id="nav-interview">
-        <span class="nav-icon">🎤</span> Interview
-        <span class="nav-badge">INT</span>
-      </a>
+      <div id="interviewNavItem">
+        <a href="interview.html" class="nav-item" id="nav-interview">
+          <span class="nav-icon">🎤</span> Interview
+          <span class="nav-badge">INT</span>
+        </a>
+      </div>
+
+      <!-- Leader section, shown dynamically -->
+      <div id="leaderNavSection" class="hidden">
+        <a href="leader.html" class="nav-item">
+          <span class="nav-icon">👥</span> Member Management
+          <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
+        </a>
+      </div>
 
       <!-- Admin-only section, shown dynamically -->
       <div id="adminNavSection" class="hidden">
+        <a href="leader.html" class="nav-item">
+          <span class="nav-icon">👥</span> Member Management
+          <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
+        </a>
         <div class="nav-section-title">Administration</div>
         <a href="admin.html" class="nav-item">
           <span class="nav-icon">⚙️</span> Admin Panel
@@ -437,7 +451,7 @@ function doRegister() {
     return;
   }
 
-  users[u] = {
+  const newUser = {
     password:     p,
     role:         'trainee',
     fullName:     document.getElementById('regFullName').value.trim(),
@@ -445,10 +459,18 @@ function doRegister() {
     department:   document.getElementById('regDepartment').value.trim(),
     position:     document.getElementById('regPosition').value.trim(),
     employeeType: document.getElementById('regEmpType').value || 'new',
-    leaderName:   document.getElementById('regLeaderName').value.trim(),
+    leaderName:   document.getElementById('regLeaderName').value.trim().toLowerCase(),
+    isLeader:     false,
+    testGroup:    'auto',
     createdAt:    new Date().toISOString()
   };
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  users[u] = newUser;
+  // Per-user set — only writes the new user, never touches other accounts
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) {
+    window.FDB.ref('users/' + u).set(newUser)
+      .catch(e => console.warn('[WMT] register Firebase error:', e.message));
+  }
 
   // Auto-login
   localStorage.setItem('wmt_user', u);
@@ -501,9 +523,16 @@ function saveDashboardProfile() {
   const user  = localStorage.getItem('wmt_user');
   const users = getUsersDB();
   if (!users[user]) return;
-  users[user].email    = document.getElementById('dpmEmail').value.trim();
-  users[user].fullName = document.getElementById('dpmFullName').value.trim();
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  const email    = document.getElementById('dpmEmail').value.trim();
+  const fullName = document.getElementById('dpmFullName').value.trim();
+  users[user].email    = email;
+  users[user].fullName = fullName;
+  // Per-user update — never overwrites other users' data
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) {
+    window.FDB.ref('users/' + user).update({ email, fullName })
+      .catch(e => console.warn('[WMT] saveDashboardProfile Firebase error:', e.message));
+  }
   const s = document.getElementById('dpmSuccess');
   s.style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 2000);
@@ -538,20 +567,34 @@ const MODULES = [
 
 // ===== DASHBOARD =====
 function initDashboard(user) {
-  const users = getUsersDB();
-  const isAdmin = users[user] && users[user].role === 'admin';
+  const users    = getUsersDB();
+  const udata    = users[user] || {};
+  const isAdmin  = udata.role === 'admin';
+  const isMod    = udata.role === 'mod';
+  const isLeader = udata.isLeader === true;
 
   document.getElementById('sidebarUserName').textContent = user;
-  document.getElementById('sidebarUserRole').textContent = isAdmin ? 'Administrator' : 'Sales Trainee';
-  document.getElementById('welcomeName').textContent = user;
+  document.getElementById('sidebarUserRole').textContent =
+    isAdmin ? 'Administrator' : isMod ? 'Moderator' : isLeader ? 'Team Leader' : 'Sales Trainee';
+  document.getElementById('welcomeName').textContent = udata.fullName || user;
   document.getElementById('userAvatar').textContent = user[0].toUpperCase();
 
-  // Show edit profile for trainees
-  if (!isAdmin) {
+  // Edit profile: trainees and leaders only (not admin/mod)
+  if (!isAdmin && !isMod) {
     document.getElementById('editProfileBtn').style.display = 'block';
   }
 
-  // Show admin nav section
+  // Hide interview link for mods
+  if (isMod) {
+    document.getElementById('interviewNavItem').style.display = 'none';
+  }
+
+  // Show Member Management for leaders (non-admin)
+  if (isLeader && !isAdmin) {
+    document.getElementById('leaderNavSection').classList.remove('hidden');
+  }
+
+  // Show admin nav section (includes Member Management + Admin Panel)
   if (isAdmin) {
     document.getElementById('adminNavSection').classList.remove('hidden');
   }

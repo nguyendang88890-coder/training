@@ -254,6 +254,16 @@
       color: var(--success);
     }
     .btn-xs.confirm:hover { background: rgba(0,214,143,0.2); }
+    .btn-xs.app { background: rgba(0,214,143,0.1); border-color: rgba(0,214,143,0.4); color: var(--success); }
+    .btn-xs.app:hover { background: rgba(0,214,143,0.2); }
+    .btn-xs.rej { background: rgba(255,61,113,0.1); border-color: rgba(255,61,113,0.4); color: var(--danger); }
+    .btn-xs.rej:hover { background: rgba(255,61,113,0.2); }
+    .pf-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+    .pf-badge.pass { background: rgba(0,214,143,0.15); color: var(--success); }
+    .pf-badge.fail { background: rgba(255,61,113,0.12); color: var(--danger); }
+    .pf-badge.none { background: rgba(90,90,120,0.15); color: var(--text-muted); }
+    .rsched-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+    .rsched-hdr  { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
     .btn-xs.complete {
       background: rgba(100,150,255,0.1);
       border-color: rgba(100,150,255,0.4);
@@ -303,6 +313,7 @@
         </button>
         <button class="page-tab"        id="tabQuiz"        onclick="switchTab('quiz')">📝 Quiz</button>
         <button class="page-tab"        id="tabProposals"   onclick="switchTab('proposals')">💡 Proposals <span class="tab-badge hidden" id="proposalsBadge">0</span></button>
+        <button class="page-tab"        id="tabReschedule"  onclick="switchTab('reschedule')">🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span></button>
       </div>
 
       <!-- ===== USERS TAB ===== -->
@@ -347,7 +358,7 @@
       <!-- ===== QUIZ TAB ===== -->
       <div id="quizTab" class="hidden">
         <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
-          Quản lý quyền làm lại quiz từng module. Nhấn <strong>↺ Reset</strong> để cho phép trainee làm lại quiz đó.
+          Manage quiz retake permissions for each module. Click <strong>↺ Reset</strong> to allow a trainee to retake that module's quiz.
         </p>
         <div class="users-table-wrap">
           <table id="quizTable" style="min-width:900px;">
@@ -367,7 +378,7 @@
       <!-- ===== PROPOSALS TAB ===== -->
       <div id="proposalsTab" class="hidden">
         <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
-          Đề xuất chỉnh sửa từ Moderator. Phê duyệt để áp dụng thay đổi vào Question Bank.
+          Suggested edits from Moderators. Approve to apply changes to the Question Bank.
         </p>
         <div id="proposalsContent"></div>
       </div>
@@ -387,6 +398,14 @@
             <tbody id="interviewsTableBody"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- ===== RESCHEDULE TAB ===== -->
+      <div id="rescheduleTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Monthly Test reschedule requests from trainees. Approve or reject each request below.
+        </p>
+        <div id="adminRescheduleTab"></div>
       </div>
 
     </div>
@@ -498,6 +517,14 @@
           <option value="old">🏅 Existed Employee</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>Monthly Test Group <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(override department-based assignment)</span></label>
+        <select id="editTestGroup">
+          <option value="auto">🔄 Auto — follow department</option>
+          <option value="bdcs">📊 Force BDCS Test (BD/CS format)</option>
+          <option value="others">📋 Force Others Test (standard format)</option>
+        </select>
+      </div>
     </div>
     <div class="error-msg" id="editUserError"></div>
     <div class="modal-footer">
@@ -527,6 +554,7 @@ window.addEventListener('load', async function() {
   updateSidebarProgress();
   renderAdminPanel();
   renderInterviewsTable();
+  updateRsBadge();
 });
 
 // ===== HELPERS =====
@@ -549,18 +577,19 @@ function saveInterviewData(username, data) {
 
 // ===== TAB SWITCH =====
 async function switchTab(tab) {
-  ['users','interviews','quiz','proposals'].forEach(t => {
+  ['users','interviews','quiz','proposals','reschedule'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
   });
   if (tab === 'quiz') {
     // Show loading state then re-sync so admin always sees fresh data
     document.getElementById('quizTableBody').innerHTML =
-      '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Đang tải dữ liệu…</td></tr>';
+      '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Loading data…</td></tr>';
     await syncFromFirebase();
     renderQuizTab();
   }
   if (tab === 'proposals') renderProposalsTab();
+  if (tab === 'reschedule') { await syncFromFirebase(); renderRescheduleTab(); }
 }
 
 // ===== USER FILTERS =====
@@ -686,7 +715,11 @@ function renderUsersTableBody() {
       </td>
       <td style="color:var(--text-secondary)">${udata.fullName || '—'}</td>
       <td style="color:var(--text-muted);font-size:0.82rem;">${udata.email || '—'}</td>
-      <td style="color:var(--text-secondary);font-size:0.82rem;">${udata.department || '—'}</td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">
+        ${udata.department || '—'}
+        ${udata.testGroup === 'bdcs'   ? `<br><span style="font-size:0.68rem;background:rgba(255,165,0,0.15);color:#ffaa33;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📊 BDCS</span>` : ''}
+        ${udata.testGroup === 'others' ? `<br><span style="font-size:0.68rem;background:rgba(100,150,255,0.15);color:#6496ff;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📋 Others</span>` : ''}
+      </td>
       <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
       <td>
         <div style="display:flex;flex-direction:column;gap:4px;">
@@ -694,7 +727,7 @@ function renderUsersTableBody() {
           ${udata.isLeader ? `<span class="role-badge leader">🏆 Leader</span>` : ''}
           ${udata.role !== 'admin' ? `
           <button class="btn-xs ${udata.role==='mod'?'reset':'edi'}" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
-            onclick="toggleModRole('${uname}')" title="${udata.role==='mod'?'Thu hồi quyền Moderator':'Trao quyền Moderator'}">
+            onclick="toggleModRole('${uname}')" title="${udata.role==='mod'?'Revoke Moderator':'Grant Moderator'}">
             ${udata.role==='mod' ? '↩ Unset Mod' : '🛡️ Set Mod'}
           </button>` : ''}
         </div>
@@ -784,10 +817,12 @@ function toggleModRole(uname) {
   const users = getUsersDB();
   if (!users[uname] || users[uname].role === 'admin') return;
   const isMod = users[uname].role === 'mod';
-  const action = isMod ? 'Thu hồi quyền Moderator' : 'Trao quyền Moderator';
+  const action = isMod ? 'Revoke Moderator' : 'Grant Moderator';
   if (!confirm(`${action} cho "${uname}"?`)) return;
-  users[uname].role = isMod ? 'trainee' : 'mod';
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  const newRole = isMod ? 'trainee' : 'mod';
+  users[uname].role = newRole;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
   renderAdminPanel();
 }
 
@@ -824,23 +859,23 @@ function renderProposalsTab() {
   const el = document.getElementById('proposalsContent');
 
   if (!all.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div>Chưa có đề xuất nào.</div></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div>No proposals yet.</div></div>`;
     return;
   }
 
   function cardHTML(p) {
     const srcLabel = p.source === 'exam'
-      ? `Final Exam${p.action==='add'?' — Thêm câu':` — Câu #${(p.idx??0)+1} (Module ${p.proposed?.module??''} ${EQ_MOD_NAMES[p.proposed?.module]??''})`}`
+      ? `Final Exam${p.action==='add'?' — Add Question':` — Question #${(p.idx??0)+1} (Module ${p.proposed?.module??''} ${EQ_MOD_NAMES[p.proposed?.module]??''})`}`
       : p.source === 'module'
         ? `📝 Module ${p.moduleId||''} — ${p.moduleName||''}${p.section ? ` · <em style="color:var(--text-secondary);font-weight:400;">${p.section}</em>` : ''}`
-        : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Thêm câu':`— Câu #${(p.idx??0)+1}`}`;
+        : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Add Question':`— Question #${(p.idx??0)+1}`}`;
     const statusColor = {pending:'var(--warning)',approved:'var(--success)',rejected:'var(--danger)'}[p.status];
-    const statusLabel = {pending:'⏳ Chờ duyệt',approved:'✅ Đã duyệt',rejected:'❌ Đã từ chối'}[p.status];
-    const dt = d => d ? new Date(d).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+    const statusLabel = {pending:'⏳ Pending',approved:'✅ Approved',rejected:'❌ Rejected'}[p.status];
+    const dt = d => d ? new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
 
     const origBlock = p.original
       ? `<div class="prop-diff-box orig">
-           <div class="prop-diff-label">Bản gốc</div>
+           <div class="prop-diff-label">Original</div>
            <div>${p.original.q || p.original.text || '—'}</div>
            ${p.original.opts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${p.original.opts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
            ${p.original.correct!==undefined&&p.original.opts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${p.original.opts[p.original.correct]}</div>` : ''}
@@ -850,20 +885,20 @@ function renderProposalsTab() {
     const propOpts = p.proposed?.opts;
     const propCorr = p.proposed?.correct;
     const propBlock = `<div class="prop-diff-box prop">
-      <div class="prop-diff-label" style="color:var(--gold);">Đề xuất${p.action==='add'?' mới':''}</div>
+      <div class="prop-diff-label" style="color:var(--gold);">Proposed${p.action==='add'?' (New)':''}</div>
       <div>${propQ}</div>
       ${propOpts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${propOpts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
       ${propCorr!==undefined&&propOpts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${propOpts[propCorr]}</div>` : ''}
-      ${p.proposed?.type ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:4px;">Loại: ${p.proposed.type} · Điểm: ${p.proposed.points??'—'}</div>` : ''}
+      ${p.proposed?.type ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:4px;">Type: ${p.proposed.type} · Points: ${p.proposed.points??'—'}</div>` : ''}
     </div>`;
 
     const noteHTML = p.note ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:10px;padding:8px 12px;background:rgba(100,150,255,0.06);border-radius:7px;">💬 <em>${p.note}</em></div>` : '';
-    const reviewHTML = p.reviewedBy ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Xem xét bởi <strong>${p.reviewedBy}</strong> — ${dt(p.reviewedAt)}${p.reviewNote?' &nbsp;·&nbsp; "'+p.reviewNote+'"':''}</div>` : '';
+    const reviewHTML = p.reviewedBy ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Reviewed by <strong>${p.reviewedBy}</strong> — ${dt(p.reviewedAt)}${p.reviewNote?' &nbsp;·&nbsp; "'+p.reviewNote+'"':''}</div>` : '';
 
     const actions = p.status === 'pending' ? `
       <div style="display:flex;gap:8px;margin-top:14px;">
-        <button class="btn-xs ok"  onclick="approveProposal('${p.id}')">✅ Phê duyệt</button>
-        <button class="btn-xs del" onclick="rejectProposal('${p.id}')">❌ Từ chối</button>
+        <button class="btn-xs ok"  onclick="approveProposal('${p.id}')">✅ Approve</button>
+        <button class="btn-xs del" onclick="rejectProposal('${p.id}')">❌ Reject</button>
       </div>` : '';
 
     return `<div class="prop-card ${p.status}">
@@ -882,8 +917,8 @@ function renderProposalsTab() {
     </div>`;
   }
 
-  el.innerHTML = (pending.length ? `<div class="section-title" style="margin-bottom:12px;">Chờ duyệt (${pending.length})</div>${pending.map(cardHTML).join('')}` : '') +
-    (reviewed.length ? `<div class="section-title" style="margin:24px 0 12px;">Đã xem xét (${reviewed.length})</div>${reviewed.map(cardHTML).join('')}` : '');
+  el.innerHTML = (pending.length ? `<div class="section-title" style="margin-bottom:12px;">Pending (${pending.length})</div>${pending.map(cardHTML).join('')}` : '') +
+    (reviewed.length ? `<div class="section-title" style="margin:24px 0 12px;">Reviewed (${reviewed.length})</div>${reviewed.map(cardHTML).join('')}` : '');
 }
 
 function approveProposal(id) {
@@ -894,13 +929,13 @@ function approveProposal(id) {
 
   if (p.source === 'exam') {
     const bank = JSON.parse(localStorage.getItem('wmt_exam_qbank') || 'null');
-    if (!bank) { alert('Question bank chưa được khởi tạo. Mở trang Final Exam một lần trước.'); return; }
+    if (!bank) { alert('Question bank not initialised. Open the Final Exam page once first.'); return; }
     if (p.action === 'edit') bank[p.idx] = p.proposed;
     else bank.push(p.proposed);
     dbWrite('wmt_exam_qbank', JSON.stringify(bank));
   } else if (p.source === 'monthly') {
     const qb = JSON.parse(localStorage.getItem('wmt_qbank_' + p.group) || 'null');
-    if (!qb) { alert('Question Bank chưa có dữ liệu. Upload file trước.'); return; }
+    if (!qb) { alert('Question Bank has no data. Upload a file first.'); return; }
     if (p.action === 'edit') qb.questions[p.idx] = { ...qb.questions[p.idx], ...p.proposed };
     else { qb.questions.push(p.proposed); qb.totalPoints = qb.questions.reduce((s,q)=>s+(q.points||0),0); }
     dbWrite('wmt_qbank_' + p.group, JSON.stringify(qb));
@@ -913,14 +948,14 @@ function approveProposal(id) {
   renderProposalsTab();
   updateProposalsBadge();
   if (p.source === 'module') {
-    alert(`✅ Đề xuất đã được phê duyệt.\n\n📌 Lưu ý: Đây là đề xuất chỉnh sửa nội dung Module ${p.moduleId} — ${p.moduleName}.\nVui lòng cập nhật file HTML tương ứng thủ công.`);
+    alert(`✅ Proposal approved.\n\n📌 Note: This is a content edit proposal for Module ${p.moduleId} — ${p.moduleName}.\nPlease update the corresponding HTML file manually.`);
   } else {
-    alert('✅ Đề xuất đã được phê duyệt và áp dụng vào Question Bank.');
+    alert('✅ Proposal approved and applied to the Question Bank.');
   }
 }
 
 function rejectProposal(id) {
-  const note = prompt('Lý do từ chối (tùy chọn):');
+  const note = prompt('Rejection reason (optional):');
   if (note === null) return;
   const proposals = getProposals();
   const idx = proposals.findIndex(p => p.id === id);
@@ -994,7 +1029,7 @@ function renderQuizTab() {
 }
 
 function resetQuiz(uname, moduleId) {
-  if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz cho "${uname}"?\nTrainee sẽ có thể làm lại quiz này.`)) return;
+  if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz for "${uname}"?\nTrainee will be able to retake this quiz.`)) return;
   // Remove quiz result from Firebase + localStorage
   dbRemove(`wmt_quiz_${uname}_m${moduleId}`);
   // Remove module done/score from progress so trainee can re-mark complete
@@ -1009,7 +1044,7 @@ function resetQuiz(uname, moduleId) {
 }
 
 function resetAllQuizzes(uname) {
-  if (!confirm(`Reset tất cả quiz của "${uname}"?\nTrainee sẽ có thể làm lại tất cả 7 module quiz.`)) return;
+  if (!confirm(`Reset all quizzes for "${uname}"?\nTrainee will be able to retake all 7 module quizzes.`)) return;
   const p = getUserProgress(uname);
   for (let i = 1; i <= 7; i++) {
     dbRemove(`wmt_quiz_${uname}_m${i}`);
@@ -1026,7 +1061,8 @@ function deleteUser(uname) {
   if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
   const users = getUsersDB();
   delete users[uname];
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).remove();
   ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => dbRemove(k + uname));
   for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
   const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
@@ -1191,27 +1227,27 @@ function openExamReset(uname) {
   document.getElementById('examResetError').textContent = '';
 
   // Build status summary
-  const fmt = d => d ? new Date(d).toLocaleString('vi-VN', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-  let statusHTML = `<div style="color:var(--text-muted);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Trạng thái hiện tại — <strong style="color:var(--text-primary)">${uname}</strong></div>`;
+  const fmt = d => d ? new Date(d).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  let statusHTML = `<div style="color:var(--text-muted);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Current Status — <strong style="color:var(--text-primary)">${uname}</strong></div>`;
 
   if (ex.passed) {
-    statusHTML += `<div>✅ <strong style="color:var(--success)">Đã Pass</strong> — ${Math.round((ex.score/(ex.total||30))*100)}% (${fmt(ex.passDate)})</div>`;
+    statusHTML += `<div>✅ <strong style="color:var(--success)">Passed</strong> — ${Math.round((ex.score/(ex.total||30))*100)}% (${fmt(ex.passDate)})</div>`;
   } else if (ex.disqualified) {
-    statusHTML += `<div>🚫 <strong style="color:var(--danger)">Disqualified</strong> (dùng hết 2 lần)</div>`;
-    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Lần 1: ${Math.round((ex.fail1Score/(ex.total||30))*100)}% — ${fmt(ex.fail1Date)}</div>`;
-    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Lần 2: ${Math.round((ex.fail2Score/(ex.total||30))*100)}% — ${fmt(ex.fail2Date)}</div>`;
+    statusHTML += `<div>🚫 <strong style="color:var(--danger)">Disqualified (used both attempts)</strong></div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Attempt 1: ${Math.round((ex.fail1Score/(ex.total||30))*100)}% — ${fmt(ex.fail1Date)}</div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Attempt 2: ${Math.round((ex.fail2Score/(ex.total||30))*100)}% — ${fmt(ex.fail2Date)}</div>`;
   } else if (ex.fail1Date) {
     const daysLeft = Math.max(0, Math.ceil((new Date(ex.fail1Date).getTime() + 3*864e5 - Date.now()) / 864e5));
-    statusHTML += `<div>⚠️ <strong style="color:var(--warning)">Fail lần 1</strong> — ${Math.round((ex.fail1Score/(ex.total||30))*100)}% (${fmt(ex.fail1Date)})</div>`;
+    statusHTML += `<div>⚠️ <strong style="color:var(--warning)">Failed Attempt 1</strong> — ${Math.round((ex.fail1Score/(ex.total||30))*100)}% (${fmt(ex.fail1Date)})</div>`;
     if (daysLeft > 0) {
-      statusHTML += `<div style="color:var(--danger);font-size:0.8rem;">🔒 Còn bị khóa <strong>${daysLeft} ngày</strong> nữa mới được retry</div>`;
+      statusHTML += `<div style="color:var(--danger);font-size:0.8rem;">🔒 Locked — <strong>${daysLeft} day(s)</strong> remaining before retry</div>`;
     } else {
-      statusHTML += `<div style="color:var(--success);font-size:0.8rem;">✓ Hết thời gian chờ — đủ điều kiện làm lần 2</div>`;
+      statusHTML += `<div style="color:var(--success);font-size:0.8rem;">✓ Lockout expired — eligible for attempt 2</div>`;
     }
   } else if (ex.score !== undefined) {
-    statusHTML += `<div>📋 Đã làm — ${Math.round((ex.score/(ex.total||30))*100)}%</div>`;
+    statusHTML += `<div>📋 Attempted — ${Math.round((ex.score/(ex.total||30))*100)}%</div>`;
   } else {
-    statusHTML += `<div style="color:var(--text-muted);">Chưa bắt đầu làm bài.</div>`;
+    statusHTML += `<div style="color:var(--text-muted);">Not started.</div>`;
   }
   document.getElementById('examResetStatus').innerHTML = statusHTML;
 
@@ -1223,59 +1259,59 @@ function openExamReset(uname) {
       value: 'restore_attempt1',
       icon: '↺',
       color: 'var(--warning)',
-      label: 'Khôi phục — còn 1 lần thử',
-      sub: 'Xóa kết quả lần 2, user còn 1 lần thử (lần 2). Dữ liệu lần 1 vẫn giữ.'
+      label: 'Restore — 1 attempt remaining',
+      sub: 'Clear attempt 2 result; user retains 1 attempt (attempt 2). Attempt 1 data is preserved.'
     });
     opts.push({
       value: 'full_reset',
       icon: '🗑️',
       color: 'var(--danger)',
-      label: 'Reset toàn bộ — 2 lần thử mới',
-      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
     });
   } else if (ex.fail1Date) {
     opts.push({
       value: 'restore_attempt1',
       icon: '↺',
       color: 'var(--warning)',
-      label: 'Xóa kết quả lần 1 — trả về 2 lần thử',
-      sub: 'Xóa fail lần 1 và thời gian chờ. User bắt đầu lại với 2 lần thử đầy đủ.'
+      label: 'Clear attempt 1 result — restore 2 attempts',
+      sub: 'Clear failed attempt 1 and lockout period. User restarts with 2 full attempts.'
     });
     opts.push({
       value: 'unlock_only',
       icon: '🔓',
       color: '#6496ff',
-      label: 'Chỉ mở khóa thời gian chờ',
-      sub: 'Giữ nguyên dữ liệu lần 1 nhưng bỏ qua thời gian chờ 3 ngày. User làm lần 2 ngay.'
+      label: 'Unlock waiting period only',
+      sub: 'Keep attempt 1 data but skip the 3-day lockout. User can take attempt 2 immediately.'
     });
     opts.push({
       value: 'full_reset',
       icon: '🗑️',
       color: 'var(--danger)',
-      label: 'Reset toàn bộ — 2 lần thử mới',
-      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
     });
   } else if (ex.passed) {
     opts.push({
       value: 'full_reset',
       icon: '🗑️',
       color: 'var(--danger)',
-      label: 'Reset toàn bộ (bao gồm Pass)',
-      sub: '⚠️ Xóa hết dữ liệu exam, kể cả trạng thái Pass. Dùng khi cần user thi lại hoàn toàn.'
+      label: 'Full Reset (including Pass status)',
+      sub: '⚠️ Clear all exam data including Pass status. Use when a full retake is required.'
     });
   } else if (ex.score !== undefined) {
     opts.push({
       value: 'full_reset',
       icon: '🗑️',
       color: 'var(--danger)',
-      label: 'Reset toàn bộ — 2 lần thử mới',
-      sub: 'Xóa hết dữ liệu exam. User bắt đầu lại từ đầu với 2 lần thử.'
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
     });
   }
 
   const optContainer = document.getElementById('examResetOptions');
   if (!opts.length) {
-    optContainer.innerHTML = '<div style="color:var(--text-muted);font-size:0.84rem;text-align:center;">Không có thao tác khả dụng.</div>';
+    optContainer.innerHTML = '<div style="color:var(--text-muted);font-size:0.84rem;text-align:center;">No actions available.</div>';
     document.getElementById('examResetSaveBtn').style.display = 'none';
   } else {
     document.getElementById('examResetSaveBtn').style.display = '';
@@ -1304,17 +1340,17 @@ function saveExamReset() {
   const ex     = getExamData(uname);
 
   if (action === 'full_reset') {
-    if (!confirm(`Reset TOÀN BỘ dữ liệu Final Exam của "${uname}"?\nUser sẽ bắt đầu lại từ đầu với 2 lần thử mới.`)) return;
+    if (!confirm(`Reset ALL Final Exam data for "${uname}"?\nUser will start over with 2 fresh attempts.`)) return;
     dbRemove('wmt_exam_' + uname);
 
   } else if (action === 'restore_attempt1') {
     // Clear fail1 data (and fail2 if disqualified) — restore to "not started"
-    if (!confirm(`Xóa kết quả lần 1 và trả về 2 lần thử cho "${uname}"?`)) return;
+    if (!confirm(`Clear attempt 1 result and restore 2 attempts for "${uname}"?`)) return;
     dbRemove('wmt_exam_' + uname);
 
   } else if (action === 'unlock_only') {
     // Keep fail1 data but clear the lockout date so user can retry immediately
-    if (!confirm(`Mở khóa thời gian chờ 3 ngày cho "${uname}"?\nUser sẽ có thể làm lần 2 ngay.`)) return;
+    if (!confirm(`Unlock the 3-day waiting period for "${uname}"?\nUser will be able to take attempt 2 immediately.`)) return;
     const updated = { ...ex };
     // Remove fail1Date to bypass lockout check — keep score/attempts so attempt 2 rules still apply
     delete updated.fail1Date;
@@ -1328,7 +1364,7 @@ function saveExamReset() {
 
   // Remind admin that user must refresh their page
   setTimeout(() => {
-    alert(`✅ Đã reset exam cho "${uname}".\n\n📌 Yêu cầu user "${uname}" refresh (F5) trang exam.html để áp dụng thay đổi.`);
+    alert(`✅ Exam reset for "${uname}".\n\n📌 Ask user "${uname}" to refresh (F5) exam.html for changes to take effect.`);
   }, 200);
 }
 
@@ -1391,6 +1427,7 @@ function openEditUser(uname) {
   document.getElementById('editPosition').value        = u.position   || '';
   document.getElementById('editRole').value            = u.role         || 'trainee';
   document.getElementById('editEmpType').value         = u.employeeType || 'new';
+  document.getElementById('editTestGroup').value       = u.testGroup   || 'auto';
   document.getElementById('editIsLeader').checked      = u.isLeader    || false;
   document.getElementById('editLeaderName').value      = u.leaderName  || '';
   document.getElementById('editUserError').textContent = '';
@@ -1403,18 +1440,89 @@ function saveEditUser() {
   const uname = document.getElementById('editUsername').value;
   const users = getUsersDB();
   if (!users[uname]) return;
-  users[uname].fullName   = document.getElementById('editFullName').value.trim();
-  users[uname].workName   = document.getElementById('editWorkName').value.trim();
-  users[uname].email      = document.getElementById('editEmail').value.trim();
-  users[uname].department = document.getElementById('editDepartment').value.trim();
-  users[uname].position   = document.getElementById('editPosition').value.trim();
-  users[uname].role         = document.getElementById('editRole').value;
-  users[uname].employeeType = document.getElementById('editEmpType').value;
-  users[uname].isLeader     = document.getElementById('editIsLeader').checked;
-  users[uname].leaderName   = document.getElementById('editLeaderName').value.trim();
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  const patch = {
+    fullName:     document.getElementById('editFullName').value.trim(),
+    workName:     document.getElementById('editWorkName').value.trim(),
+    email:        document.getElementById('editEmail').value.trim(),
+    department:   document.getElementById('editDepartment').value.trim(),
+    position:     document.getElementById('editPosition').value.trim(),
+    role:         document.getElementById('editRole').value,
+    employeeType: document.getElementById('editEmpType').value,
+    testGroup:    document.getElementById('editTestGroup').value,
+    isLeader:     document.getElementById('editIsLeader').checked,
+    leaderName:   document.getElementById('editLeaderName').value.trim().toLowerCase(),
+  };
+  Object.assign(users[uname], patch);
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update(patch);
   closeEditUser();
   renderAdminPanel();
+}
+
+// ===== RESCHEDULE TAB =====
+function getRS(u) { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
+function saveRS(u,d) { dbWrite('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
+
+function fmtDT(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtMonth(m) {
+  if (!m) return '—';
+  const [y,mo] = m.split('-');
+  return new Date(+y,+mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+}
+
+function updateRsBadge() {
+  let n=0;
+  Object.keys(getUsersDB()).forEach(u=>{ Object.values(getRS(u)).forEach(r=>{ if(r.status==='pending') n++; }); });
+  const b=document.getElementById('rsBadge');
+  if (b) { b.textContent=n; b.classList.toggle('hidden',n===0); }
+}
+
+function renderRescheduleTab() {
+  const users=getUsersDB(), reqs=[];
+  Object.entries(users).forEach(([un,ud])=>{
+    Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
+  });
+  reqs.sort((a,b)=>({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9));
+  const el=document.getElementById('adminRescheduleTab');
+  if (!reqs.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔄</div><div>No reschedule requests.</div></div>`; return; }
+  const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
+  el.innerHTML=reqs.map(({un,ud,m,req})=>`
+    <div class="rsched-item">
+      <div class="rsched-hdr">
+        <div>
+          <span style="font-weight:700;color:var(--text-primary)">${un}</span>
+          ${ud.fullName?`<span style="color:var(--text-muted);font-size:0.82rem"> — ${ud.fullName}</span>`:''}
+          <span style="color:var(--gold);font-size:0.82rem;margin-left:8px;">${fmtMonth(m)}</span>
+        </div>
+        ${stB(req.status)}
+      </div>
+      <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
+        Requested: <strong>${req.newDate} ${req.newTime||''}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        ${req.reason?`<br>Reason: ${req.reason}`:''}
+        ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
+      </div>
+      ${req.status==='pending'?`
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
+          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>
+        </div>`:''}
+    </div>`).join('');
+}
+
+function approveRs(un,m) {
+  const rs=getRS(un); if(!rs[m]) return;
+  rs[m].status='approved'; rs[m].processedAt=new Date().toISOString();
+  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+function rejectRs(un,m) {
+  const note=prompt('Rejection note (optional):')||'';
+  const rs=getRS(un); if(!rs[m]) return;
+  rs[m].status='rejected'; rs[m].processedAt=new Date().toISOString();
+  if (note.trim()) rs[m].rejectReason=note.trim();
+  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
 }
 
 document.getElementById('editUserModal').addEventListener('click',   function(e) { if (e.target===this) closeEditUser(); });

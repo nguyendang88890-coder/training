@@ -21,6 +21,7 @@ function getUsersDB() {
   const FIELD_DEFAULTS = {
     isLeader:   false,
     leaderName: '',
+    testGroup:  'auto',
   };
   let migrated = false;
   Object.values(users).forEach(u => {
@@ -33,25 +34,31 @@ function getUsersDB() {
   return users;
 }
 
-// ── Admin-only: push field migration defaults to Firebase ────────────────────
-// Safe to call after syncFromFirebase() — Firebase data is already in
-// localStorage, so we only fill in fields that are truly missing in Firebase.
-// Existing non-default values (e.g. isLeader: true) are preserved.
+// ── Admin-only: patch missing fields per-user on Firebase ────────────────────
+// Uses FDB.ref('users/{uname}').update({field: default}) for each user that
+// is missing a field — NEVER calls set() on the entire users node, so existing
+// data on Firebase is never overwritten or deleted.
 function adminPushUserMigration() {
-  if (typeof dbWrite !== 'function' || !window.FDB) return;
-  const FIELD_DEFAULTS = { isLeader: false, leaderName: '' };
+  if (!window.FDB) return;
+  const FIELD_DEFAULTS = { isLeader: false, leaderName: '', testGroup: 'auto' };
   const users = JSON.parse(localStorage.getItem('wmt_users_db') || '{}');
-  let needsPush = false;
-  Object.values(users).forEach(u => {
+  if (!Object.keys(users).length) return;
+
+  Object.entries(users).forEach(([uname, u]) => {
+    const patch = {};
     Object.entries(FIELD_DEFAULTS).forEach(([field, def]) => {
-      if (!(field in u)) { u[field] = def; needsPush = true; }
+      if (!(field in u)) { patch[field] = def; u[field] = def; }
     });
+    if (Object.keys(patch).length) {
+      // update() merges — does NOT replace the whole user object
+      window.FDB.ref('users/' + uname).update(patch)
+        .catch(err => console.warn('[WMT] migration patch failed for', uname, err.message));
+    }
   });
-  if (needsPush) {
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
-    dbWrite('wmt_users_db', JSON.stringify(users));
-    console.info('[WMT] adminPushUserMigration: pushed field defaults to Firebase for', Object.keys(users).length, 'users.');
-  }
+
+  // Reflect patched defaults in localStorage as well
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  console.info('[WMT] adminPushUserMigration: patched missing fields via per-user update().');
 }
 
 // Auth guard
@@ -158,9 +165,16 @@ function saveProfileModal() {
   const user  = localStorage.getItem('wmt_user');
   const users = getUsersDB();
   if (!users[user]) return;
-  users[user].email    = document.getElementById('pmEmail').value.trim();
-  users[user].fullName = document.getElementById('pmFullName').value.trim();
-  dbWrite('wmt_users_db', JSON.stringify(users));
+  const email    = document.getElementById('pmEmail').value.trim();
+  const fullName = document.getElementById('pmFullName').value.trim();
+  users[user].email    = email;
+  users[user].fullName = fullName;
+  // Per-user update — never overwrites other users' data
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) {
+    window.FDB.ref('users/' + user).update({ email, fullName })
+      .catch(e => console.warn('[WMT] saveProfileModal Firebase error:', e.message));
+  }
   const s = document.getElementById('pmSuccess');
   s.style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 2000);
@@ -223,7 +237,7 @@ class ModuleQuiz {
     return `<div style="background:rgba(100,150,255,0.07);border:1px solid rgba(100,150,255,0.25);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
       <span style="font-size:1.4rem;">🔒</span>
       <div>
-        <div style="font-weight:700;color:#6496ff;font-size:0.9rem;">Quiz Đã Được Nộp</div>
+        <div style="font-weight:700;color:#6496ff;font-size:0.9rem;">Quiz Submitted</div>
         <div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">${subtitle}</div>
       </div>
     </div>`;
@@ -246,14 +260,14 @@ class ModuleQuiz {
 
   showLockedResult(saved) {
     document.getElementById('quizContainer').innerHTML =
-      this._lockBanner(`Nộp lúc: ${new Date(saved.submittedAt).toLocaleString('vi-VN')} &nbsp;·&nbsp; Liên hệ admin để làm lại bài quiz.`) +
+      this._lockBanner(`Submitted at: ${new Date(saved.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp; Contact admin to retake this quiz.`) +
       this.buildReviewHTML();
     this._showResult(saved.score, `${saved.correct}/${saved.total} — ${saved.score}%`);
   }
 
   showLockedLegacy(score) {
     document.getElementById('quizContainer').innerHTML =
-      this._lockBanner('Liên hệ admin để làm lại bài quiz.');
+      this._lockBanner('Contact admin to retake this quiz.');
     this._showResult(score, `${score}%`);
   }
 
@@ -477,26 +491,21 @@ function getSidebarHTML(activeModule) {
         <span class="nav-icon">🎤</span> Interview
         <span class="nav-badge" style="background:rgba(0,214,143,0.15);color:var(--success)">${ivStatus}</span>
       </a>` : ''}
+      ${(isAdmin || isLeader) ? `
+      <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
+        <span class="nav-icon">👥</span> Member Management
+        <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
+      </a>` : ''}
       ${isAdmin ? `
       <div class="nav-section-title">Administration</div>
       <a href="admin.html" class="nav-item ${activeModule === 'admin' ? 'active' : ''}">
         <span class="nav-icon">⚙️</span> Admin Panel
         <span class="nav-badge" style="background:rgba(255,215,0,0.2);color:var(--gold)">ADMIN</span>
-      </a>
-      <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
-        <span class="nav-icon">👥</span> Member Management
-        <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
       </a>` : ''}
       ${isMod ? `
       <div class="nav-section-title">Moderator</div>
       <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
         <span class="nav-icon">📝</span> Final Exam <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">VIEW</span>
-      </a>` : ''}
-      ${isLeader ? `
-      <div class="nav-section-title">Team Leader</div>
-      <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
-        <span class="nav-icon">👥</span> Member Management
-        <span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#ffaa33;">TEAM</span>
       </a>` : ''}
     </nav>
     <div class="sidebar-footer">
@@ -617,8 +626,8 @@ function initModProposalBtn() {
   // Create floating propose-edit button
   const fab = document.createElement('button');
   fab.id = 'modProposeFAB';
-  fab.title = 'Đề xuất chỉnh sửa nội dung';
-  fab.innerHTML = '✏️ Đề xuất';
+  fab.title = 'Suggest Content Edit';
+  fab.innerHTML = '✏️ Submit Proposal';
   fab.style.cssText = [
     'position:fixed', 'bottom:24px', 'right:24px', 'z-index:9000',
     'background:linear-gradient(135deg,#6496ff,#4a6fe0)',
@@ -644,30 +653,30 @@ function openModProposalModal(pageInfo) {
   modal.innerHTML = `
     <div style="background:#12122a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:28px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,0.6);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-        <h3 style="margin:0;color:#fff;font-size:1rem;">✏️ Đề xuất chỉnh sửa — Module ${pageInfo.moduleId || ''} ${pageInfo.moduleName}</h3>
+        <h3 style="margin:0;color:#fff;font-size:1rem;">✏️ Suggest Edit — Module ${pageInfo.moduleId || ''} ${pageInfo.moduleName}</h3>
         <button onclick="document.getElementById('modProposalModal').remove()" style="background:none;border:none;color:#888;font-size:1.3rem;cursor:pointer;padding:0 4px;">✕</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px;">
         <div>
-          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Mục / Phần cần chỉnh sửa <span style="color:#ff6b6b">*</span></label>
-          <input id="mpSection" placeholder="Ví dụ: Bảng leverage, Callout 510zero, Câu hỏi quiz #3…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Section / Item to Edit <span style="color:#ff6b6b">*</span></label>
+          <input id="mpSection" placeholder="e.g. Leverage table, Zero commission callout, Quiz question #3…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Nội dung hiện tại (bản gốc)</label>
-          <textarea id="mpOriginal" rows="3" placeholder="Dán nội dung hiện tại cần thay đổi (nếu có)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Current Content (original)</label>
+          <textarea id="mpOriginal" rows="3" placeholder="Paste the current content to be changed (if any)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
         </div>
         <div>
-          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Nội dung đề xuất <span style="color:#ff6b6b">*</span></label>
-          <textarea id="mpProposed" rows="4" placeholder="Nhập nội dung chỉnh sửa đề xuất…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Proposed Content <span style="color:#ff6b6b">*</span></label>
+          <textarea id="mpProposed" rows="4" placeholder="Enter your proposed edit…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;resize:vertical;box-sizing:border-box;"></textarea>
         </div>
         <div>
-          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Ghi chú / Lý do</label>
-          <input id="mpNote" placeholder="Lý do đề xuất chỉnh sửa (tùy chọn)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
+          <label style="display:block;font-size:0.8rem;color:#aaa;margin-bottom:5px;">Notes / Reason</label>
+          <input id="mpNote" placeholder="Reason for the proposed edit (optional)…" style="width:100%;padding:9px 12px;background:#0a0a1a;border:1px solid #2a2a4a;border-radius:8px;color:#fff;font-size:0.88rem;box-sizing:border-box;">
         </div>
         <div id="mpError" style="color:#ff6b6b;font-size:0.82rem;display:none;"></div>
         <div style="display:flex;gap:10px;margin-top:4px;">
-          <button onclick="submitModProposal(${JSON.stringify(pageInfo)})" style="flex:1;padding:10px;background:linear-gradient(135deg,#6496ff,#4a6fe0);color:#fff;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;">📤 Gửi đề xuất</button>
-          <button onclick="document.getElementById('modProposalModal').remove()" style="padding:10px 18px;background:#1e1e3a;color:#aaa;border:1px solid #2a2a4a;border-radius:8px;font-size:0.88rem;cursor:pointer;">Hủy</button>
+          <button onclick="submitModProposal(${JSON.stringify(pageInfo)})" style="flex:1;padding:10px;background:linear-gradient(135deg,#6496ff,#4a6fe0);color:#fff;border:none;border-radius:8px;font-size:0.88rem;font-weight:700;cursor:pointer;">📤 Submit Proposal</button>
+          <button onclick="document.getElementById('modProposalModal').remove()" style="padding:10px 18px;background:#1e1e3a;color:#aaa;border:1px solid #2a2a4a;border-radius:8px;font-size:0.88rem;cursor:pointer;">Cancel</button>
         </div>
       </div>
     </div>`;
@@ -684,7 +693,7 @@ function submitModProposal(pageInfo) {
   const errEl    = document.getElementById('mpError');
 
   if (!section || !proposed) {
-    if (errEl) { errEl.textContent = '⚠️ Vui lòng điền Mục cần chỉnh sửa và Nội dung đề xuất.'; errEl.style.display = 'block'; }
+    if (errEl) { errEl.textContent = '⚠️ Please fill in the Section to Edit and Proposed Content fields.'; errEl.style.display = 'block'; }
     return;
   }
 
@@ -714,7 +723,7 @@ function submitModProposal(pageInfo) {
   // Brief success toast
   const toast = document.createElement('div');
   toast.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:9600;background:#1e3a2a;border:1px solid var(--success,#4CAF50);color:#4CAF50;border-radius:10px;padding:12px 20px;font-size:0.88rem;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,0.4);';
-  toast.textContent = '✅ Đề xuất đã được gửi thành công!';
+  toast.textContent = '✅ Proposal submitted successfully!';
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }

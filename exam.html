@@ -47,12 +47,12 @@
           <div>
             <div class="section-title" style="margin:0 0 4px;">📋 Question Bank</div>
             <div style="font-size:0.82rem;color:var(--text-muted);">
-              Tổng: <strong id="eqCount" style="color:var(--gold)">0</strong> câu &nbsp;·&nbsp; Mỗi kỳ thi lấy ngẫu nhiên <strong style="color:var(--gold)">30</strong> câu
+              Total: <strong id="eqCount" style="color:var(--gold)">0</strong> questions &nbsp;·&nbsp; Each exam randomly draws <strong style="color:var(--gold)">30</strong> questions
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn-xs eq-add"   onclick="openAddQuestion()">+ Thêm câu hỏi</button>
-            <button class="btn-xs eq-reset" onclick="resetExamBank()">↺ Reset mặc định</button>
+            <button class="btn-xs eq-add"   onclick="openAddQuestion()">+ Add Question</button>
+            <button class="btn-xs eq-reset" onclick="resetExamBank()">↺ Reset to Default</button>
           </div>
         </div>
         <div id="eqList"></div>
@@ -62,12 +62,12 @@
       <div id="modExamView" class="hidden">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
           <div>
-            <div class="section-title" style="margin:0 0 4px;">📋 Question Bank (Chế độ xem)</div>
+            <div class="section-title" style="margin:0 0 4px;">📋 Question Bank (View Mode)</div>
             <div style="font-size:0.82rem;color:var(--text-muted);">
-              Tổng: <strong id="modEqCount" style="color:var(--gold)">0</strong> câu &nbsp;·&nbsp; Bạn có thể đề xuất chỉnh sửa để Admin xem xét.
+              Total: <strong id="modEqCount" style="color:var(--gold)">0</strong> questions &nbsp;·&nbsp; You can propose edits for Admin review.
             </div>
           </div>
-          <button class="btn-xs eq-add" onclick="openProposeAddQ()">💡 Đề xuất thêm câu hỏi</button>
+          <button class="btn-xs eq-add" onclick="openProposeAddQ()">💡 Propose New Question</button>
         </div>
         <div id="modEqList"></div>
       </div>
@@ -148,8 +148,8 @@
             🚀 Start Final Exam
           </button>
           <div id="moduleWarning" class="hidden" style="margin-top:14px;padding:14px 18px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:10px;font-size:0.88rem;color:var(--danger);">
-            🔒 <strong>Bạn chưa hoàn thành đủ 7 Training Modules.</strong><br>
-            <span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Vui lòng hoàn thành tất cả modules và submit quiz của từng module trước khi làm Final Exam.</span>
+            🔒 <strong>You have not completed all 7 Training Modules.</strong><br>
+            <span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all modules and submit each module quiz before taking the Final Exam.</span>
           </div>
         </div>
       </div>
@@ -353,7 +353,7 @@ function renderAdminExamView() {
   const byMod = {};
   bank.forEach((q, i) => { const m = q.module||0; if (!byMod[m]) byMod[m]=[]; byMod[m].push({...q, _i:i}); });
   document.getElementById('eqList').innerHTML = Object.keys(byMod).sort((a,b)=>+a-+b).map(m=>`
-    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} câu)</div>
+    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} questions)</div>
     ${byMod[m].map(q=>`
       <div class="exam-q-item">
         <div class="exam-q-hdr">
@@ -386,24 +386,24 @@ function _eqModal(title, q, idx, isNew) {
       <select id="eeM" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;">
         ${[0,1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${q&&q.module===n?'selected':''}>${n} — ${EQ_MODULE_NAMES[n]}</option>`).join('')}
       </select></div>
-    <div class="form-group"><label>Câu hỏi</label>
+    <div class="form-group"><label>Question</label>
       <textarea id="eeQ" rows="3" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:10px;border-radius:8px;font-size:0.88rem;resize:vertical;">${q?q.q:''}</textarea></div>
-    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Đáp án ${l}</label>
-      <input type="text" id="eeO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Nhập đáp án ${l}…"></div>`).join('')}
-    <div class="form-group"><label>Đáp án đúng</label>
+    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Answer ${l}</label>
+      <input type="text" id="eeO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Enter answer ${l}…"></div>`).join('')}
+    <div class="form-group"><label>Correct Answer</label>
       <select id="eeC" style="width:100%;background:var(--bg-secondary);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;">
         ${['A','B','C','D'].map((l,i)=>`<option value="${i}" ${q&&_ansQ(q)===i?'selected':''}>${l}</option>`).join('')}
       </select></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('eqModal').remove()">Hủy</button>
-      <button class="btn btn-primary" onclick="${isNew?'saveNewQ()':'saveEditQ('+idx+')'}">💾 ${isNew?'Thêm':'Lưu'}</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('eqModal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="${isNew?'saveNewQ()':'saveEditQ('+idx+')'}">💾 ${isNew?'Add':'Save'}</button>
     </div>
   </div>`;
   m.addEventListener('click', e => { if (e.target===m) m.remove(); });
   document.body.appendChild(m);
 }
-function openEditQuestion(i) { const b=getExamQBank(); if(b) _eqModal(`✎ Chỉnh sửa câu #${i+1}`,b[i],i,false); }
-function openAddQuestion()   { _eqModal('+ Thêm câu hỏi mới',null,null,true); }
+function openEditQuestion(i) { const b=getExamQBank(); if(b) _eqModal(`✎ Edit Question #${i+1}`,b[i],i,false); }
+function openAddQuestion()   { _eqModal('+ Add New Question',null,null,true); }
 function _readModal() {
   const ci = +document.getElementById('eeC').value;
   return { module:+document.getElementById('eeM').value, q:document.getElementById('eeQ').value.trim(),
@@ -411,21 +411,21 @@ function _readModal() {
     _c: btoa(String(ci)) };
 }
 function saveEditQ(i) {
-  const v=_readModal(); if(!v.q){alert('Vui lòng nhập câu hỏi.');return;}
+  const v=_readModal(); if(!v.q){alert('Please enter the question.');return;}
   const b=getExamQBank(); b[i]=v; saveExamQBank(b);
   document.getElementById('eqModal').remove(); renderAdminExamView();
 }
 function saveNewQ() {
-  const v=_readModal(); if(!v.q){alert('Vui lòng nhập câu hỏi.');return;}
+  const v=_readModal(); if(!v.q){alert('Please enter the question.');return;}
   const b=getExamQBank()||[]; b.push(v); saveExamQBank(b);
   document.getElementById('eqModal').remove(); renderAdminExamView();
 }
 function deleteQuestion(i) {
-  if(!confirm(`Xóa câu hỏi #${i+1}?`)) return;
+  if(!confirm(`Delete Question #${i+1}?`)) return;
   const b=getExamQBank(); b.splice(i,1); saveExamQBank(b); renderAdminExamView();
 }
 function resetExamBank() {
-  if(!confirm('Reset về bộ câu hỏi mặc định?\nMọi thay đổi sẽ bị mất.')) return;
+  if(!confirm('Reset to the default question set?\nAll changes will be lost.')) return;
   saveExamQBank(QUESTION_BANK); renderAdminExamView();
 }
 
@@ -440,13 +440,13 @@ function renderModExamView() {
   const byMod = {};
   bank.forEach((q, i) => { const m = q.module||0; if (!byMod[m]) byMod[m]=[]; byMod[m].push({...q, _i:i}); });
   document.getElementById('modEqList').innerHTML = Object.keys(byMod).sort((a,b)=>+a-+b).map(m=>`
-    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} câu)</div>
+    <div class="exam-mod-hdr">Module ${m} — ${EQ_MODULE_NAMES[+m]||'?'} (${byMod[m].length} questions)</div>
     ${byMod[m].map(q=>`
       <div class="exam-q-item">
         <div class="exam-q-hdr">
           <span class="exam-q-num">#${q._i+1}</span>
           <span class="exam-q-text">${q.q}</span>
-          <button class="btn-xs eq-edit" onclick="openProposeEditQ(${q._i})">💡 Đề xuất</button>
+          <button class="btn-xs eq-edit" onclick="openProposeEditQ(${q._i})">💡 Propose</button>
         </div>
         <div class="exam-q-opts">
           ${q.opts.map((opt,oi)=>`<div class="exam-q-opt ${oi===_ansQ(q)?'correct':''}">
@@ -463,24 +463,24 @@ function _proposeModal(title, q, idx, isNew) {
   m.id = 'propModal'; m.className = 'modal-overlay show';
   m.innerHTML = `<div class="modal-box" style="max-width:560px;max-height:90vh;overflow-y:auto;">
     <h3 style="margin-bottom:6px;">${title}</h3>
-    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Đề xuất sẽ được gửi cho Admin xem xét. Câu gốc giữ nguyên cho đến khi được phê duyệt.</div>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">Your proposal will be sent to Admin for review. The original question remains unchanged until approved.</div>
     <div class="form-group"><label>Module</label>
       <select id="ppM" style="${inputStyle}">
         ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${q&&q.module===n?'selected':''}>${n} — ${EQ_MODULE_NAMES[n]}</option>`).join('')}
       </select></div>
-    <div class="form-group"><label>Câu hỏi</label>
+    <div class="form-group"><label>Question</label>
       <textarea id="ppQ" rows="3" style="${inputStyle}resize:vertical;">${q?q.q:''}</textarea></div>
-    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Đáp án ${l}</label>
-      <input type="text" id="ppO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Nhập đáp án ${l}…" style="${inputStyle}"></div>`).join('')}
-    <div class="form-group"><label>Đáp án đúng</label>
+    ${['A','B','C','D'].map((l,i)=>`<div class="form-group"><label>Answer ${l}</label>
+      <input type="text" id="ppO${l}" value="${q&&q.opts[i]?q.opts[i]:''}" placeholder="Enter answer ${l}…" style="${inputStyle}"></div>`).join('')}
+    <div class="form-group"><label>Correct Answer</label>
       <select id="ppC" style="${inputStyle}">
         ${['A','B','C','D'].map((l,i)=>`<option value="${i}" ${q&&q.correct===i?'selected':''}>${l}</option>`).join('')}
       </select></div>
-    <div class="form-group"><label>Lý do / Ghi chú cho Admin</label>
-      <textarea id="ppNote" rows="2" placeholder="Giải thích lý do đề xuất…" style="${inputStyle}resize:vertical;"></textarea></div>
+    <div class="form-group"><label>Reason / Notes for Admin</label>
+      <textarea id="ppNote" rows="2" placeholder="Explain the reason for your proposal…" style="${inputStyle}resize:vertical;"></textarea></div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="document.getElementById('propModal').remove()">Hủy</button>
-      <button class="btn btn-primary" onclick="submitExamProposal(${isNew?'null':idx},${isNew})">📩 Gửi đề xuất</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('propModal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitExamProposal(${isNew?'null':idx},${isNew})">📩 Submit Proposal</button>
     </div>
   </div>`;
   m.addEventListener('click', e => { if (e.target===m) m.remove(); });
@@ -489,15 +489,15 @@ function _proposeModal(title, q, idx, isNew) {
 
 function openProposeEditQ(idx) {
   const bank = getActiveQBank();
-  _proposeModal(`💡 Đề xuất chỉnh sửa câu #${idx+1}`, bank[idx], idx, false);
+  _proposeModal(`💡 Propose Question Edit #${idx+1}`, bank[idx], idx, false);
 }
 function openProposeAddQ() {
-  _proposeModal('💡 Đề xuất thêm câu hỏi mới', null, null, true);
+  _proposeModal('💡 Propose New Question', null, null, true);
 }
 
 function submitExamProposal(idx, isNew) {
   const q = document.getElementById('ppQ').value.trim();
-  if (!q) { alert('Vui lòng nhập nội dung câu hỏi.'); return; }
+  if (!q) { alert('Please enter the question content.'); return; }
   const proposed = {
     module: +document.getElementById('ppM').value, q,
     opts: ['A','B','C','D'].map(l => document.getElementById('ppO'+l).value.trim()),
@@ -520,7 +520,7 @@ function submitExamProposal(idx, isNew) {
     proposed
   });
   document.getElementById('propModal').remove();
-  alert('✅ Đề xuất đã được gửi. Admin sẽ xem xét và phản hồi sớm.');
+  alert('✅ Proposal submitted. Admin will review and respond shortly.');
 }
 
 // ===== INIT =====
