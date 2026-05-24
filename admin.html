@@ -314,6 +314,7 @@
         <button class="page-tab"        id="tabQuiz"        onclick="switchTab('quiz')">📝 Quiz</button>
         <button class="page-tab"        id="tabProposals"   onclick="switchTab('proposals')">💡 Proposals <span class="tab-badge hidden" id="proposalsBadge">0</span></button>
         <button class="page-tab"        id="tabReschedule"  onclick="switchTab('reschedule')">🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span></button>
+        <button class="page-tab"        id="tabSettings"    onclick="switchTab('settings')">⚙️ Settings</button>
       </div>
 
       <!-- ===== USERS TAB ===== -->
@@ -406,6 +407,38 @@
           Monthly Test reschedule requests from trainees. Approve or reject each request below.
         </p>
         <div id="adminRescheduleTab"></div>
+      </div>
+
+      <!-- ===== SETTINGS TAB ===== -->
+      <div id="settingsTab" class="hidden">
+        <div class="section-title">AI Grading Settings</div>
+        <div style="max-width:520px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:1.1rem;">🤖</span>
+              <strong>Google Gemini API Key</strong>
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">
+              Used for AI essay grading in Monthly Test. Key is stored locally in your browser only and never sent to WMT servers.<br>
+              Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--gold);">aistudio.google.com</a>.
+            </p>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label>API Key</label>
+              <input type="password" id="geminiKeyInput" placeholder="AIza…"
+                style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button class="btn btn-primary" style="font-size:0.85rem;padding:7px 20px;" onclick="saveGeminiKey()">💾 Save Key</button>
+              <button class="btn btn-secondary" style="font-size:0.85rem;padding:7px 16px;" onclick="clearGeminiKey()">🗑 Clear</button>
+              <span id="geminiKeySavedMsg" style="font-size:0.8rem;color:var(--success);display:none;">✅ Saved!</span>
+            </div>
+          </div>
+          <div style="background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.2);border-radius:10px;padding:14px 16px;">
+            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6;">
+              <strong style="color:var(--gold);">⚠ Security note:</strong> The API key is stored in <code>localStorage</code> of this browser. Do not use on shared computers. The key is only sent directly to Google's API — it is not logged or stored by this system.
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -577,7 +610,7 @@ function saveInterviewData(username, data) {
 
 // ===== TAB SWITCH =====
 async function switchTab(tab) {
-  ['users','interviews','quiz','proposals','reschedule'].forEach(t => {
+  ['users','interviews','quiz','proposals','reschedule','settings'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
   });
@@ -590,6 +623,40 @@ async function switchTab(tab) {
   }
   if (tab === 'proposals') renderProposalsTab();
   if (tab === 'reschedule') { await syncFromFirebase(); renderRescheduleTab(); }
+  if (tab === 'settings') renderSettingsTab();
+}
+
+function renderSettingsTab() {
+  const existing = localStorage.getItem('wmt_gemini_key') || '';
+  document.getElementById('geminiKeyInput').value = existing ? '•'.repeat(20) : '';
+  document.getElementById('geminiKeyInput').dataset.loaded = existing ? '1' : '';
+}
+
+function saveGeminiKey() {
+  const input = document.getElementById('geminiKeyInput');
+  // If user didn't type a new value (still shows dots), keep existing
+  if (input.dataset.loaded && input.value === '•'.repeat(20)) {
+    showMsg(); return;
+  }
+  const val = input.value.trim();
+  if (!val) { alert('Please enter a valid API key.'); return; }
+  localStorage.setItem('wmt_gemini_key', val);
+  input.dataset.loaded = '1';
+  input.value = '•'.repeat(20);
+  showMsg();
+  function showMsg() {
+    const msg = document.getElementById('geminiKeySavedMsg');
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  }
+}
+
+function clearGeminiKey() {
+  if (!confirm('Remove the saved Gemini API key?')) return;
+  localStorage.removeItem('wmt_gemini_key');
+  document.getElementById('geminiKeyInput').value = '';
+  document.getElementById('geminiKeyInput').dataset.loaded = '';
+  document.getElementById('geminiKeySavedMsg').style.display = 'none';
 }
 
 // ===== USER FILTERS =====

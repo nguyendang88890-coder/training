@@ -120,6 +120,15 @@
 .month-sel:focus, .trainee-sel:focus { outline: none; border-color: var(--gold); }
 .empty-state { text-align:center; padding: 40px 24px; color: var(--text-muted); }
 
+/* AI Essay Grading */
+.essay-score-row { display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px; }
+.essay-score-inp { width:70px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-primary);font-size:0.88rem;text-align:center; }
+.essay-ai-btn { padding:4px 12px;font-size:0.78rem;background:rgba(100,150,255,0.12);border:1px solid rgba(100,150,255,0.3);color:#6496ff;border-radius:6px;cursor:pointer;font-weight:600;transition:background .15s; }
+.essay-ai-btn:hover:not(:disabled) { background:rgba(100,150,255,0.22); }
+.essay-ai-btn:disabled { opacity:0.5;cursor:not-allowed; }
+.essay-ai-feedback { margin-top:8px;font-size:0.78rem;background:rgba(0,214,143,0.05);border:1px solid rgba(0,214,143,0.2);border-radius:6px;padding:8px 10px;color:var(--text-secondary);line-height:1.5; }
+.essay-ai-feedback.err { background:rgba(255,61,113,0.05);border-color:rgba(255,61,113,0.2);color:var(--danger); }
+
 /* Question Bank */
 .qbank-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
 .qbank-card-hdr { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
@@ -312,7 +321,7 @@ function saveGenTest(g, m, d)    { dbWrite(`wmt_gentest_${g}_${m}`, JSON.stringi
 function delGenTest(g, m)        { dbRemove(`wmt_gentest_${g}_${m}`); }
 
 // Question counts per test type
-const TEST_QUOTA = { bdcs: { mcq: 55, essay: 5 }, others: { mcq: 100 } };
+const TEST_QUOTA = { bdcs: { mcq: 55, essay: 5, liet: 10 }, others: { mcq: 25 } };
 
 function shuffle(arr) {
   const a = [...arr];
@@ -329,21 +338,32 @@ function generateTest(month) {
   // BD/CS
   const qbBDCS = getQBank('bdcs');
   if (qbBDCS?.questions?.length) {
-    const mcqPool   = shuffle(qbBDCS.questions.filter(q=>q.type==='MCQ'));
-    const essayPool = shuffle(qbBDCS.questions.filter(q=>q.type==='Essay'));
-    const pickedMCQ   = mcqPool.slice(0, TEST_QUOTA.bdcs.mcq);
-    const pickedEssay = essayPool.slice(0, TEST_QUOTA.bdcs.essay);
+    const allMCQ     = qbBDCS.questions.filter(q=>q.type==='MCQ');
+    const lietPool   = shuffle(allMCQ.filter(q=>q.isLiet));
+    const normalPool = shuffle(allMCQ.filter(q=>!q.isLiet));
+    const essayPool  = shuffle(qbBDCS.questions.filter(q=>q.type==='Essay'));
+
+    const pickedLiet   = lietPool.slice(0, TEST_QUOTA.bdcs.liet);
+    const normalNeeded = TEST_QUOTA.bdcs.mcq - pickedLiet.length;
+    const pickedNormal = normalPool.slice(0, normalNeeded);
+    const pickedMCQ    = [...pickedLiet, ...pickedNormal];
+    const pickedEssay  = essayPool.slice(0, TEST_QUOTA.bdcs.essay);
+
     if (!pickedMCQ.length && !pickedEssay.length) {
       results.bdcs = { error: 'No questions found in the BD/CS bank.' };
     } else {
+      if (pickedLiet.length < TEST_QUOTA.bdcs.liet) {
+        console.warn(`BD/CS bank only has ${pickedLiet.length} Liet questions (required: ${TEST_QUOTA.bdcs.liet})`);
+      }
       const questions = shuffle([...pickedMCQ, ...pickedEssay]);
       const totalPts  = questions.reduce((s,q)=>s+q.points, 0);
       saveGenTest('bdcs', month, {
         month, generatedAt: new Date().toISOString(),
         questions, totalPoints: totalPts,
-        mcqCount: pickedMCQ.length, essayCount: pickedEssay.length
+        mcqCount: pickedMCQ.length, essayCount: pickedEssay.length,
+        lietCount: pickedLiet.length
       });
-      results.bdcs = { mcq: pickedMCQ.length, essay: pickedEssay.length };
+      results.bdcs = { mcq: pickedMCQ.length, essay: pickedEssay.length, liet: pickedLiet.length };
     }
   }
 
@@ -375,7 +395,7 @@ function regenTest(m) {
   const msgs = [];
   if (r.bdcs?.error)   msgs.push('BD/CS: ' + r.bdcs.error);
   if (r.others?.error) msgs.push('Others: ' + r.others.error);
-  if (r.bdcs && !r.bdcs.error)   msgs.push(`✅ BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} Essay`);
+  if (r.bdcs && !r.bdcs.error)   msgs.push(`✅ BD/CS: ${r.bdcs.mcq} MCQ (${r.bdcs.liet} Liet) + ${r.bdcs.essay} Essay`);
   if (r.others && !r.others.error) msgs.push(`✅ Others: ${r.others.mcq} MCQ`);
   if (!r.bdcs && !r.others) msgs.push('⚠️ No question bank uploaded yet.');
   alert('Test generation result:\n\n' + msgs.join('\n'));
@@ -779,7 +799,7 @@ function renderSetupTab() {
           const stLbl={upcoming:'Upcoming',active:'🟢 Active',expired:'Expired',none:'Draft'}[st];
           const gbBDCS   = getGenTest('bdcs', m);
           const gbOthers = getGenTest('others', m);
-          const genBDCS   = gbBDCS   ? `<span style="color:var(--success)">✅ ${gbBDCS.mcqCount} MCQ + ${gbBDCS.essayCount} Essay</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbBDCS.generatedAt).toLocaleString('en-GB')})</span>`
+          const genBDCS   = gbBDCS   ? `<span style="color:var(--success)">✅ ${gbBDCS.mcqCount} MCQ (${gbBDCS.lietCount??'?'} Liet) + ${gbBDCS.essayCount} Essay</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbBDCS.generatedAt).toLocaleString('en-GB')})</span>`
                                      : `<span style="color:var(--warning)">⚠ No test generated</span>`;
           const genOthers = gbOthers ? `<span style="color:var(--success)">✅ ${gbOthers.mcqCount} MCQ</span> <span style="color:var(--text-muted);font-size:0.7rem">(${new Date(gbOthers.generatedAt).toLocaleString('en-GB')})</span>`
                                      : `<span style="color:var(--warning)">⚠ No test generated</span>`;
@@ -856,7 +876,7 @@ function saveTestConfig() {
   if (isNew) {
     const r = generateTest(month);
     const genMsgs = [];
-    if (r.bdcs && !r.bdcs.error)   genMsgs.push(`🏢 BD/CS: ${r.bdcs.mcq} MCQ + ${r.bdcs.essay} Essay`);
+    if (r.bdcs && !r.bdcs.error)   genMsgs.push(`🏢 BD/CS: ${r.bdcs.mcq} MCQ (${r.bdcs.liet} Liet) + ${r.bdcs.essay} Essay`);
     if (r.others && !r.others.error) genMsgs.push(`🏛️ Others: ${r.others.mcq} MCQ`);
     if (genMsgs.length) {
       document.getElementById('cfgErr').style.color = 'var(--success)';
@@ -1056,42 +1076,166 @@ function saveOneOthers(un, month, passOthers) {
   saveMS(all); renderScoresTables();
 }
 
+// ===== AI ESSAY GRADING =====
+let _essayCtx = null;
+
+function getGeminiKey() { return localStorage.getItem('wmt_gemini_key') || ''; }
+
 function openEssayModal(un, month) {
-  const sub  = getSubmission(un, month);
-  const qb   = getQBank('bdcs');
+  const sub = getSubmission(un, month);
+  const qb  = getQBank('bdcs');
   if (!sub || !sub.essayAnswers) { alert('Submission not found.'); return; }
 
-  const existing = document.getElementById('essayModal');
-  if (existing) existing.remove();
+  document.getElementById('essayModal')?.remove();
+
+  // Build context for AI grading
+  _essayCtx = { un, month, mcqScore: sub.mcqScore || 0, essayMap: {} };
 
   const essays = Object.entries(sub.essayAnswers);
-  const rows = essays.map(([qid, ans]) => {
-    const q = qb?.questions?.find(q=>String(q.id)===String(qid));
-    return `<div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);">
-      <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:4px;">
-        ${q ? `Question ${q.id} — ${q.points}pts${q.isLiet?' ⚠ Liet Points':''}` : `Question ${qid}`}
+  const rows = essays.map(([qid, ans], idx) => {
+    const q      = qb?.questions?.find(q => String(q.id) === String(qid));
+    const maxPts = q?.points || 0;
+    _essayCtx.essayMap[qid] = { text: q?.text||'', rubric: q?.rubric||'', ans: ans||'', maxPts };
+
+    return `<div style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border);">
+      <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:6px;">
+        Q${idx+1} — ${maxPts}pts${q?.isLiet?' <span style="color:var(--danger)">⚠ Liet</span>':''}
       </div>
-      <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||''}</div>
-      ${q?.rubric?`<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>`:''}
-      <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;">${ans||'<em style="color:var(--text-muted)">No answer provided</em>'}</div>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||'<em>(question not found in bank)</em>'}</div>
+      ${q?.rubric ? `<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>` : ''}
+      <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;margin-bottom:10px;">${ans || '<em style="color:var(--text-muted)">No answer provided</em>'}</div>
+      <div class="essay-score-row">
+        <label style="font-size:0.8rem;color:var(--text-muted);">Score:</label>
+        <input type="number" id="essay_score_${qid}" class="essay-score-inp" min="0" max="${maxPts}" placeholder="0">
+        <span style="font-size:0.8rem;color:var(--text-muted);">/ ${maxPts}pts</span>
+        <button id="ai_btn_${qid}" class="essay-ai-btn" onclick="aiGradeOne('${qid}')">🤖 AI Grade</button>
+        <span id="ai_status_${qid}" style="font-size:0.78rem;color:var(--text-muted);"></span>
+      </div>
+      <div id="ai_feedback_${qid}" class="essay-ai-feedback hidden"></div>
     </div>`;
   }).join('');
 
   const modal = document.createElement('div');
   modal.id = 'essayModal';
   modal.className = 'modal-overlay show';
-  modal.innerHTML = `<div class="modal-box" style="max-width:600px;max-height:85vh;display:flex;flex-direction:column;">
-    <h3 style="margin-bottom:4px;">📝 Essay Answers — ${un}</h3>
-    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:16px;">
-      Submitted at: ${new Date(sub.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp; MCQ: ${sub.mcqScore}pts &nbsp;·&nbsp; Liet Wrong: ${sub.lietWrong}
+  modal.innerHTML = `<div class="modal-box" style="max-width:640px;max-height:88vh;display:flex;flex-direction:column;">
+    <h3 style="margin-bottom:4px;">📝 Essay Grading — ${un}</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:12px;">
+      Submitted: ${new Date(sub.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp;
+      MCQ: <strong style="color:var(--gold)">${sub.mcqScore}pts</strong> &nbsp;·&nbsp; Liet Wrong: ${sub.lietWrong}
     </div>
-    <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows.length ? rows : '<div style="color:var(--text-muted)">No essay questions.</div>'}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <button id="aiGradeAllBtn" class="btn btn-primary" style="font-size:0.82rem;padding:6px 16px;" onclick="aiGradeAll()">🤖 Grade All with AI</button>
+      <span style="font-size:0.75rem;color:var(--text-muted);">AI suggests scores — review and adjust before applying.</span>
+      ${!getGeminiKey() ? `<span style="font-size:0.75rem;color:var(--danger);">⚠ No API key — set in Admin Panel → Settings</span>` : ''}
+    </div>
+    <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows || '<div style="color:var(--text-muted)">No essay questions.</div>'}</div>
     <div class="modal-footer" style="margin-top:16px;">
-      <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove()">Close</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove();_essayCtx=null;">Close</button>
+      <button class="btn btn-success" onclick="applyEssayScores()">✅ Apply & Fill Score</button>
     </div>
   </div>`;
-  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  modal.addEventListener('click', e => { if (e.target === modal) { modal.remove(); _essayCtx = null; } });
   document.body.appendChild(modal);
+}
+
+async function aiGradeOne(qid) {
+  const key = getGeminiKey();
+  if (!key) { alert('Gemini API key not set.\nGo to Admin Panel → Settings to add your key.'); return; }
+  const ctx = _essayCtx;
+  if (!ctx) return;
+  const q = ctx.essayMap[qid];
+  if (!q) return;
+
+  const statusEl   = document.getElementById(`ai_status_${qid}`);
+  const feedbackEl = document.getElementById(`ai_feedback_${qid}`);
+  const scoreEl    = document.getElementById(`essay_score_${qid}`);
+  const btnEl      = document.getElementById(`ai_btn_${qid}`);
+
+  statusEl.textContent = '⏳';
+  if (btnEl) btnEl.disabled = true;
+  feedbackEl.classList.add('hidden');
+  feedbackEl.classList.remove('err');
+
+  const prompt = `You are grading a training exam essay for a sales/trading company (WeMasterTrade). Grade the student's answer based on the rubric. The answer may be in English or Vietnamese — assess content, not language.
+
+Question: ${q.text}
+Max Points: ${q.maxPts}
+${q.rubric ? `Rubric / Criteria:\n${q.rubric}` : '(No rubric provided — grade on overall relevance and accuracy)'}
+
+Student Answer:
+${q.ans || '(No answer provided)'}
+
+Respond ONLY with valid JSON (no markdown fences, no extra text):
+{"score": <integer 0 to ${q.maxPts}>, "feedback": "<1-2 sentences in English>"}`;
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
+        })
+      }
+    );
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+    const data   = await res.json();
+    const raw    = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const cleaned = raw.replace(/```json\n?|\n?```/g, '').trim();
+    const result  = JSON.parse(cleaned);
+    const score   = Math.min(Math.max(Math.round(Number(result.score)), 0), q.maxPts);
+
+    scoreEl.value = score;
+    feedbackEl.innerHTML = `<strong style="color:var(--success);">AI Suggested: ${score}/${q.maxPts}pts</strong> — ${result.feedback || ''}`;
+    feedbackEl.classList.remove('hidden');
+    statusEl.textContent = '✅';
+  } catch (e) {
+    feedbackEl.innerHTML = `Error: ${e.message}`;
+    feedbackEl.classList.add('err');
+    feedbackEl.classList.remove('hidden');
+    statusEl.textContent = '❌';
+  } finally {
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+async function aiGradeAll() {
+  const key = getGeminiKey();
+  if (!key) { alert('Gemini API key not set.\nGo to Admin Panel → Settings to add your key.'); return; }
+  const ctx = _essayCtx;
+  if (!ctx) return;
+  const btn = document.getElementById('aiGradeAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Grading…'; }
+  for (const qid of Object.keys(ctx.essayMap)) {
+    await aiGradeOne(qid);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '🤖 Grade All with AI'; }
+}
+
+function applyEssayScores() {
+  const ctx = _essayCtx;
+  if (!ctx) return;
+  let essayTotal = 0;
+  for (const qid of Object.keys(ctx.essayMap)) {
+    essayTotal += parseFloat(document.getElementById(`essay_score_${qid}`)?.value) || 0;
+  }
+  const total = ctx.mcqScore + essayTotal;
+  const scoreInput = document.getElementById(`sc_bdcs_${ctx.un}`);
+  if (scoreInput) {
+    scoreInput.value = total;
+    const cfg     = getMC()[ctx.month] || {};
+    const passBDCS = cfg.passBDCS ?? 250;
+    const lietMax  = cfg.lietMax  ?? 10;
+    liveUpdatePFBDCS(ctx.un, passBDCS, lietMax);
+  }
+  document.getElementById('essayModal')?.remove();
+  _essayCtx = null;
 }
 
 function openTestPreviewModal(m, group) {
