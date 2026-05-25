@@ -1238,59 +1238,155 @@ function applyEssayScores() {
   _essayCtx = null;
 }
 
+// ===== TEST PREVIEW & INLINE EDIT =====
+let _gtCtx = { group: null, m: null };
+
+function buildPreviewQHTML(q, idx, group, m) {
+  const typeBadge = q.type === 'Essay'
+    ? `<span class="preview-q-type-badge preview-q-type-essay">Essay</span>`
+    : `<span class="preview-q-type-badge preview-q-type-mcq">MCQ</span>`;
+  const lietBadge = q.isLiet ? `<span class="preview-q-liet">⚠ Liet Points</span>` : '';
+  const ptsBadge  = `<span class="preview-q-pts">${q.points}pts</span>`;
+
+  let bodyHTML = `<div class="preview-q-text">${q.text}</div>`;
+  if (q.type === 'MCQ' && q.opts) {
+    const optKeys = ['A','B','C','D'].filter(k => q.opts[k]);
+    bodyHTML += `<div class="preview-q-opts">` +
+      optKeys.map(k => `<div class="preview-q-opt ${q.correct===k?'correct':''}">
+        <span class="preview-q-opt-lbl">${k}.</span>
+        <span>${q.opts[k]}</span>
+        ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Answer</span>' : ''}
+      </div>`).join('') + `</div>`;
+  } else if (q.type === 'Essay' && q.rubric) {
+    bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
+  }
+
+  return `<div class="preview-q-item" id="pqi_${idx}">
+    <div class="preview-q-hdr">
+      <span class="preview-q-num">${idx+1}.</span>
+      ${typeBadge}${lietBadge}${ptsBadge}
+      <button class="essay-ai-btn" style="margin-left:auto;padding:3px 10px;font-size:0.72rem;"
+        onclick="editGenQ(${idx})">✏️ Edit</button>
+    </div>
+    ${bodyHTML}
+  </div>`;
+}
+
+function editGenQ(idx) {
+  const gt = getGenTest(_gtCtx.group, _gtCtx.m);
+  if (!gt) return;
+  const q = gt.questions[idx];
+  const isMCQ = q.type === 'MCQ';
+  const s = 'background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text-primary);font-size:0.85rem;width:100%;box-sizing:border-box;';
+
+  const optsHTML = isMCQ ? `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+      ${['A','B','C','D'].map(k=>`
+        <div><label style="font-size:0.75rem;color:var(--text-muted);">Option ${k}</label>
+        <input id="eq_opt${k}_${idx}" style="${s}" value="${(q.opts?.[k]||'').replace(/"/g,'&quot;')}"></div>
+      `).join('')}
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:0.75rem;color:var(--text-muted);">Correct Answer</label>
+      <select id="eq_correct_${idx}" style="${s}width:auto;">
+        ${['A','B','C','D'].map(k=>`<option value="${k}" ${q.correct===k?'selected':''}>${k}</option>`).join('')}
+      </select>
+    </div>` : `
+    <div style="margin-bottom:8px;">
+      <label style="font-size:0.75rem;color:var(--text-muted);">Rubric / Grading Criteria</label>
+      <textarea id="eq_rubric_${idx}" rows="3" style="${s}resize:vertical;">${q.rubric||''}</textarea>
+    </div>`;
+
+  const el = document.getElementById(`pqi_${idx}`);
+  el.innerHTML = `
+    <div style="background:rgba(100,150,255,0.04);border:1px solid rgba(100,150,255,0.2);border-radius:10px;padding:14px 16px;">
+      <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:10px;">✏️ Editing Q${idx+1} — ${q.type}</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:0.75rem;color:var(--text-muted);">Question Text</label>
+        <textarea id="eq_text_${idx}" rows="3" style="${s}resize:vertical;">${q.text||''}</textarea>
+      </div>
+      ${optsHTML}
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <div>
+          <label style="font-size:0.75rem;color:var(--text-muted);">Points</label>
+          <input type="number" id="eq_pts_${idx}" min="0" step="0.5" value="${q.points||0}"
+            style="${s}width:80px;">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-secondary);cursor:pointer;margin-top:16px;">
+          <input type="checkbox" id="eq_liet_${idx}" ${q.isLiet?'checked':''}>
+          ⚠ Liet Points
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-success" style="font-size:0.82rem;padding:6px 16px;" onclick="saveGenQ(${idx})">💾 Save</button>
+        <button class="btn btn-secondary" style="font-size:0.82rem;padding:6px 14px;" onclick="cancelEditGenQ(${idx})">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function cancelEditGenQ(idx) {
+  const gt = getGenTest(_gtCtx.group, _gtCtx.m);
+  if (!gt) return;
+  document.getElementById(`pqi_${idx}`).outerHTML =
+    buildPreviewQHTML(gt.questions[idx], idx, _gtCtx.group, _gtCtx.m);
+}
+
+function saveGenQ(idx) {
+  const gt = getGenTest(_gtCtx.group, _gtCtx.m);
+  if (!gt) return;
+  const q = gt.questions[idx];
+  const isMCQ = q.type === 'MCQ';
+
+  q.text   = document.getElementById(`eq_text_${idx}`).value.trim();
+  q.points = parseFloat(document.getElementById(`eq_pts_${idx}`).value) || 0;
+  q.isLiet = document.getElementById(`eq_liet_${idx}`).checked;
+
+  if (isMCQ) {
+    q.opts = {
+      A: document.getElementById(`eq_optA_${idx}`).value,
+      B: document.getElementById(`eq_optB_${idx}`).value,
+      C: document.getElementById(`eq_optC_${idx}`).value,
+      D: document.getElementById(`eq_optD_${idx}`).value,
+    };
+    q.correct = document.getElementById(`eq_correct_${idx}`).value;
+  } else {
+    q.rubric = document.getElementById(`eq_rubric_${idx}`).value.trim();
+  }
+
+  // Recalculate totals
+  gt.totalPoints = gt.questions.reduce((s, q) => s + q.points, 0);
+  saveGenTest(_gtCtx.group, _gtCtx.m, gt);
+
+  // Re-render this question card
+  const el = document.getElementById(`pqi_${idx}`);
+  el.outerHTML = buildPreviewQHTML(q, idx, _gtCtx.group, _gtCtx.m);
+
+  // Update header info
+  const infoEl = document.getElementById('previewModalInfo');
+  if (infoEl) infoEl.textContent = `${fmtMonth(_gtCtx.m)} · ${gt.mcqCount} MCQ${gt.essayCount?' + '+gt.essayCount+' Essay':''} · ${gt.totalPoints}pts total · Last edited: just now`;
+}
+
 function openTestPreviewModal(m, group) {
   const gt = getGenTest(group, m);
   if (!gt || !gt.questions?.length) { alert('No test available for this group.'); return; }
 
-  const existing = document.getElementById('testPreviewModal');
-  if (existing) existing.remove();
+  document.getElementById('testPreviewModal')?.remove();
+  _gtCtx = { group, m };
 
   const groupLabel = group === 'bdcs' ? '🏢 BD & CS' : '🏛️ Other Departments';
-  const rows = gt.questions.map((q, idx) => {
-    const typeBadge = q.type === 'Essay'
-      ? `<span class="preview-q-type-badge preview-q-type-essay">Essay</span>`
-      : `<span class="preview-q-type-badge preview-q-type-mcq">MCQ</span>`;
-    const lietBadge = q.isLiet ? `<span class="preview-q-liet">⚠ Liet Points</span>` : '';
-    const ptsBadge  = `<span class="preview-q-pts">${q.points}pts</span>`;
-
-    let bodyHTML = `<div class="preview-q-text">${q.text}</div>`;
-
-    if (q.type === 'MCQ' && q.opts) {
-      const optKeys = ['A','B','C','D'].filter(k => q.opts[k]);
-      bodyHTML += `<div class="preview-q-opts">` +
-        optKeys.map(k => `<div class="preview-q-opt ${q.correct===k?'correct':''}">
-          <span class="preview-q-opt-lbl">${k}.</span>
-          <span>${q.opts[k]}</span>
-          ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Answer</span>' : ''}
-        </div>`).join('') +
-        `</div>`;
-    } else if (q.type === 'Essay') {
-      if (q.rubric) {
-        bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
-      }
-    }
-
-    return `<div class="preview-q-item">
-      <div class="preview-q-hdr">
-        <span class="preview-q-num">${idx+1}.</span>
-        ${typeBadge}${lietBadge}${ptsBadge}
-      </div>
-      ${bodyHTML}
-    </div>`;
-  }).join('');
+  const rows = gt.questions.map((q, idx) => buildPreviewQHTML(q, idx, group, m)).join('');
 
   const modal = document.createElement('div');
   modal.id = 'testPreviewModal';
   modal.className = 'modal-overlay show';
   modal.innerHTML = `<div class="modal-box" style="max-width:700px;max-height:88vh;display:flex;flex-direction:column;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:12px;flex-wrap:wrap;">
-      <h3 style="margin:0;">👁 Preview Test — ${groupLabel}</h3>
+      <h3 style="margin:0;">📝 Preview & Edit Test — ${groupLabel}</h3>
       <button class="btn-xs del" onclick="document.getElementById('testPreviewModal').remove()">✕ Close</button>
     </div>
-    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">
-      ${fmtMonth(m)} &nbsp;·&nbsp; Generated at: ${new Date(gt.generatedAt).toLocaleString('en-GB')}
-      &nbsp;·&nbsp; ${gt.mcqCount} MCQ${gt.essayCount ? ' + ' + gt.essayCount + ' Essay' : ''}
-      &nbsp;·&nbsp; ${gt.totalPoints}pts total
+    <div id="previewModalInfo" style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">
+      ${fmtMonth(m)} &nbsp;·&nbsp; ${gt.mcqCount} MCQ${gt.essayCount?' + '+gt.essayCount+' Essay':''} &nbsp;·&nbsp; ${gt.totalPoints}pts total
+      &nbsp;·&nbsp; Generated: ${new Date(gt.generatedAt).toLocaleString('en-GB')}
     </div>
     <div style="overflow-y:auto;flex:1;border:1px solid var(--border);border-radius:10px;" class="preview-q-wrap">
       ${rows}
