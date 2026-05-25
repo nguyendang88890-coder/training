@@ -283,7 +283,7 @@ function _checkDeptBDCS(dept) {
 }
 function fmtDT(iso) {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
 }
 function fmtMonth(m) {
   if (!m) return '—';
@@ -1432,7 +1432,8 @@ function renderRescheduleTab() {
         ${stB(req.status)}
       </div>
       <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
-        Requested: <strong>${req.newDate} ${req.newTime||''}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        ${req.rsDeadline?`<br>Approved window: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> → <strong>${fmtDT(req.rsDeadline)}</strong>`:''}
         ${req.reason?`<br>Reason: ${req.reason}`:''}
         ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
       </div>
@@ -1444,10 +1445,54 @@ function renderRescheduleTab() {
     </div>`).join('');
 }
 
-function approveRs(un,m) {
-  const rs=getRS(un); if(!rs[m]) return;
-  rs[m].status='approved'; rs[m].processedAt=new Date().toISOString();
-  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+function approveRs(un, m) {
+  const rs = getRS(un); if (!rs[m]) return;
+  const req = rs[m];
+
+  document.getElementById('approveRsModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'approveRsModal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:420px;">
+    <h3 style="margin-bottom:8px;">✓ Approve Reschedule</h3>
+    <div style="font-size:0.84rem;color:var(--text-muted);margin-bottom:16px;">
+      <strong>${un}</strong> — ${fmtMonth(m)}<br>
+      Trainee requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong>
+    </div>
+    <div class="form-group">
+      <label>Test Opens At <span style="font-weight:400;color:var(--text-muted)">(in your local timezone)</span></label>
+      <input type="text" id="rsApproveStart" value="${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}" disabled
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-muted);font-size:0.88rem;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="form-group">
+      <label>Test Deadline *</label>
+      <input type="datetime-local" id="rsApproveDeadline"
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="error-msg" id="rsApproveErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('approveRsModal').remove()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmApproveRs('${un}','${m}')">✓ Confirm Approve</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function confirmApproveRs(un, m) {
+  const deadline = document.getElementById('rsApproveDeadline').value;
+  const err = document.getElementById('rsApproveErr');
+  err.textContent = '';
+  if (!deadline) { err.textContent = 'Please set a deadline.'; return; }
+  const rs = getRS(un); if (!rs[m]) return;
+  const start = `${rs[m].newDate}T${rs[m].newTime||'09:00'}`;
+  if (new Date(deadline) <= new Date(start)) { err.textContent = 'Deadline must be after the start time.'; return; }
+  rs[m].status = 'approved';
+  rs[m].rsDeadline = new Date(deadline).toISOString(); // store as UTC ISO
+  rs[m].processedAt = new Date().toISOString();
+  saveRS(un, rs);
+  document.getElementById('approveRsModal').remove();
+  updateRsBadge(); renderRescheduleTab();
 }
 function rejectRs(un,m) {
   const note=prompt('Rejection note (optional):')||'';
@@ -1491,10 +1536,21 @@ function renderNewEmployeeLocked() {
 
 function findActiveOrUpcoming() {
   const cfgs=getMC(), months=Object.keys(cfgs).sort().reverse();
+  const now=Date.now();
+  // 1. Global active or upcoming
   for (const m of months) {
     const st=getStatus(cfgs[m]);
     if (st==='active'||st==='upcoming') return {cfg:cfgs[m],m};
   }
+  // 2. User has an approved reschedule whose personal window hasn't expired
+  const userRS=getRS(CUR_USER);
+  for (const m of months) {
+    const rs=userRS[m];
+    if (rs?.status==='approved' && rs.rsDeadline && now<=new Date(rs.rsDeadline).getTime()) {
+      return {cfg:cfgs[m],m};
+    }
+  }
+  // 3. Fallback: most recent month
   if (months.length) return {cfg:cfgs[months[0]],m:months[0]};
   return {cfg:null,m:null};
 }
@@ -1506,19 +1562,47 @@ function renderCurrentTestCard() {
     el.innerHTML=`<div class="mt-hero"><div class="mt-status none">No Test Scheduled</div><div class="mt-title">Monthly Test</div><p style="color:var(--text-muted);margin-top:8px;">No test has been scheduled yet. Check back later.</p></div>`;
     return;
   }
-  const st=getStatus(cfg);
-  const stLabel={upcoming:'⏳ Upcoming',active:'🟢 Active — Test Open',expired:'⌛ Test Period Ended',none:'—'}[st];
-  const myScore=getMS()[m]?.[CUR_USER];
-  const myRs=getRS(CUR_USER)[m];
-
-  const myUser = ALL_USERS[CUR_USER] || {};
-  const myLink = isBDCS(myUser) ? cfg.testLinkBDCS : cfg.testLinkOthers;
-  const myGroup = isBDCS(myUser) ? 'bdcs' : 'others';
-  const qbank = getQBank ? getQBank(myGroup) : null;
+  const myUser     = ALL_USERS[CUR_USER] || {};
+  const myBDCS     = isBDCS(myUser);
+  const myLink     = myBDCS ? cfg.testLinkBDCS : cfg.testLinkOthers;
+  const myGroup    = myBDCS ? 'bdcs' : 'others';
+  const myScore    = getMS()[m]?.[CUR_USER];
+  const myRs       = getRS(CUR_USER)[m];
+  const qbank      = getQBank ? getQBank(myGroup) : null;
   const existingSub = getSubmission ? getSubmission(CUR_USER, m) : null;
 
-  let actionHTML='';
-  if (st==='active') {
+  // Determine effective test window — personal if approved reschedule, else global
+  const hasApprovedRS = myRs?.status === 'approved' && myRs.rsDeadline;
+  let effectiveStart, effectiveEnd;
+  if (hasApprovedRS) {
+    effectiveStart = myRs.rsStart || new Date(`${myRs.newDate}T${myRs.newTime||'09:00'}`).toISOString();
+    effectiveEnd   = myRs.rsDeadline;
+  } else {
+    effectiveStart = myBDCS ? cfg.startDateBDCS : cfg.startDateOthers;
+    effectiveEnd   = myBDCS ? cfg.deadlineBDCS  : cfg.deadlineOthers;
+  }
+
+  const now    = Date.now();
+  const startTs = effectiveStart ? new Date(effectiveStart).getTime() : Infinity;
+  const endTs   = effectiveEnd   ? new Date(effectiveEnd).getTime()   : 0;
+  let st;
+  if (!effectiveStart)    st = 'none';
+  else if (now < startTs) st = 'upcoming';
+  else if (now <= endTs)  st = 'active';
+  else                    st = 'expired';
+
+  const stLabel = {
+    active:   hasApprovedRS ? '🟢 Active — Rescheduled Test Open' : '🟢 Active — Test Open',
+    upcoming: hasApprovedRS ? '⏳ Rescheduled — Upcoming'         : '⏳ Upcoming',
+    expired:  '⌛ Test Period Ended',
+    none:     !effectiveStart ? '⏳ Schedule Not Set for Your Group' : '—'
+  }[st] || '—';
+
+  const maxSc     = myBDCS ? 300 : 25;
+  const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 18);
+
+  let actionHTML = '';
+  if (st === 'active') {
     if (existingSub && existingSub.submittedAt) {
       actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">
         <span style="font-size:1.3rem">✅</span>
@@ -1531,20 +1615,24 @@ function renderCurrentTestCard() {
     } else {
       actionHTML = `<span class="test-link-btn locked">🔒 No link assigned for your department</span>`;
     }
-  } else if (st==='upcoming') {
-    actionHTML=`<span class="test-link-btn locked">🔒 Test Not Started Yet</span>`;
+  } else if (st === 'upcoming') {
+    actionHTML = `<span class="test-link-btn locked">🔒 Test Not Started Yet</span>`;
+  } else if (st === 'none') {
+    actionHTML = `<div style="margin-top:14px;font-size:0.84rem;color:var(--text-muted);">
+      Test schedule for your department has not been configured yet. Please check back later or contact Admin.
+    </div>`;
   } else if (myScore) {
-    const pf=myScore.passed?`<span class="pf-badge pass">✓ PASS</span>`:`<span class="pf-badge fail">✗ FAIL</span>`;
-    const maxSc = isBDCS(myUser) ? 300 : 100;
-    const lietInfo = (isBDCS(myUser) && myScore.liet!==undefined)
+    const pf = myScore.passed ? `<span class="pf-badge pass">✓ PASS</span>` : `<span class="pf-badge fail">✗ FAIL</span>`;
+    const lietInfo = (myBDCS && myScore.liet !== undefined)
       ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Liet wrong: ${myScore.liet}</div>` : '';
-    actionHTML=`<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;">
-      <div><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div><div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${myScore.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>${lietInfo}</div>
+    actionHTML = `<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;">
+      <div><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div>
+      <div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${myScore.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>${lietInfo}</div>
       <div>${pf}</div></div>`;
   }
 
   const driveLink = cfg.driveLink || '';
-  const obsHTML = (st==='active'||st==='upcoming') ? `
+  const obsHTML = (st === 'active' || st === 'upcoming') ? `
     <div class="obs-callout">
       <div class="obs-callout-icon">🎥</div>
       <div class="obs-callout-body">
@@ -1554,36 +1642,41 @@ function renderCurrentTestCard() {
           After completing the test, upload the recording file to Google Drive via the link below.<br>
           <strong>Note:</strong> Tests submitted without a recording file will be considered invalid.
         </div>
-        ${driveLink?`<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Submit Recording (Google Drive) →</a>`
-          :`<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin has not provided a submission link. Please contact Admin.</div>`}
+        ${driveLink
+          ? `<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Submit Recording (Google Drive) →</a>`
+          : `<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin has not provided a submission link. Please contact Admin.</div>`}
       </div>
-    </div>` : (driveLink && st==='expired') ? `
+    </div>` : (driveLink && st === 'expired') ? `
     <div style="margin-top:16px;padding:12px 18px;background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:1.2rem;">🎥</span>
       <div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">If you have not submitted your OBS recording file, please upload it now.</div>
       <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Submit Recording →</a>
     </div>` : '';
 
-  el.innerHTML=`
+  const rsInfoHTML = hasApprovedRS
+    ? `<div class="mt-meta-item"><div class="lbl">Reschedule</div><div class="val" style="color:var(--success)">✓ ${fmtDT(myRs.rsStart||myRs.newDate+'T'+(myRs.newTime||'09:00'))} → ${fmtDT(myRs.rsDeadline)}</div></div>`
+    : myRs ? `<div class="mt-meta-item"><div class="lbl">Reschedule</div><div class="val" style="color:${myRs.status==='rejected'?'var(--danger)':'var(--warning)'}">${myRs.status==='rejected'?'✗ Rejected':'⏳ Pending'}</div></div>` : '';
+
+  el.innerHTML = `
     <div class="mt-hero">
       <div class="mt-status ${st}">${stLabel}</div>
       <div class="mt-title">${cfg.title||fmtMonth(m)}</div>
       <div class="mt-meta">
-        <div class="mt-meta-item"><div class="lbl">Start</div><div class="val">${fmtDT(cfg.startDate)}</div></div>
-        <div class="mt-meta-item"><div class="lbl">Deadline</div><div class="val">${fmtDT(cfg.deadline)}</div></div>
-        <div class="mt-meta-item"><div class="lbl">Pass Score</div><div class="val">${cfg.passScore||70}%</div></div>
-        ${myRs?`<div class="mt-meta-item"><div class="lbl">Reschedule</div><div class="val" style="color:${myRs.status==='approved'?'var(--success)':myRs.status==='rejected'?'var(--danger)':'var(--warning)'}">${myRs.status==='approved'?'✓ Approved':myRs.status==='rejected'?'✗ Rejected':'⏳ Pending'}</div></div>`:''}
+        <div class="mt-meta-item"><div class="lbl">Start</div><div class="val">${fmtDT(effectiveStart)}</div></div>
+        <div class="mt-meta-item"><div class="lbl">Deadline</div><div class="val">${fmtDT(effectiveEnd)}</div></div>
+        <div class="mt-meta-item"><div class="lbl">Pass Score</div><div class="val">${passScore}/${maxSc}</div></div>
+        ${rsInfoHTML}
       </div>
-      ${(st==='upcoming'||st==='active')?`
+      ${(st==='upcoming'||st==='active') ? `
         <div style="margin-top:14px;font-size:0.8rem;color:var(--text-muted);">${st==='upcoming'?'⏳ Test starts in:':'⏰ Closes in:'}</div>
-        <div class="countdown" id="cdBox"></div>`:''}
+        <div class="countdown" id="cdBox"></div>` : ''}
       <div>${actionHTML}</div>
       ${obsHTML}
     </div>`;
 
   if (_cdTimer) clearInterval(_cdTimer);
-  if (st==='upcoming'||st==='active') {
-    startCountdown(new Date(st==='upcoming'?cfg.startDate:cfg.deadline));
+  if (st === 'upcoming' || st === 'active') {
+    startCountdown(new Date(st === 'upcoming' ? effectiveStart : effectiveEnd));
   }
 }
 
@@ -1609,12 +1702,14 @@ function renderTraineeReschedule() {
   const maxDate=new Date(+y,+mo,0).toISOString().split('T')[0];
 
   if (existing) {
-    const stB=existing.status==='approved'?`<span style="color:var(--success);font-weight:700;">✓ Approved — ${existing.newDate} ${existing.newTime||''}</span>`
-      :existing.status==='rejected'?`<span style="color:var(--danger);font-weight:700;">✗ Rejected${existing.rejectReason?' — '+existing.rejectReason:''}</span>`
-      :`<span style="color:var(--warning);font-weight:700;">⏳ Awaiting admin approval</span>`;
+    const stB = existing.status==='approved'
+      ? `<span style="color:var(--success);font-weight:700;">✓ Approved${existing.rsDeadline?' — open until '+fmtDT(existing.rsDeadline):''}</span>`
+      : existing.status==='rejected'
+      ? `<span style="color:var(--danger);font-weight:700;">✗ Rejected${existing.rejectReason?' — '+existing.rejectReason:''}</span>`
+      : `<span style="color:var(--warning);font-weight:700;">⏳ Awaiting admin approval</span>`;
     el.innerHTML=`<div class="reschedule-card"><h4>🔄 Reschedule Request — ${fmtMonth(m)}</h4>
       <div style="font-size:0.88rem;color:var(--text-secondary);">
-        Requested: <strong>${existing.newDate} ${existing.newTime||''}</strong><br>Status: ${stB}
+        Requested: <strong>${fmtDT(existing.rsStart||existing.newDate+'T'+(existing.newTime||'09:00'))}</strong><br>Status: ${stB}
       </div></div>`;
     return;
   }
@@ -1645,7 +1740,8 @@ function submitReschedule(m, minDate, maxDate) {
   if (!date) { err.textContent='Please select a new date.'; return; }
   if (date<minDate||date>maxDate) { err.textContent=`Date must be within ${fmtMonth(m)}.`; return; }
   const rs=getRS(CUR_USER);
-  rs[m]={ newDate:date, newTime:time, reason, requestedAt:new Date().toISOString(), status:'pending', processedAt:null };
+  const rsStart = new Date(`${date}T${time}`).toISOString(); // store as UTC ISO
+  rs[m]={ rsStart, newDate:date, newTime:time, reason, requestedAt:new Date().toISOString(), status:'pending', processedAt:null };
   saveRS(CUR_USER,rs);
   renderTraineeReschedule();
 }
