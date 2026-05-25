@@ -1598,8 +1598,8 @@ function renderCurrentTestCard() {
     none:     !effectiveStart ? '⏳ Schedule Not Set for Your Group' : '—'
   }[st] || '—';
 
-  const maxSc     = myBDCS ? 300 : 25;
-  const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 18);
+  const maxSc     = myBDCS ? 300 : 100;
+  const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 60);
 
   let actionHTML = '';
   if (st === 'active') {
