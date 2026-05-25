@@ -827,17 +827,25 @@ function renderSetupTab() {
         }).join('')}`;
 }
 
+function toLocalDTInput(iso) {
+  if (!iso) return '';
+  // Convert UTC ISO → local datetime-local string (YYYY-MM-DDTHH:MM)
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function loadCfg(m) {
   const c=getMC()[m]||{};
   document.getElementById('cfgMonth').value        = m;
   document.getElementById('cfgTitle').value        = c.title||'';
-  document.getElementById('cfgStartBDCS').value    = c.startDateBDCS||'';
-  document.getElementById('cfgDeadlineBDCS').value = c.deadlineBDCS||'';
+  document.getElementById('cfgStartBDCS').value    = toLocalDTInput(c.startDateBDCS);
+  document.getElementById('cfgDeadlineBDCS').value = toLocalDTInput(c.deadlineBDCS);
   document.getElementById('cfgLinkBDCS').value     = c.testLinkBDCS||'';
   document.getElementById('cfgPassBDCS').value     = c.passBDCS!==undefined ? c.passBDCS : 250;
   document.getElementById('cfgLietMax').value      = c.lietMax!==undefined  ? c.lietMax  : 10;
-  document.getElementById('cfgStartOthers').value    = c.startDateOthers||'';
-  document.getElementById('cfgDeadlineOthers').value = c.deadlineOthers||'';
+  document.getElementById('cfgStartOthers').value    = toLocalDTInput(c.startDateOthers);
+  document.getElementById('cfgDeadlineOthers').value = toLocalDTInput(c.deadlineOthers);
   document.getElementById('cfgLinkOthers').value     = c.testLinkOthers||'';
   document.getElementById('cfgPassOthers').value     = c.passOthers!==undefined ? c.passOthers : 70;
   document.getElementById('cfgDriveLink').value      = c.driveLink||'';
@@ -845,12 +853,13 @@ function loadCfg(m) {
 }
 
 function saveTestConfig() {
+  const toUTC = v => v ? new Date(v).toISOString() : '';
   const month=document.getElementById('cfgMonth').value,
         title=document.getElementById('cfgTitle').value.trim(),
-        startDateBDCS=document.getElementById('cfgStartBDCS').value,
-        deadlineBDCS=document.getElementById('cfgDeadlineBDCS').value,
-        startDateOthers=document.getElementById('cfgStartOthers').value,
-        deadlineOthers=document.getElementById('cfgDeadlineOthers').value,
+        startDateBDCS=toUTC(document.getElementById('cfgStartBDCS').value),
+        deadlineBDCS=toUTC(document.getElementById('cfgDeadlineBDCS').value),
+        startDateOthers=toUTC(document.getElementById('cfgStartOthers').value),
+        deadlineOthers=toUTC(document.getElementById('cfgDeadlineOthers').value),
         testLinkBDCS=document.getElementById('cfgLinkBDCS').value.trim(),
         testLinkOthers=document.getElementById('cfgLinkOthers').value.trim(),
         passBDCS=parseInt(document.getElementById('cfgPassBDCS').value)||250,
