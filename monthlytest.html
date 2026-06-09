@@ -1492,7 +1492,7 @@ function renderHistTable() {
     <tbody>
       ${rows.map(({m,sc,cfg,rs,fc})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
-        const rsTxt=rs?(rs.status==='approved'?`✓ ${rs.newDate} ${rs.newTime}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
+        const rsTxt=rs?(rs.status==='approved'?`✓ ${fmtDT(rs.rsStart)}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
         const startD=userIsBDCS?cfg?.startDateBDCS:cfg?.startDateOthers;
         const endD  =userIsBDCS?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietCell=userIsBDCS?`<td style="text-align:center">${sc?.liet??'—'}</td>`:'';
@@ -1590,7 +1590,7 @@ function confirmApproveRs(un, m) {
   err.textContent = '';
   if (!deadline) { err.textContent = 'Please set a deadline.'; return; }
   const rs = getRS(un); if (!rs[m]) return;
-  const start = `${rs[m].newDate}T${rs[m].newTime||'09:00'}`;
+  const start = rs[m].rsStart || new Date(`${rs[m].newDate}T${rs[m].newTime||'09:00'}`).toISOString();
   if (new Date(deadline) <= new Date(start)) { err.textContent = 'Deadline must be after the start time.'; return; }
   rs[m].status = 'approved';
   rs[m].rsDeadline = new Date(deadline).toISOString(); // store as UTC ISO
@@ -1673,7 +1673,7 @@ function renderCurrentTestCard() {
   const myGroup    = myBDCS ? 'bdcs' : 'others';
   const myScore    = getMS()[m]?.[CUR_USER];
   const myRs       = getRS(CUR_USER)[m];
-  const qbank      = getQBank ? getQBank(myGroup) : null;
+  const qbank      = getGenTest(myGroup, m) || getQBank(myGroup);
   const existingSub = getSubmission ? getSubmission(CUR_USER, m) : null;
 
   // Determine effective test window — personal if approved reschedule, else global
@@ -1799,9 +1799,14 @@ function startCountdown(target) {
 function renderTraineeReschedule() {
   const {cfg,m}=findActiveOrUpcoming();
   const el=document.getElementById('rescheduleSection');
-  if (!cfg||getStatus(cfg)==='expired') { el.innerHTML=''; return; }
+  if (!cfg) { el.innerHTML=''; return; }
 
+  // If global window has expired but this month was returned via an approved RS,
+  // still show the RS status card — don't hide it just because global is expired.
   const existing=getRS(CUR_USER)[m];
+  const hasApprovedRS = existing?.status === 'approved' && existing.rsDeadline;
+  if (getStatus(cfg)==='expired' && !hasApprovedRS) { el.innerHTML=''; return; }
+
   const [y,mo]=m.split('-');
   const minDate=`${y}-${mo}-01`;
   const maxDate=new Date(+y,+mo,0).toISOString().split('T')[0];
@@ -1872,7 +1877,7 @@ function renderTraineeHistory() {
     <tbody>
       ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
-        const rsTxt=rs?(rs.status==='approved'?`✓ ${rs.newDate}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
+        const rsTxt=rs?(rs.status==='approved'?`✓ ${fmtDT(rs.rsStart)}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
         const startD=userIsBDCSH?cfg?.startDateBDCS:cfg?.startDateOthers;
         const endD  =userIsBDCSH?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietTd=userIsBDCSH?`<td style="text-align:center;color:${sc?.liet>0?'var(--danger)':'var(--text-muted)'}">${sc?.liet??'—'}</td>`:'';

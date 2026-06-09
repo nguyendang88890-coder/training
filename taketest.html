@@ -131,23 +131,36 @@ function getQBank(g)         { return JSON.parse(localStorage.getItem('wmt_qbank
 function getGenTest(g, m)    { return JSON.parse(localStorage.getItem(`wmt_gentest_${g}_${m}`)||'null'); }
 function getSubmission(u,m){ return JSON.parse(localStorage.getItem('wmt_sub_'+u+'_'+m)||'null'); }
 function saveSubmission(u,m,d){ dbWrite('wmt_sub_'+u+'_'+m, JSON.stringify(d)); }
+function getRS(u)           { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u)||'{}'); }
 
-function isBDCS(dept) {
+// isBDCS accepts a user object OR a department string.
+// User object: checks testGroup override first, then falls back to department.
+// String: checks department name directly (no override possible).
+function isBDCS(userOrDept) {
+  if (userOrDept && typeof userOrDept === 'object') {
+    if (userOrDept.testGroup === 'bdcs')   return true;
+    if (userOrDept.testGroup === 'others') return false;
+    return _checkDeptBDCS(userOrDept.department);
+  }
+  return _checkDeptBDCS(userOrDept);
+}
+function _checkDeptBDCS(dept) {
   if (!dept) return false;
   const d = dept.toLowerCase().trim();
-  return d.includes('bd') || d.includes('business dev') || d.includes('cs') || d.includes('customer serv');
+  return d === 'bd' || d.includes('business dev') ||
+         d === 'cs' || d.includes('customer serv') ||
+         d.includes('sales');
 }
 function fmtDT(s) {
   if (!s) return '—';
-  return new Date(s).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  return new Date(s).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});
 }
 
 // ===== INIT =====
 const CUR_USER  = localStorage.getItem('wmt_user') || '';
 const ALL_USERS = getUsersDB();
 const USER_DATA = ALL_USERS[CUR_USER] || {};
-const MY_DEPT   = USER_DATA.department || '';
-const IS_BDCS   = isBDCS(MY_DEPT);
+const IS_BDCS   = isBDCS(USER_DATA);
 const MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
 
 let _timer = null;
@@ -171,6 +184,15 @@ document.addEventListener('DOMContentLoaded', async function() {
   const cfgs = getMC();
   _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
 
+  // Fallback: if no active window, check if user has a submission for a recent month
+  if (!_currentMonth) {
+    const sorted = Object.keys(cfgs).sort().reverse();
+    for (const m of sorted) {
+      const s = getSubmission(CUR_USER, m);
+      if (s && s.submittedAt) { _currentMonth = m; break; }
+    }
+  }
+
   if (!_currentMonth) {
     renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
     return;
@@ -178,17 +200,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   _currentCfg = cfgs[_currentMonth];
 
-  // Check group-specific status
-  const startD = IS_BDCS ? _currentCfg.startDateBDCS : _currentCfg.startDateOthers;
-  const endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
-  const now    = Date.now();
+  // Determine effective test window: personal approved reschedule takes priority
+  const myRS   = getRS(CUR_USER);
+  const myRsM  = myRS[_currentMonth];
+  const hasApprovedRS = myRsM?.status === 'approved' && myRsM.rsDeadline;
+
+  let startD, endD;
+  if (hasApprovedRS) {
+    startD = myRsM.rsStart || new Date(`${myRsM.newDate}T${myRsM.newTime||'09:00'}`).toISOString();
+    endD   = myRsM.rsDeadline;
+  } else {
+    startD = IS_BDCS ? _currentCfg.startDateBDCS : _currentCfg.startDateOthers;
+    endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
+  }
+
+  const now = Date.now();
 
   if (!startD || !endD) {
     renderError('No test has been configured for your department.');
     return;
   }
 
-  // Check if already submitted
+  // Load generated test snapshot (needed for both active test and result review)
+  _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
+
+  // Check if already submitted — show result/review regardless of date window
   const sub = getSubmission(CUR_USER, _currentMonth);
   if (sub && sub.submittedAt) {
     renderResult(sub, _currentCfg);
@@ -204,8 +240,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  // Load generated test for this month (falls back to qbank if not generated yet)
-  _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
   if (!_qbank || !_qbank.questions || !_qbank.questions.length) {
     renderError('No test available for your group this month. Please contact admin.');
     return;
@@ -217,11 +251,23 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 function findActiveMonth(cfgs) {
   const months = Object.keys(cfgs).sort().reverse();
+  const now = Date.now();
+  const myRS = getRS(CUR_USER);
+
   for (const m of months) {
     const c = cfgs[m];
+
+    // Check personal approved reschedule window first
+    const rs = myRS[m];
+    if (rs?.status === 'approved' && rs.rsDeadline) {
+      const rsStart = rs.rsStart || new Date(`${rs.newDate}T${rs.newTime||'09:00'}`).toISOString();
+      if (now >= new Date(rsStart).getTime() && now <= new Date(rs.rsDeadline).getTime()) return m;
+    }
+
+    // Fall back to global group window
     const s = IS_BDCS ? c.startDateBDCS : c.startDateOthers;
     const e = IS_BDCS ? c.deadlineBDCS  : c.deadlineOthers;
-    if (s && e && Date.now() >= new Date(s).getTime() && Date.now() <= new Date(e).getTime()) return m;
+    if (s && e && now >= new Date(s).getTime() && now <= new Date(e).getTime()) return m;
   }
   return null;
 }
@@ -491,16 +537,69 @@ function renderResult(sub, mc) {
       </div>
     </div>
 
-    ${isBDCSU && sub.essayPending ? `
-    <div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.2);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <div style="font-weight:700;color:#6496ff;margin-bottom:12px;">📝 Your Essay Answers</div>
-      ${Object.entries(sub.essayAnswers).map(([qid,ans])=>{
-        const q = qs.find(q=>String(q.id)===String(qid));
-        return `<div style="margin-bottom:14px;">
-          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">${q?q.text.slice(0,80):'Question'}</div>
-          <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.85rem;color:var(--text-secondary);white-space:pre-wrap;">${ans||'(No answer provided)'}</div>
-        </div>`;
-      }).join('')}
+    ${qs.length ? `
+    <!-- ===== ANSWER REVIEW ===== -->
+    <div style="margin-top:24px;">
+      <div style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:14px;">📋 Review Your Answers</div>
+
+      <!-- MCQ review -->
+      ${qs.filter(q=>q.type==='MCQ').length ? `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:var(--text-primary);font-size:0.9rem;">
+          Multiple Choice Questions
+        </div>
+        ${qs.filter(q=>q.type==='MCQ').map((q,idx)=>{
+          const res    = sub.mcqResults ? sub.mcqResults[q.id] : null;
+          const chosen = res?.ans || null;
+          const correct= q.correct?.toUpperCase();
+          const isCorr = res?.correct;
+          const opts   = ['A','B','C','D'];
+          return `<div style="padding:14px 18px;border-top:${idx>0?'1px solid var(--border)':'none'};${q.isLiet?'border-left:3px solid var(--danger);':''}" >
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+              <span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;
+                background:${isCorr?'rgba(0,214,143,0.12)':'rgba(255,61,113,0.1)'};
+                color:${isCorr?'var(--success)':'var(--danger)'}">
+                ${isCorr?'✓ Correct':'✗ Wrong'}
+              </span>
+              ${q.isLiet?`<span style="font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(255,61,113,0.1);color:var(--danger);flex-shrink:0;">⚠ Liet</span>`:''}
+              <span style="font-size:0.85rem;color:var(--text-primary);line-height:1.4;">${q.text}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px;">
+              ${opts.map(o=>{
+                if (!q['opt'+o]) return '';
+                const isChosen  = chosen?.toUpperCase()===o;
+                const isCorrect = correct===o;
+                let bg='transparent', border='rgba(255,255,255,0.05)', color='var(--text-secondary)';
+                if (isCorrect)        { bg='rgba(0,214,143,0.08)';  border='rgba(0,214,143,0.3)';  color='var(--success)'; }
+                if (isChosen && !isCorrect) { bg='rgba(255,61,113,0.07)'; border='rgba(255,61,113,0.3)'; color='var(--danger)'; }
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:7px;border:1px solid ${border};background:${bg};">
+                  <span style="font-weight:700;font-size:0.78rem;color:${color};min-width:16px;">${o}.</span>
+                  <span style="font-size:0.83rem;color:${color};">${q['opt'+o]}</span>
+                  ${isChosen?`<span style="margin-left:auto;font-size:0.72rem;color:${isCorrect?'var(--success)':'var(--danger)'};">${isCorrect?'✓ Your answer':'✗ Your answer'}</span>`:''}
+                  ${!isChosen&&isCorrect?`<span style="margin-left:auto;font-size:0.72rem;color:var(--success);">✓ Correct answer</span>`:''}
+                </div>`;
+              }).join('')}
+              ${!chosen?`<div style="font-size:0.78rem;color:var(--text-muted);padding:3px 10px;">⚠ Not answered</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+
+      <!-- Essay review -->
+      ${qs.filter(q=>q.type==='Essay').length ? `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;color:#6496ff;font-size:0.9rem;">
+          📝 Essay Answers ${isBDCSU&&sub.essayPending?'<span style="font-size:0.72rem;font-weight:500;color:var(--text-muted);margin-left:8px;">(Pending admin grading)</span>':''}
+        </div>
+        ${qs.filter(q=>q.type==='Essay').map((q,idx)=>{
+          const ans = sub.essayAnswers?.[q.id] || '';
+          return `<div style="padding:16px 18px;${idx>0?'border-top:1px solid var(--border)':''}">
+            <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">${q.text}</div>
+            ${q.rubric?`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">📋 Rubric: ${q.rubric}</div>`:''}
+            <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-secondary);white-space:pre-wrap;min-height:40px;">${ans||'<em style="color:var(--text-muted)">(No answer provided)</em>'}</div>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
     </div>` : ''}
 
     <div style="text-align:center;margin-top:10px;">

@@ -40,7 +40,8 @@
               <tr><th>Account Type</th><th>Leverage</th><th>Notes</th></tr>
             </thead>
             <tbody>
-              <tr class="highlight-row"><td>Challenge (Phase 1 & 2)</td><td>1:100</td><td>Full leverage during evaluation</td></tr>
+              <tr class="highlight-row"><td>Challenge Phase 1</td><td>1:100</td><td>Full leverage during Phase 1</td></tr>
+              <tr><td>Challenge Phase 2</td><td>1:33</td><td>Reduced leverage in Phase 2</td></tr>
               <tr><td>Instant Funding — 51010</td><td>1:100</td><td>Standard leverage</td></tr>
               <tr><td>Instant Funding — 510zero</td><td>1:100</td><td>Same leverage as 51010 (Stocks: 1:20)</td></tr>
               <tr><td>Funded (Challenge graduates)</td><td>1:10</td><td>Reduced leverage on funded account</td></tr>
@@ -138,13 +139,6 @@
               <p>Industry-standard platform. Available on Desktop (Windows/Mac), Web, iOS, and Android. Full EA support, advanced charting, multi-timeframe analysis.</p>
             </div>
           </div>
-          <div class="callout info">
-            <span class="callout-icon">🖥️</span>
-            <div class="callout-content">
-              <strong>MatchTrader</strong>
-              <p>Modern web-based platform. Clean UI, fast execution, perfect for prop traders. Accessible via browser without installation. Mobile-friendly.</p>
-            </div>
-          </div>
           <div class="callout danger">
             <span class="callout-icon">⚙️</span>
             <div class="callout-content">
@@ -158,7 +152,7 @@
           <span class="callout-icon">✅</span>
           <div class="callout-content">
             <strong>Platform Selection Tip for Clients</strong>
-            <p>Recommend MT5 for clients who use automated trading (EAs) or need advanced technical analysis. Recommend MatchTrader for clients who prefer simplicity and web-based access without downloads. Recommend cTrader for clients who want advanced order types and algorithmic trading with cBots.</p>
+            <p>Recommend MT5 for clients who use automated trading (EAs) or need advanced technical analysis. Recommend cTrader for clients who want advanced order types and algorithmic trading with cBots.</p>
           </div>
         </div>
       </div>
@@ -228,14 +222,14 @@ const questions = [
     explain: "Crypto trades use a 0.035% commission per trade (percentage-based), unlike forex and metals which use fixed per-lot fees. This aligns with how crypto position sizes vary widely."
   },
   {
-    q: "Which trading platform does NOT require installation and is browser-based?",
-    opts: ["MetaTrader 5", "cTrader", "MatchTrader", "All of the above"],
-    _c: "Mg==",
-    explain: "MatchTrader is fully browser-based — no download required. MT5 and cTrader both have desktop/app versions, making MatchTrader the best choice for clients who can't install software."
+    q: "Which trading platform supports Expert Advisors (EAs) for automated trading?",
+    opts: ["MetaTrader 5", "cTrader", "TradingView", "NinjaTrader"],
+    _c: "MA==",
+    explain: "MetaTrader 5 (MT5) supports Expert Advisors (EAs) for fully automated trading strategies. cTrader supports algorithmic trading through cBots. WeMasterTrade currently supports MT5 and cTrader."
   },
   {
     q: "Which platform supports algorithmic trading via cBots?",
-    opts: ["MetaTrader 5", "MatchTrader", "cTrader", "All platforms"],
+    opts: ["MetaTrader 5", "TradingView", "cTrader", "All platforms"],
     _c: "Mg==",
     explain: "cTrader supports algorithmic trading through cBots, along with advanced order types and Level II pricing. MT5 supports EAs (Expert Advisors) for automated trading."
   }

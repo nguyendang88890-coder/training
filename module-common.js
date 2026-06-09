@@ -469,7 +469,7 @@ function getSidebarHTML(activeModule) {
     <nav class="sidebar-nav">
       <div class="nav-section-title">Training Modules</div>
       <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span> Dashboard</a>
-      <a href="about.html" class="nav-item ${activeModule === 'about' ? 'active' : ''}"><span class="nav-icon">🏢</span> About WMT</a>
+      <a href="about.html" class="nav-item ${activeModule === 'about' ? 'active' : ''}"><span class="nav-icon">🏢</span> About WMT <span style="font-size:0.6rem;font-weight:700;background:rgba(255,61,113,0.18);color:#ff6b8a;border:1px solid rgba(255,61,113,0.35);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">IMPORTANT</span></a>
       ${modules.map(m => `
         <a href="${m.file}" class="nav-item ${m.id === activeModule ? 'active' : ''}" id="nav-m${m.id}">
           <span class="nav-icon">${m.icon}</span> <span>${m.title}</span>
