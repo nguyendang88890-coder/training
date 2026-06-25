@@ -913,11 +913,14 @@ function renderScoresTab() {
   const cfgs=getMC(), months=Object.keys(cfgs).sort().reverse(), el=document.getElementById('adminScoresTab');
   if (!months.length) { el.innerHTML=`<div class="empty-state">No tests configured yet.</div>`; return; }
   el.innerHTML=`
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap;">
       <label style="color:var(--text-secondary);font-weight:600;">Month:</label>
       <select class="month-sel" id="scMonth" onchange="renderScoresTables()">
         ${months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
       </select>
+      <input type="text" id="scSearch" placeholder="🔍 Name, username or email…" oninput="renderScoresTables()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
+               border-radius:8px;color:var(--text-primary);font-size:0.83rem;min-width:220px;flex:1;max-width:320px;">
       <button class="export-btn xl" onclick="exportAll()">📥 Export All (Excel)</button>
     </div>
     <div id="scoresTables"></div>`;
@@ -926,9 +929,19 @@ function renderScoresTab() {
 
 function renderScoresTables() {
   const month  = document.getElementById('scMonth').value;
+  const search = (document.getElementById('scSearch')?.value || '').toLowerCase().trim();
   const cfg    = getMC()[month];
   const scores = getMS()[month]||{};
-  const trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+  let trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+
+  // Filter by name, username, work name, or email
+  if (search) {
+    trainees = trainees.filter(([uname, ud]) => {
+      const hay = [uname, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||''].join(' ').toLowerCase();
+      return hay.includes(search);
+    });
+  }
+
   const bdcs   = trainees.filter(([,u])=>isBDCS(u));
   const others = trainees.filter(([,u])=>!isBDCS(u));
 
@@ -1706,13 +1719,48 @@ function renderCurrentTestCard() {
   const maxSc     = myBDCS ? 300 : 100;
   const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 60);
 
+  // Resolve score: use graded record if available, else fall back to submission data
+  // (guards against Firebase sync race condition overwriting localStorage score)
+  const resolvedScore = myScore ?? (existingSub && !myBDCS && existingSub.mcqScore !== undefined
+    ? { score: existingSub.mcqScore, passed: existingSub.provisionalPassed, autoGraded: true }
+    : null);
+
+  function scoreBlock(scoreObj, showLiet) {
+    const pf = scoreObj.passed ? `<span class="pf-badge pass">✓ PASS</span>` : `<span class="pf-badge fail">✗ FAIL</span>`;
+    const lietInfo = (showLiet && scoreObj.liet !== undefined)
+      ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Liet wrong: ${scoreObj.liet}</div>` : '';
+    return `<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div>
+        <div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${scoreObj.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>
+        ${lietInfo}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;">
+        ${pf}
+        <a href="taketest.html?month=${m}" style="font-size:0.75rem;color:var(--gold);text-decoration:none;opacity:0.8;">📋 View Answers</a>
+      </div>
+    </div>`;
+  }
+
   let actionHTML = '';
   if (st === 'active') {
     if (existingSub && existingSub.submittedAt) {
-      actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">
-        <span style="font-size:1.3rem">✅</span>
-        <div><div style="font-size:0.72rem;color:var(--text-muted);">SUBMITTED</div>
-        <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">Submitted ${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div></div></div>`;
+      if (!myBDCS && resolvedScore) {
+        // Others: auto-graded — show score immediately
+        actionHTML = scoreBlock(resolvedScore, false);
+        actionHTML += `<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);">✅ Submitted ${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div>`;
+      } else {
+        // BDCS: awaiting essay grading
+        actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">
+          <span style="font-size:1.3rem">✅</span>
+          <div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">SUBMITTED</div>
+            <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">Submitted ${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">⏳ Awaiting essay grading</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;"><a href="taketest.html?month=${m}" style="font-size:0.78rem;color:var(--gold);text-decoration:none;">📋 View Submitted Answers</a></div>`;
+      }
     } else if (qbank && qbank.questions && qbank.questions.length) {
       actionHTML = `<a class="test-link-btn" href="taketest.html?month=${m}" style="text-decoration:none;">📝 Start Test →</a>`;
     } else if (myLink) {
@@ -1726,14 +1774,8 @@ function renderCurrentTestCard() {
     actionHTML = `<div style="margin-top:14px;font-size:0.84rem;color:var(--text-muted);">
       Test schedule for your department has not been configured yet. Please check back later or contact Admin.
     </div>`;
-  } else if (myScore) {
-    const pf = myScore.passed ? `<span class="pf-badge pass">✓ PASS</span>` : `<span class="pf-badge fail">✗ FAIL</span>`;
-    const lietInfo = (myBDCS && myScore.liet !== undefined)
-      ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">Liet wrong: ${myScore.liet}</div>` : '';
-    actionHTML = `<div style="margin-top:18px;padding:14px 18px;background:rgba(255,215,0,0.05);border:1px solid rgba(255,215,0,0.15);border-radius:10px;display:inline-flex;align-items:center;gap:16px;">
-      <div><div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:3px;">YOUR SCORE</div>
-      <div style="font-size:1.6rem;font-weight:800;color:var(--gold)">${myScore.score}<span style="font-size:0.9rem;font-weight:400;color:var(--text-muted)">/${maxSc}</span></div>${lietInfo}</div>
-      <div>${pf}</div></div>`;
+  } else if (resolvedScore) {
+    actionHTML = scoreBlock(resolvedScore, myBDCS);
   }
 
   const driveLink = cfg.driveLink || '';
@@ -1799,13 +1841,19 @@ function startCountdown(target) {
 function renderTraineeReschedule() {
   const {cfg,m}=findActiveOrUpcoming();
   const el=document.getElementById('rescheduleSection');
-  if (!cfg) { el.innerHTML=''; return; }
 
-  // If global window has expired but this month was returned via an approved RS,
-  // still show the RS status card — don't hide it just because global is expired.
+  // If no month is configured at all, show a placeholder (nothing to reschedule)
+  if (!cfg) {
+    el.innerHTML=`<div class="reschedule-card">
+      <h4>🔄 Request Test Reschedule</h4>
+      <p style="color:var(--text-muted);font-size:0.84rem;">Chưa có bài test nào được xếp lịch. Tính năng reschedule sẽ khả dụng khi admin tạo lịch test.</p>
+    </div>`;
+    return;
+  }
+
+  // Always show the reschedule section regardless of test status (active, upcoming, expired)
+  // — user can always submit a request; admin decides whether to approve.
   const existing=getRS(CUR_USER)[m];
-  const hasApprovedRS = existing?.status === 'approved' && existing.rsDeadline;
-  if (getStatus(cfg)==='expired' && !hasApprovedRS) { el.innerHTML=''; return; }
 
   const [y,mo]=m.split('-');
   const minDate=`${y}-${mo}-01`;
@@ -1824,9 +1872,17 @@ function renderTraineeReschedule() {
     return;
   }
 
+  const testStatus = getStatus(cfg);
+  const statusNote = testStatus === 'expired'
+    ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ Cửa sổ thi tháng <strong>${fmtMonth(m)}</strong> đã kết thúc. Bạn vẫn có thể gửi yêu cầu reschedule — admin sẽ xem xét và mở lại thời gian thi riêng cho bạn.</div>`
+    : testStatus === 'upcoming'
+    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Bài test <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn vẫn có thể gửi yêu cầu dời lịch sớm nếu cần.</div>`
+    : '';
+
   el.innerHTML=`
     <div class="reschedule-card">
       <h4>🔄 Request Test Reschedule</h4>
+      ${statusNote}
       <p style="color:var(--text-muted);font-size:0.84rem;margin-bottom:16px;">
         You may reschedule <strong>once per month</strong>. New date must be within <strong>${fmtMonth(m)}</strong>.
       </p>

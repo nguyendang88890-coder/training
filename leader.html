@@ -91,6 +91,16 @@
     .exam-badge.disqualified { background:rgba(255,61,113,0.2);  color:var(--danger); }
     .exam-badge.none         { background:rgba(255,255,255,0.05); color:var(--text-muted); }
 
+    /* Pass/Fail badge (monthly scores) */
+    .pf-badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+    .pf-badge.pass { background:rgba(0,214,143,0.15); color:var(--success); }
+    .pf-badge.fail { background:rgba(255,61,113,0.12); color:var(--danger); }
+    .pf-badge.none { background:rgba(90,90,120,0.15);  color:var(--text-muted); }
+
+    /* Leader tab container */
+    #leaderTabContainer .page-tabs { margin-bottom: 0; border-radius: 10px 10px 0 0; }
+    #leaderTabMembersContent, #leaderTabScoresContent { padding-top: 16px; }
+
     /* Member card (mobile view) */
     @media (max-width: 700px) {
       .team-table-wrap { border-radius:10px; }
@@ -243,32 +253,41 @@ let _currentUser = '';
 
     <div id="adminAllTeamsView" style="display:none;"></div>
     <div class="team-stats" id="teamStats"></div>
-    <div class="filter-bar" id="teamFilterBar">
-      <input type="text" id="teamSearch" placeholder="🔍 Search member name…" oninput="renderTeamTable()">
-      <select id="teamFilterDept" onchange="renderTeamTable()"><option value="">All Departments</option></select>
-      <select id="teamFilterProgress" onchange="renderTeamTable()">
-        <option value="">All Progress</option>
-        <option value="complete">✅ All Modules Done</option>
-        <option value="inprogress">⏳ In Progress</option>
-        <option value="notstarted">🔴 Not Started</option>
-      </select>
-      <select id="teamFilterExam" onchange="renderTeamTable()">
-        <option value="">All Exam Status</option>
-        <option value="passed">✓ Passed</option>
-        <option value="failed">✗ Failed / Attempt</option>
-        <option value="none">Not Started</option>
-      </select>
-      <button class="filter-clear" onclick="clearTeamFilters()">✕ Clear</button>
-      <span id="teamCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
-    </div>
-    <div class="team-table-wrap" id="teamTableWrap">
-      <table>
-        <thead><tr>
-          <th>Member</th><th>Department</th><th>Position</th><th>Type</th>
-          <th>Modules</th><th>Avg Score</th><th>Exam</th><th>Joined</th>
-        </tr></thead>
-        <tbody id="teamTableBody"></tbody>
-      </table>
+    <div id="leaderTabContainer">
+      <div class="page-tabs" style="margin-bottom:0;">
+        <button class="page-tab active" id="leaderTabMembersBtn" onclick="switchLeaderTab('Members')">👥 Members</button>
+        <button class="page-tab"        id="leaderTabScoresBtn"  onclick="switchLeaderTab('Scores')">📊 Monthly Scores</button>
+      </div>
+      <div id="leaderTabMembersContent">
+        <div class="filter-bar" id="teamFilterBar">
+          <input type="text" id="teamSearch" placeholder="🔍 Search member name…" oninput="renderTeamTable()">
+          <select id="teamFilterDept" onchange="renderTeamTable()"><option value="">All Departments</option></select>
+          <select id="teamFilterProgress" onchange="renderTeamTable()">
+            <option value="">All Progress</option>
+            <option value="complete">✅ All Modules Done</option>
+            <option value="inprogress">⏳ In Progress</option>
+            <option value="notstarted">🔴 Not Started</option>
+          </select>
+          <select id="teamFilterExam" onchange="renderTeamTable()">
+            <option value="">All Exam Status</option>
+            <option value="passed">✓ Passed</option>
+            <option value="failed">✗ Failed / Attempt</option>
+            <option value="none">Not Started</option>
+          </select>
+          <button class="filter-clear" onclick="clearTeamFilters()">✕ Clear</button>
+          <span id="teamCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+        </div>
+        <div class="team-table-wrap" id="teamTableWrap">
+          <table>
+            <thead><tr>
+              <th>Member</th><th>Department</th><th>Position</th><th>Type</th>
+              <th>Modules</th><th>Avg Score</th><th>Exam</th><th>Joined</th>
+            </tr></thead>
+            <tbody id="teamTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="leaderTabScoresContent" style="display:none;"></div>
     </div>`;
 
   document.getElementById('sidebar').innerHTML = getSidebarHTML('leader');
@@ -328,22 +347,20 @@ function renderLeaderPage() {
 
 // Admin: fires when dropdown changes
 function onAdminLeaderChange() {
-  const sel = document.getElementById('adminLeaderSelect');
-  const chosen = sel.value;
-  const allTeamsView  = document.getElementById('adminAllTeamsView');
-  const statsEl       = document.getElementById('teamStats');
-  const filterBar     = document.getElementById('teamFilterBar');
-  const tableWrap     = document.getElementById('teamTableWrap');
+  const sel          = document.getElementById('adminLeaderSelect');
+  const chosen       = sel.value;
+  const allTeamsView = document.getElementById('adminAllTeamsView');
+  const statsEl      = document.getElementById('teamStats');
+  const tabContainer = document.getElementById('leaderTabContainer');
 
   if (!chosen) {
     // Show overview of ALL teams
     document.getElementById('leaderPageTitle').textContent = 'Member Management';
     document.getElementById('leaderPageSub').textContent   = 'All teams overview';
     document.getElementById('adminTeamMeta').textContent   = '';
-    allTeamsView.style.display = 'block';
-    statsEl.style.display      = 'none';
-    filterBar.style.display    = 'none';
-    tableWrap.style.display    = 'none';
+    allTeamsView.style.display  = 'block';
+    statsEl.style.display       = 'none';
+    if (tabContainer) tabContainer.style.display = 'none';
     renderAllTeamsOverview();
   } else {
     // Show selected team
@@ -356,10 +373,10 @@ function onAdminLeaderChange() {
       normL(u.leaderName) === normL(chosen) && uname !== chosen && u.role !== 'admin'
     );
     document.getElementById('adminTeamMeta').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
-    allTeamsView.style.display = 'none';
-    statsEl.style.display      = '';
-    filterBar.style.display    = '';
-    tableWrap.style.display    = '';
+    allTeamsView.style.display  = 'none';
+    statsEl.style.display       = '';
+    if (tabContainer) tabContainer.style.display = '';
+    switchLeaderTab('Members'); // reset to Members tab when switching teams
     renderTeamStats(chosen);
     renderTeamTable();
   }
@@ -615,6 +632,176 @@ function clearTeamFilters() {
   document.getElementById('teamFilterProgress').value = '';
   document.getElementById('teamFilterExam').value     = '';
   renderTeamTable();
+}
+
+// ===== MONTHLY SCORES TAB =====
+
+// Data helpers (monthly test keys)
+function getMS() { return JSON.parse(localStorage.getItem('wmt_monthly_scores') || '{}'); }
+function getMC() { return JSON.parse(localStorage.getItem('wmt_monthly_config')  || '{}'); }
+
+// Format "2026-06" → "June 2026"
+function fmtMonth(m) {
+  if (!m) return '—';
+  const [y, mo] = m.split('-');
+  return new Date(+y, +mo - 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+// Determine if a user object belongs to BD/CS group
+function isBDCSUser(u) {
+  if (!u || typeof u !== 'object') return false;
+  if (u.testGroup === 'bdcs')   return true;
+  if (u.testGroup === 'others') return false;
+  const d = (u.department || '').toLowerCase().trim();
+  return d === 'bd' || d.includes('business dev') ||
+         d === 'cs' || d.includes('customer serv') || d.includes('sales');
+}
+
+// Switch between Members / Monthly Scores tabs
+function switchLeaderTab(name) {
+  document.getElementById('leaderTabMembersBtn').classList.toggle('active', name === 'Members');
+  document.getElementById('leaderTabScoresBtn').classList.toggle('active',  name === 'Scores');
+  document.getElementById('leaderTabMembersContent').style.display = name === 'Members' ? '' : 'none';
+  document.getElementById('leaderTabScoresContent').style.display  = name === 'Scores'  ? '' : 'none';
+  if (name === 'Scores') renderLeaderMonthlyScores();
+}
+
+// Build the month selector + scores table shell
+function renderLeaderMonthlyScores() {
+  const cfgs   = getMC();
+  const months = Object.keys(cfgs).sort().reverse();
+  const el     = document.getElementById('leaderTabScoresContent');
+  if (!el) return;
+
+  const leaderName = _isAdmin
+    ? (document.getElementById('adminLeaderSelect')?.value || '')
+    : _currentUser;
+
+  if (!leaderName) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">Please select a team.</div>`;
+    return;
+  }
+  if (!months.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">No monthly tests configured yet.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+      <label style="color:var(--text-secondary);font-weight:600;font-size:0.88rem;">Month:</label>
+      <select id="leaderScoreMonth" onchange="renderLeaderScoresTable()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
+               border-radius:8px;color:var(--text-primary);font-size:0.88rem;min-width:180px;">
+        ${months.map(m => `<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="leaderScoresTableWrap"></div>`;
+
+  renderLeaderScoresTable();
+}
+
+// Render the actual scores table for selected month
+function renderLeaderScoresTable() {
+  const el = document.getElementById('leaderScoresTableWrap');
+  if (!el) return;
+
+  const month = document.getElementById('leaderScoreMonth')?.value;
+  if (!month) return;
+
+  const users      = getUsersDB();
+  const leaderName = _isAdmin
+    ? (document.getElementById('adminLeaderSelect')?.value || '')
+    : _currentUser;
+
+  const members = Object.entries(users).filter(([uname, u]) =>
+    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
+  );
+
+  if (!members.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">No team members yet.</div>`;
+    return;
+  }
+
+  const scores = getMS()[month] || {};
+  const cfg    = getMC()[month] || {};
+
+  // Summary stats
+  const gradedCount    = members.filter(([un]) => scores[un]?.score !== undefined).length;
+  const passedCount    = members.filter(([un]) => scores[un]?.passed).length;
+  const submittedCount = members.filter(([un]) => {
+    try { const s = localStorage.getItem(`wmt_sub_${un}_${month}`); return s && JSON.parse(s).submittedAt; }
+    catch { return false; }
+  }).length;
+
+  const rows = members.map(([uname, udata], idx) => {
+    const sc    = scores[uname];
+    const bdcs  = isBDCSUser(udata);
+    const maxSc = bdcs ? 300 : 100;
+    const passScore = bdcs ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 70);
+
+    const scoreText = sc?.score !== undefined
+      ? `<span style="font-weight:700;color:var(--gold);">${sc.score}</span><span style="color:var(--text-muted);font-size:0.78rem;">/${maxSc}</span>`
+      : `<span style="color:var(--text-muted);">—</span>`;
+
+    const pfClass = !sc || sc.score === undefined ? 'none' : sc.passed ? 'pass' : 'fail';
+    const pfText  = !sc || sc.score === undefined ? '—' : sc.passed ? '✓ PASS' : '✗ FAIL';
+
+    const graded = sc?.gradedAt
+      ? new Date(sc.gradedAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+      : '—';
+
+    const deptBadge = bdcs
+      ? `<span style="font-size:0.65rem;background:rgba(255,165,0,0.15);color:#ffaa33;padding:1px 7px;border-radius:10px;font-weight:700;">BDCS</span>`
+      : `<span style="font-size:0.65rem;background:rgba(100,150,255,0.15);color:#6496ff;padding:1px 7px;border-radius:10px;font-weight:700;">Others</span>`;
+
+    const lietCell = bdcs && sc?.liet !== undefined
+      ? `<span style="font-size:0.82rem;">${sc.liet}</span>`
+      : `<span style="color:var(--text-muted);">—</span>`;
+
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:0.78rem;width:28px;">${idx + 1}</td>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary);">${udata.fullName || uname}</div>
+        ${udata.workName ? `<div style="font-size:0.72rem;color:var(--text-muted);">${udata.workName}</div>` : ''}
+      </td>
+      <td style="font-size:0.82rem;color:var(--text-secondary);">${uname}</td>
+      <td style="font-size:0.82rem;color:var(--text-muted);">${udata.department || '—'}</td>
+      <td>${deptBadge}</td>
+      <td>${scoreText}</td>
+      <td>${lietCell}</td>
+      <td><span class="pf-badge ${pfClass}">${pfText}</span></td>
+      <td style="font-size:0.8rem;color:var(--text-muted);">${graded}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div class="team-stat-card" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${members.length}</div>
+        <div class="team-stat-label">Members</div>
+      </div>
+      <div class="team-stat-card blue" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${submittedCount}</div>
+        <div class="team-stat-label">Submitted</div>
+      </div>
+      <div class="team-stat-card" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value" style="color:#a0a0c0;">${gradedCount}</div>
+        <div class="team-stat-label">Graded</div>
+      </div>
+      <div class="team-stat-card green" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${passedCount}</div>
+        <div class="team-stat-label">Passed</div>
+      </div>
+    </div>
+    <div class="team-table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Member</th><th>Username</th><th>Department</th><th>Group</th>
+          <th>Score</th><th>Liet ×</th><th>Pass / Fail</th><th>Graded At</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">No members match.</td></tr>'}</tbody>
+      </table>
+    </div>`;
 }
 
 // renderLeaderPage() is called inside the async guard above after sync completes.

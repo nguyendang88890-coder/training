@@ -572,17 +572,20 @@
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
-// Admin guard
-(function() {
-  const user = localStorage.getItem('wmt_user');
-  const users = getUsersDB();
-  if (!user || !users[user] || users[user].role !== 'admin') {
-    window.location.href = 'index.html';
-  }
-})();
+// Admin guard — runs AFTER syncFromFirebase so newly promoted admins
+// are recognised on their first visit without needing an extra navigation.
+const CUR_ADMIN = localStorage.getItem('wmt_user') || '';
 
 window.addEventListener('load', async function() {
   await syncFromFirebase();
+
+  // Re-check role from freshly-synced data
+  const _guardUsers = getUsersDB();
+  if (!CUR_ADMIN || !_guardUsers[CUR_ADMIN] || _guardUsers[CUR_ADMIN].role !== 'admin') {
+    window.location.href = 'index.html';
+    return;
+  }
+
   document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
   updateSidebarProgress();
   renderAdminPanel();
@@ -796,7 +799,16 @@ function renderUsersTableBody() {
           <button class="btn-xs ${udata.role==='mod'?'reset':'edi'}" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
             onclick="toggleModRole('${uname}')" title="${udata.role==='mod'?'Revoke Moderator':'Grant Moderator'}">
             ${udata.role==='mod' ? '↩ Unset Mod' : '🛡️ Set Mod'}
-          </button>` : ''}
+          </button>
+          <button class="btn-xs" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);color:var(--gold);border-radius:4px;cursor:pointer;"
+            onclick="toggleAdminRole('${uname}')" title="Grant Admin Role">
+            ⭐ Set Admin
+          </button>` :
+          uname !== CUR_ADMIN ? `
+          <button class="btn-xs reset" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
+            onclick="toggleAdminRole('${uname}')" title="Revoke Admin Role">
+            ↩ Unset Admin
+          </button>` : `<span style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">(You)</span>`}
         </div>
       </td>
       <td style="font-size:0.8rem;color:var(--text-secondary);">${udata.leaderName || '<span style="color:var(--text-muted)">—</span>'}</td>
@@ -821,7 +833,7 @@ function renderUsersTableBody() {
         <div class="action-btns">
           <button class="btn-xs edit"   onclick="openEditUser('${uname}')">✎ Edit</button>
           <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
-          <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${uname==='admin'?'disabled title="Cannot delete admin"':''}>✕ Delete</button>
+          <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${udata.role==='admin'?'disabled title="Revoke admin role first before deleting"':''}>✕ Delete</button>
         </div>
       </td>
     </tr>`;
@@ -887,6 +899,23 @@ function toggleModRole(uname) {
   const action = isMod ? 'Revoke Moderator' : 'Grant Moderator';
   if (!confirm(`${action} cho "${uname}"?`)) return;
   const newRole = isMod ? 'trainee' : 'mod';
+  users[uname].role = newRole;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
+  renderAdminPanel();
+}
+
+function toggleAdminRole(uname) {
+  const users = getUsersDB();
+  if (!users[uname]) return;
+  // Cannot change your own admin role
+  if (uname === CUR_ADMIN) { alert('Bạn không thể thay đổi quyền Admin của chính mình.'); return; }
+  // Cannot change the base system admin account
+  if (uname === 'admin') { alert('Không thể thay đổi quyền của tài khoản admin gốc.'); return; }
+  const isAdmin = users[uname].role === 'admin';
+  const action = isAdmin ? 'Thu hồi quyền Admin' : 'Cấp quyền Admin';
+  if (!confirm(`${action} cho tài khoản "${uname}"?\n\n${isAdmin ? 'Tài khoản này sẽ trở thành trainee và mất quyền truy cập admin.' : 'Tài khoản này sẽ có đầy đủ quyền admin.'}`)) return;
+  const newRole = isAdmin ? 'trainee' : 'admin';
   users[uname].role = newRole;
   localStorage.setItem('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
@@ -1124,7 +1153,12 @@ function resetAllQuizzes(uname) {
 }
 
 function deleteUser(uname) {
-  if (uname === 'admin') return;
+  const _du = getUsersDB();
+  // Protect all admin accounts — revoke admin role first
+  if (_du[uname] && _du[uname].role === 'admin') {
+    alert(`Không thể xóa tài khoản admin "${uname}".\nHãy thu hồi quyền Admin trước, sau đó mới xóa.`);
+    return;
+  }
   if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
   const users = getUsersDB();
   delete users[uname];
