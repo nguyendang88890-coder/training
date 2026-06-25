@@ -339,6 +339,7 @@
             <option value="">All Teams</option>
           </select>
           <button class="filter-clear" onclick="clearUserFilters()">✕ Clear</button>
+          <button class="filter-clear" onclick="migrateLeaderNames()" title="Chuẩn hoá tất cả leaderName trong database về đúng username của leader" style="border-color:#f59e0b;color:#f59e0b;">🔧 Fix Leader Names</button>
           <span id="filterCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
         </div>
         <div class="users-table-wrap">
@@ -662,16 +663,64 @@ function clearGeminiKey() {
   document.getElementById('geminiKeySavedMsg').style.display = 'none';
 }
 
+// ===== LEADER NAME NORMALIZATION HELPERS =====
+// Strip accents (é→e, ñ→n, etc.) so "martínez" === "martinez" in comparisons
+const normL = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+function getLeaderKeys(leaderRef, allUsers) {
+  const keys = new Set();
+  const ref = normL(leaderRef);
+  if (!ref) return keys;
+  keys.add(ref);
+  const byUser = allUsers[leaderRef];
+  if (byUser) {
+    if (byUser.fullName) keys.add(normL(byUser.fullName));
+    if (byUser.workName) keys.add(normL(byUser.workName));
+  }
+  for (const [uname, ud] of Object.entries(allUsers)) {
+    if (normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref) {
+      keys.add(normL(uname));
+      if (ud.fullName) keys.add(normL(ud.fullName));
+      if (ud.workName) keys.add(normL(ud.workName));
+    }
+  }
+  keys.delete('');
+  return keys;
+}
+
+function findLeaderEntry(leaderRef, allUsers) {
+  const ref = normL(leaderRef);
+  return Object.entries(allUsers).find(([uname, ud]) =>
+    normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref
+  ) || [null, {}];
+}
+
 // ===== USER FILTERS =====
 let _filterState = { search: '', dept: '', role: '', leader: '' };
 
 function populateFilterDropdowns() {
   const users = getUsersDB();
-  const depts = new Set(), leaders = new Set();
+  const depts = new Set();
+  // leaders: use actual usernames as keys so getLeaderKeys can resolve later
+  const leaders = new Set();
+
   Object.entries(users).forEach(([uname, u]) => {
     if (u.department) depts.add(u.department);
-    if (u.leaderName) leaders.add(u.leaderName);
-    if (u.isLeader)   leaders.add(uname);
+    if (u.isLeader)   leaders.add(uname);  // preferred: actual username
+  });
+
+  // For any leaderName that doesn't resolve to an isLeader user, add as fallback
+  Object.entries(users).forEach(([, u]) => {
+    if (!u.leaderName) return;
+    const ref = normL(u.leaderName);
+    // Check if this leaderName is already covered by a leader in the set
+    const alreadyCovered = [...leaders].some(lKey => getLeaderKeys(lKey, users).has(ref));
+    if (!alreadyCovered) {
+      // Try to find a user entry for this leaderName
+      const [foundKey] = findLeaderEntry(u.leaderName, users);
+      if (foundKey) leaders.add(foundKey);
+      else leaders.add(normL(u.leaderName)); // orphan — use normalized value
+    }
   });
 
   const deptSel = document.getElementById('filterDept');
@@ -683,8 +732,12 @@ function populateFilterDropdowns() {
   const prevLdr = ldrSel.value;
   ldrSel.innerHTML = '<option value="">All Teams</option>' +
     [...leaders].sort().map(l => {
-      const lname = users[l]?.fullName ? `${l} (${users[l].fullName})` : l;
-      return `<option value="${l}"${l===prevLdr?' selected':''}>${lname}'s Team</option>`;
+      // l is a username or normalized fallback — look up user entry for display
+      const ud = users[l];
+      const display = ud?.fullName
+        ? `${l} (${ud.fullName})`
+        : (ud?.workName ? `${l} (${ud.workName})` : l);
+      return `<option value="${l}"${l===prevLdr?' selected':''}>${display}'s Team</option>`;
     }).join('');
 }
 
@@ -721,7 +774,11 @@ function renderUsersTableBody() {
     if (dept   && udata.department !== dept) return false;
     if (role === 'leader') { if (!udata.isLeader) return false; }
     else if (role && udata.role !== role) return false;
-    if (leader && udata.leaderName !== leader) return false;
+    if (leader) {
+      // Use getLeaderKeys for bidirectional normalization (handles username vs display name mismatch)
+      const lKeys = getLeaderKeys(leader, users);
+      if (!lKeys.has(normL(udata.leaderName))) return false;
+    }
     return true;
   });
 
@@ -920,6 +977,54 @@ function toggleAdminRole(uname) {
   localStorage.setItem('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
   renderAdminPanel();
+}
+
+// ===== LEADER NAME DATABASE MIGRATION =====
+// Normalises every user's leaderName to the actual leader's username (lowercase).
+// Safe to run multiple times — skips users that already have the correct value.
+async function migrateLeaderNames() {
+  const users = getUsersDB();
+  const updates = []; // [{uname, oldVal, newVal}]
+
+  for (const [uname, u] of Object.entries(users)) {
+    if (!u.leaderName) continue;
+    const [foundKey] = findLeaderEntry(u.leaderName, users);
+    const newVal = foundKey ? normL(foundKey) : normL(u.leaderName);
+    if (newVal !== u.leaderName) updates.push({ uname, oldVal: u.leaderName, newVal });
+  }
+
+  if (updates.length === 0) {
+    alert('✅ Tất cả leaderName đã chuẩn — không cần cập nhật.');
+    return;
+  }
+
+  const preview = updates.slice(0, 10).map(({uname, oldVal, newVal}) =>
+    `• ${uname}: "${oldVal}" → "${newVal}"`).join('\n')
+    + (updates.length > 10 ? `\n… và ${updates.length - 10} user khác` : '');
+
+  if (!confirm(`Sẽ cập nhật leaderName cho ${updates.length} tài khoản:\n\n${preview}\n\nTiếp tục?`)) return;
+
+  // Apply to localStorage
+  for (const { uname, newVal } of updates) users[uname].leaderName = newVal;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+
+  // Apply to Firebase (per-user update — safe)
+  if (window.FDB) {
+    const promises = updates.map(({ uname, newVal }) =>
+      window.FDB.ref('users/' + uname).update({ leaderName: newVal })
+    );
+    try {
+      await Promise.all(promises);
+      alert(`✅ Đã chuẩn hoá leaderName cho ${updates.length} tài khoản và lưu lên Firebase.`);
+    } catch (e) {
+      alert(`⚠️ LocalStorage đã cập nhật nhưng Firebase gặp lỗi:\n${e.message}`);
+    }
+  } else {
+    alert(`✅ Đã chuẩn hoá leaderName cho ${updates.length} tài khoản (chỉ localStorage — Firebase chưa kết nối).`);
+  }
+
+  renderAdminPanel();
+  populateFilterDropdowns();
 }
 
 function resetUser(uname) {

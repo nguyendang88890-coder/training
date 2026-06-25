@@ -296,10 +296,44 @@ let _currentUser = '';
 })();
 
 // ===== HELPERS =====
-// Normalize a leaderName for comparison: lowercase + trim.
-// Usernames are always lowercase (forced on registration), but leaderName
-// typed by admin may have mixed case or extra spaces — normalize both sides.
-const normL = s => (s || '').toLowerCase().trim();
+// Normalize a string: lowercase + trim (handles mixed-case, extra spaces).
+// Strip accents (é→e, ñ→n, etc.) so "martínez" === "martinez" in comparisons
+const normL = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// Build a Set of ALL normalized identifiers a leader might be known by:
+// their username, fullName, and workName.
+// leaderRef can be either a username OR a display name stored in u.leaderName.
+function getLeaderKeys(leaderRef, allUsers) {
+  const keys = new Set();
+  const ref = normL(leaderRef);
+  if (!ref) return keys;
+  keys.add(ref);
+  // Direct username lookup → add their display names
+  const byUser = allUsers[leaderRef];
+  if (byUser) {
+    if (byUser.fullName) keys.add(normL(byUser.fullName));
+    if (byUser.workName) keys.add(normL(byUser.workName));
+  }
+  // Scan all users: if any identifier matches ref, add all their identifiers.
+  // This handles the case where leaderRef is a display name, not a username.
+  for (const [uname, ud] of Object.entries(allUsers)) {
+    if (normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref) {
+      keys.add(normL(uname));
+      if (ud.fullName) keys.add(normL(ud.fullName));
+      if (ud.workName) keys.add(normL(ud.workName));
+    }
+  }
+  keys.delete('');
+  return keys;
+}
+
+// Find the [username, userdata] entry for a leader reference (username or display name).
+function findLeaderEntry(leaderRef, allUsers) {
+  const ref = normL(leaderRef);
+  return Object.entries(allUsers).find(([uname, ud]) =>
+    normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref
+  ) || [null, {}];
+}
 
 function getUserProgress(uname) {
   return JSON.parse(localStorage.getItem('wmt_progress_' + uname) || '{}');
@@ -316,22 +350,25 @@ function renderLeaderPage() {
     // ── Admin: show team selector ──────────────────────────────────────────
     document.getElementById('adminTeamSelector').style.display = 'block';
 
-    // Collect leaders only from actual member assignments (u.leaderName).
-    // Do NOT add from isLeader flag alone — a leader with no assigned members
-    // should not create an empty team in the dropdown.
-    const leaderSet = new Set();
+    // Collect leaders from member assignments, resolving each leaderName to its
+    // canonical key (actual username when found, else normL fallback) so variants
+    // like "clelia" / "clelia martinez" / "clelia martínez" collapse to one entry.
+    const leaderMap = new Map(); // canonical key → user data object
     Object.entries(users).forEach(([, u]) => {
-      if (u.leaderName) leaderSet.add(normL(u.leaderName));
+      if (!u.leaderName) return;
+      const [foundKey, foundData] = findLeaderEntry(u.leaderName, users);
+      const canonical = foundKey || normL(u.leaderName);
+      if (!leaderMap.has(canonical)) leaderMap.set(canonical, foundKey ? foundData : {});
     });
-    const leaders = [...leaderSet].sort();
+    const leaders = [...leaderMap.entries()].sort(([a], [b]) => a.localeCompare(b));
 
     const sel = document.getElementById('adminLeaderSelect');
     const prev = sel.value;
     sel.innerHTML = '<option value="">🌐 All Teams (Overview)</option>' +
-      leaders.map(l => {
-        const udata = users[l] || {};
-        const label = udata.fullName ? `${l} (${udata.fullName})` : l;
-        return `<option value="${l}"${l===prev?' selected':''}>${label}</option>`;
+      leaders.map(([canonical, udata]) => {
+        // Prefer fullName for display, fall back to workName, then canonical key
+        const label = udata.fullName || udata.workName || canonical;
+        return `<option value="${canonical}"${canonical===prev?' selected':''}>${label}</option>`;
       }).join('');
 
     onAdminLeaderChange();
@@ -365,12 +402,13 @@ function onAdminLeaderChange() {
   } else {
     // Show selected team
     const users = getUsersDB();
-    const udata = users[chosen] || {};
-    const label = udata.fullName ? `${chosen} · ${udata.fullName}` : chosen;
+    const [, udata] = findLeaderEntry(chosen, users);
+    const label = udata.fullName || chosen;
     document.getElementById('leaderPageTitle').textContent = `${label}'s Team`;
     document.getElementById('leaderPageSub').textContent   = 'Team member training progress';
+    const lKeys = getLeaderKeys(chosen, users);
     const members = Object.entries(users).filter(([uname, u]) =>
-      normL(u.leaderName) === normL(chosen) && uname !== chosen && u.role !== 'admin'
+      lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
     );
     document.getElementById('adminTeamMeta').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
     allTeamsView.style.display  = 'none';
@@ -386,19 +424,22 @@ function onAdminLeaderChange() {
 function renderAllTeamsOverview() {
   const users = getUsersDB();
 
-  // Collect leaders from actual member assignments only (same logic as dropdown).
-  const leaderSet = new Set();
+  // Collect leaders from member assignments, resolving to canonical keys (same logic as dropdown).
+  const leaderMap = new Map(); // canonical key → user data object
   Object.entries(users).forEach(([, u]) => {
-    if (u.leaderName) leaderSet.add(normL(u.leaderName));
+    if (!u.leaderName) return;
+    const [foundKey, foundData] = findLeaderEntry(u.leaderName, users);
+    const canonical = foundKey || normL(u.leaderName);
+    if (!leaderMap.has(canonical)) leaderMap.set(canonical, foundKey ? foundData : {});
   });
 
   // Global stats
   let totalMembers = 0, totalDone = 0, totalPassed = 0, totalStarted = 0;
 
-  const teamCards = [...leaderSet].sort().map(leaderName => {
-    const ludata  = users[leaderName] || {};
+  const teamCards = [...leaderMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([leaderName, ludata]) => {
+    const lKeys = getLeaderKeys(leaderName, users);
     const members = Object.entries(users).filter(([uname, u]) =>
-      normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
+      lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
     );
     let tDone = 0, tPassed = 0, tStarted = 0;
     members.forEach(([uname]) => {
@@ -415,7 +456,7 @@ function renderAllTeamsOverview() {
     totalStarted += tStarted;
 
     const pct = members.length ? Math.round((tDone / members.length) * 100) : 0;
-    const displayName = ludata.fullName ? `${leaderName} · ${ludata.fullName}` : leaderName;
+    const displayName = ludata.fullName || leaderName;
 
     return `
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:border-color 0.2s;"
@@ -469,8 +510,9 @@ function renderAllTeamsOverview() {
 // Render stats bar for a specific leader
 function renderTeamStats(leaderName) {
   const users   = getUsersDB();
+  const lKeys   = getLeaderKeys(leaderName, users);
   const members = Object.entries(users).filter(([uname, u]) =>
-    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
+    lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
   );
 
   let totalDone = 0, totalPassed = 0, totalStarted = 0;
@@ -527,8 +569,9 @@ function renderTeamTable() {
     ? (document.getElementById('adminLeaderSelect')?.value || '')
     : _currentUser;
 
-  let members = Object.entries(users).filter(([uname, u]) =>
-    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
+  const lKeys  = getLeaderKeys(leaderName, users);
+  let members  = Object.entries(users).filter(([uname, u]) =>
+    lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
   );
 
   // Apply filters
@@ -713,8 +756,9 @@ function renderLeaderScoresTable() {
     ? (document.getElementById('adminLeaderSelect')?.value || '')
     : _currentUser;
 
+  const lKeysS = getLeaderKeys(leaderName, users);
   const members = Object.entries(users).filter(([uname, u]) =>
-    normL(u.leaderName) === normL(leaderName) && uname !== leaderName && u.role !== 'admin'
+    lKeysS.has(normL(u.leaderName)) && !lKeysS.has(normL(uname)) && u.role !== 'admin'
   );
 
   if (!members.length) {
