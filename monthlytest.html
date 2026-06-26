@@ -1555,11 +1555,14 @@ function renderRescheduleTab() {
         ${req.reason?`<br>Reason: ${req.reason}`:''}
         ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
       </div>
-      ${req.status==='pending'?`
-        <div style="display:flex;gap:8px;margin-top:10px;">
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${req.status==='pending'?`
           <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
-          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>
-        </div>`:''}
+          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>`:''}
+        <button class="btn-xs" onclick="resetRs('${un}','${m}')"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
+          title="Xoá request này — user có thể gửi lại request mới">↩ Reset</button>
+      </div>
     </div>`).join('');
 }
 
@@ -1586,6 +1589,7 @@ function approveRs(un, m) {
       <label>Test Deadline *</label>
       <input type="datetime-local" id="rsApproveDeadline"
         style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Gợi ý: thêm 2–4 giờ sau giờ bắt đầu để trainee có đủ thời gian làm bài.</div>
     </div>
     <div class="error-msg" id="rsApproveErr"></div>
     <div class="modal-footer">
@@ -1595,6 +1599,15 @@ function approveRs(un, m) {
   </div>`;
   modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
   document.body.appendChild(modal);
+
+  // Pre-fill deadline = requested start + 3 hours (sensible default for admin)
+  try {
+    const startMs = new Date(req.rsStart || `${req.newDate}T${req.newTime||'09:00'}`).getTime();
+    const suggested = new Date(startMs + 3 * 60 * 60 * 1000); // +3 h
+    const pad = n => String(n).padStart(2, '0');
+    const dlVal = `${suggested.getFullYear()}-${pad(suggested.getMonth()+1)}-${pad(suggested.getDate())}T${pad(suggested.getHours())}:${pad(suggested.getMinutes())}`;
+    document.getElementById('rsApproveDeadline').value = dlVal;
+  } catch(e) { /* ignore */ }
 }
 
 function confirmApproveRs(un, m) {
@@ -1618,6 +1631,22 @@ function rejectRs(un,m) {
   rs[m].status='rejected'; rs[m].processedAt=new Date().toISOString();
   if (note.trim()) rs[m].rejectReason=note.trim();
   saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+
+function resetRs(un, m) {
+  const ud = getUsersDB()[un];
+  const name = ud?.fullName || un;
+  if (!confirm(`Xoá request reschedule tháng ${fmtMonth(m)} của "${name}"?\n\nSau khi reset, user có thể gửi lại request mới cho tháng này.`)) return;
+  const rs = getRS(un);
+  delete rs[m];
+  // If no more months left, remove the whole key; otherwise save the trimmed object
+  if (Object.keys(rs).length === 0) {
+    dbRemove('wmt_monthly_reschedule_' + un);
+  } else {
+    saveRS(un, rs);
+  }
+  updateRsBadge();
+  renderRescheduleTab();
 }
 
 // ===== TRAINEE VIEW =====
@@ -1655,20 +1684,36 @@ function renderNewEmployeeLocked() {
 function findActiveOrUpcoming() {
   const cfgs=getMC(), months=Object.keys(cfgs).sort().reverse();
   const now=Date.now();
-  // 1. Global active or upcoming
+  const userRS=getRS(CUR_USER);
+
+  // 1. User has an approved reschedule whose personal window is CURRENTLY OPEN
+  //    → must check first, before global schedule, so that an upcoming global
+  //      test for a new month doesn't shadow the user's active personal window
+  //      from a previous expired month.
+  for (const m of months) {
+    const rs=userRS[m];
+    if (rs?.status==='approved' && rs.rsDeadline) {
+      const rsStartTs = rs.rsStart ? new Date(rs.rsStart).getTime() : 0;
+      const rsEndTs   = new Date(rs.rsDeadline).getTime();
+      if (now >= rsStartTs && now <= rsEndTs) return {cfg:cfgs[m],m};
+    }
+  }
+
+  // 2. Global active or upcoming test
   for (const m of months) {
     const st=getStatus(cfgs[m]);
     if (st==='active'||st==='upcoming') return {cfg:cfgs[m],m};
   }
-  // 2. User has an approved reschedule whose personal window hasn't expired
-  const userRS=getRS(CUR_USER);
+
+  // 3. User has an approved reschedule whose personal window is upcoming (not started yet)
   for (const m of months) {
     const rs=userRS[m];
     if (rs?.status==='approved' && rs.rsDeadline && now<=new Date(rs.rsDeadline).getTime()) {
       return {cfg:cfgs[m],m};
     }
   }
-  // 3. Fallback: most recent month
+
+  // 4. Fallback: most recent month
   if (months.length) return {cfg:cfgs[months[0]],m:months[0]};
   return {cfg:null,m:null};
 }
@@ -1860,10 +1905,51 @@ function renderTraineeReschedule() {
   const maxDate=new Date(+y,+mo,0).toISOString().split('T')[0];
 
   if (existing) {
+    const now = Date.now();
+    const approvedWindowExpired = existing.status==='approved' && existing.rsDeadline
+      && now > new Date(existing.rsDeadline).getTime();
+
+    // If rejected OR approved window has already passed → show status note then fall through
+    // to the request form so the user can submit a new request.
+    if (existing.status === 'rejected' || approvedWindowExpired) {
+      const prevNote = existing.status==='rejected'
+        ? `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:14px;color:var(--danger);">
+            ✗ Previous request rejected${existing.rejectReason?' — '+existing.rejectReason:''}<br>
+            <span style="opacity:0.75;">You may submit a new request below.</span>
+           </div>`
+        : `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:6px;margin-bottom:14px;color:var(--warning);">
+            ⌛ Previous approved window ended (${fmtDT(existing.rsDeadline)})<br>
+            <span style="opacity:0.75;">You may submit a new request below.</span>
+           </div>`;
+      // Fall through to show form — but prepend the note via a wrapper
+      const testStatus = getStatus(cfg);
+      const statusNote = testStatus==='expired'
+        ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ Cửa sổ thi tháng <strong>${fmtMonth(m)}</strong> đã kết thúc. Bạn vẫn có thể gửi yêu cầu reschedule — admin sẽ xem xét và mở lại thời gian thi riêng cho bạn.</div>`
+        : testStatus==='upcoming'
+        ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Bài test <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn vẫn có thể gửi yêu cầu dời lịch sớm nếu cần.</div>`
+        : '';
+      el.innerHTML=`
+        <div class="reschedule-card">
+          <h4>🔄 Request Test Reschedule</h4>
+          ${prevNote}${statusNote}
+          <p style="color:var(--text-muted);font-size:0.84rem;margin-bottom:16px;">
+            You may reschedule <strong>once per month</strong>. New date must be within <strong>${fmtMonth(m)}</strong>.
+          </p>
+          <div class="form-row">
+            <div class="form-group"><label>New Date</label><input type="date" id="rsDate" min="${minDate}" max="${maxDate}"></div>
+            <div class="form-group"><label>New Time <span style="color:var(--text-muted);font-weight:400">(optional)</span></label><input type="time" id="rsTime"></div>
+          </div>
+          <div class="form-group"><label>Reason <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+            <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment"></div>
+          <div class="error-msg" id="rsErr"></div>
+          <button class="btn btn-primary" onclick="submitReschedule('${m}','${minDate}','${maxDate}')">Submit Request</button>
+        </div>`;
+      return;
+    }
+
+    // Pending or active approved window — show static status card
     const stB = existing.status==='approved'
       ? `<span style="color:var(--success);font-weight:700;">✓ Approved${existing.rsDeadline?' — open until '+fmtDT(existing.rsDeadline):''}</span>`
-      : existing.status==='rejected'
-      ? `<span style="color:var(--danger);font-weight:700;">✗ Rejected${existing.rejectReason?' — '+existing.rejectReason:''}</span>`
       : `<span style="color:var(--warning);font-weight:700;">⏳ Awaiting admin approval</span>`;
     el.innerHTML=`<div class="reschedule-card"><h4>🔄 Reschedule Request — ${fmtMonth(m)}</h4>
       <div style="font-size:0.88rem;color:var(--text-secondary);">
