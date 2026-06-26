@@ -1535,12 +1535,27 @@ function renderRescheduleTab() {
   Object.entries(users).forEach(([un,ud])=>{
     Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
   });
-  reqs.sort((a,b)=>({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9));
+  // Approved-without-deadline entries block the user's test — sort them first as warnings
+  reqs.sort((a,b)=>{
+    const aWarn = a.req.status==='approved' && !a.req.rsDeadline ? -1 : 0;
+    const bWarn = b.req.status==='approved' && !b.req.rsDeadline ? -1 : 0;
+    if (aWarn !== bWarn) return aWarn - bWarn;
+    return ({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9);
+  });
   const el=document.getElementById('adminRescheduleTab');
   if (!reqs.length) { el.innerHTML=`<div class="empty-state">No reschedule requests.</div>`; return; }
+
+  // Global warning if any approved entry is missing deadline
+  const missingDeadline = reqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
+  const warningBanner = missingDeadline.length
+    ? `<div style="margin-bottom:14px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
+        ⚠️ <strong>${missingDeadline.length} request</strong> đã được approve nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi cho họ.
+       </div>`
+    : '';
+
   const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
-  el.innerHTML=reqs.map(({un,ud,m,req})=>`
-    <div class="rsched-item">
+  el.innerHTML=warningBanner+reqs.map(({un,ud,m,req})=>`
+    <div class="rsched-item" style="${req.status==='approved'&&!req.rsDeadline?'border-color:rgba(255,61,113,0.4);':''}">
       <div class="rsched-hdr">
         <div>
           <span style="font-weight:700;color:var(--text-primary)">${un}</span>
@@ -1559,6 +1574,12 @@ function renderRescheduleTab() {
         ${req.status==='pending'?`
           <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
           <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>`:''}
+        ${req.status==='approved'?`
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')"
+            style="background:rgba(0,214,143,0.12);border-color:var(--success);"
+            title="${req.rsDeadline?'Chỉnh sửa deadline đã approve':'⚠️ Deadline chưa được đặt — cần set ngay để mở test cho user'}">
+            ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
+          </button>`:''}
         <button class="btn-xs" onclick="resetRs('${un}','${m}')"
           style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
           title="Xoá request này — user có thể gửi lại request mới">↩ Reset</button>

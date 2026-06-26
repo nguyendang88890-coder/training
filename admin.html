@@ -1691,12 +1691,26 @@ function renderRescheduleTab() {
   Object.entries(users).forEach(([un,ud])=>{
     Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
   });
-  reqs.sort((a,b)=>({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9));
+  // Approved-without-deadline entries block the user — sort them first
+  reqs.sort((a,b)=>{
+    const aWarn = a.req.status==='approved' && !a.req.rsDeadline ? -1 : 0;
+    const bWarn = b.req.status==='approved' && !b.req.rsDeadline ? -1 : 0;
+    if (aWarn!==bWarn) return aWarn-bWarn;
+    return ({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9);
+  });
   const el=document.getElementById('adminRescheduleTab');
   if (!reqs.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔄</div><div>No reschedule requests.</div></div>`; return; }
+
+  const missingDeadline = reqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
+  const warningBanner = missingDeadline.length
+    ? `<div style="margin-bottom:14px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
+        ⚠️ <strong>${missingDeadline.length} request</strong> đã approve nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi.
+       </div>`
+    : '';
+
   const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
-  el.innerHTML=reqs.map(({un,ud,m,req})=>`
-    <div class="rsched-item">
+  el.innerHTML=warningBanner+reqs.map(({un,ud,m,req})=>`
+    <div class="rsched-item" style="${req.status==='approved'&&!req.rsDeadline?'border-color:rgba(255,61,113,0.4);':''}">
       <div class="rsched-hdr">
         <div>
           <span style="font-weight:700;color:var(--text-primary)">${un}</span>
@@ -1706,29 +1720,103 @@ function renderRescheduleTab() {
         ${stB(req.status)}
       </div>
       <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
-        Requested: <strong>${req.newDate} ${req.newTime||''}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        ${req.rsDeadline?`<br>Approved window: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> → <strong>${fmtDT(req.rsDeadline)}</strong>`:''}
         ${req.reason?`<br>Reason: ${req.reason}`:''}
         ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
       </div>
-      ${req.status==='pending'?`
-        <div style="display:flex;gap:8px;margin-top:10px;">
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${req.status==='pending'?`
           <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
-          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>
-        </div>`:''}
+          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>`:''}
+        ${req.status==='approved'?`
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')"
+            style="background:rgba(0,214,143,0.12);border-color:var(--success);"
+            title="${req.rsDeadline?'Chỉnh sửa deadline':'⚠️ Deadline chưa được đặt — cần set ngay'}">
+            ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
+          </button>`:''}
+        <button class="btn-xs" onclick="resetRs('${un}','${m}')"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
+          title="Xoá request — user có thể gửi lại">↩ Reset</button>
+      </div>
     </div>`).join('');
 }
 
-function approveRs(un,m) {
+function approveRs(un, m) {
   const rs=getRS(un); if(!rs[m]) return;
-  rs[m].status='approved'; rs[m].processedAt=new Date().toISOString();
-  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+  const req=rs[m];
+
+  document.getElementById('approveRsModal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='approveRsModal';
+  modal.className='modal-overlay show';
+  modal.innerHTML=`<div class="modal-box" style="max-width:420px;">
+    <h3 style="margin-bottom:8px;">✓ Approve Reschedule</h3>
+    <div style="font-size:0.84rem;color:var(--text-muted);margin-bottom:16px;">
+      <strong>${un}</strong>${(getUsersDB()[un]?.fullName?' — '+getUsersDB()[un].fullName:'')}<br>
+      Tháng: <strong>${fmtMonth(m)}</strong> &nbsp;·&nbsp; Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong>
+    </div>
+    <div class="form-group">
+      <label>Test Opens At</label>
+      <input type="text" value="${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}" disabled
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-muted);font-size:0.88rem;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="form-group">
+      <label>Test Deadline *</label>
+      <input type="datetime-local" id="rsApproveDeadline"
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Gợi ý: thêm 2–4 giờ sau giờ bắt đầu.</div>
+    </div>
+    <div class="error-msg" id="rsApproveErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('approveRsModal').remove()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmApproveRs('${un}','${m}')">✓ Confirm Approve</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+
+  // Pre-fill deadline = rsStart + 3 hours
+  try {
+    const startMs=new Date(req.rsStart||`${req.newDate}T${req.newTime||'09:00'}`).getTime();
+    const sug=new Date(startMs+3*60*60*1000);
+    const p=n=>String(n).padStart(2,'0');
+    document.getElementById('rsApproveDeadline').value=`${sug.getFullYear()}-${p(sug.getMonth()+1)}-${p(sug.getDate())}T${p(sug.getHours())}:${p(sug.getMinutes())}`;
+  } catch(e){}
 }
+
+function confirmApproveRs(un, m) {
+  const deadline=document.getElementById('rsApproveDeadline').value;
+  const err=document.getElementById('rsApproveErr');
+  err.textContent='';
+  if(!deadline){ err.textContent='Please set a deadline.'; return; }
+  const rs=getRS(un); if(!rs[m]) return;
+  const start=rs[m].rsStart||new Date(`${rs[m].newDate}T${rs[m].newTime||'09:00'}`).toISOString();
+  if(new Date(deadline)<=new Date(start)){ err.textContent='Deadline must be after start time.'; return; }
+  rs[m].status='approved';
+  rs[m].rsDeadline=new Date(deadline).toISOString();
+  rs[m].processedAt=new Date().toISOString();
+  saveRS(un,rs);
+  document.getElementById('approveRsModal').remove();
+  updateRsBadge(); renderRescheduleTab();
+}
+
 function rejectRs(un,m) {
   const note=prompt('Rejection note (optional):')||'';
   const rs=getRS(un); if(!rs[m]) return;
   rs[m].status='rejected'; rs[m].processedAt=new Date().toISOString();
-  if (note.trim()) rs[m].rejectReason=note.trim();
+  if(note.trim()) rs[m].rejectReason=note.trim();
   saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+
+function resetRs(un, m) {
+  const ud=getUsersDB()[un];
+  if(!confirm(`Xoá request reschedule tháng ${fmtMonth(m)} của "${ud?.fullName||un}"?\n\nUser có thể gửi lại request mới.`)) return;
+  const rs=getRS(un);
+  delete rs[m];
+  if(Object.keys(rs).length===0) dbRemove('wmt_monthly_reschedule_'+un);
+  else saveRS(un,rs);
+  updateRsBadge(); renderRescheduleTab();
 }
 
 document.getElementById('editUserModal').addEventListener('click',   function(e) { if (e.target===this) closeEditUser(); });
