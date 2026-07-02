@@ -1007,8 +1007,13 @@ function renderScoresTables() {
         const sc  = scores[un];
         const sub = getSubmission(un, month);
         const pct = sc?.score ?? null;
-        const pf  = pfOthers(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
-        const autoTag = sc?.autoGraded ? `<span style="font-size:0.68rem;color:var(--success);margin-left:4px;">(auto)</span>` : '';
+        // For Others (auto-graded MCQ), fall back to sub.mcqScore when no manually saved score
+        const autoScore = (pct === null && sub?.mcqScore != null) ? sub.mcqScore : null;
+        const displayScore = pct ?? autoScore;
+        const pfSrc = displayScore !== null ? { score: displayScore } : sc;
+        const pf  = pfOthers(pfSrc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
+        const isAuto = sc?.autoGraded || (pct === null && autoScore !== null);
+        const autoTag = isAuto ? `<span style="font-size:0.68rem;color:var(--success);margin-left:4px;">(auto)</span>` : '';
         const subBadge = sub
           ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>`
           : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
@@ -1019,7 +1024,7 @@ function renderScoresTables() {
           <td>${subBadge}</td>
           <td>
             <input class="score-inp" id="sc_others_${un}" type="number" min="0" max="100"
-              value="${pct!==null?pct:''}" placeholder="—"
+              value="${displayScore!==null?displayScore:''}" placeholder="—"
               oninput="liveUpdatePFOthers('${un}',${passOthers})">${autoTag}
           </td>
           <td><span class="pf-badge ${pf}" id="pf_others_${un}">${pfTxt}</span></td>
