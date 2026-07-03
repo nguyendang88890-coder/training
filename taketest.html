@@ -168,6 +168,7 @@ let _answers = {};   // { qid: 'A' | essay text }
 let _currentMonth = null;
 let _currentCfg   = null;
 let _qbank        = null;
+let _startedAt    = null;
 
 // Parse ?month= from URL
 const urlMonth = new URLSearchParams(location.search).get('month');
@@ -314,6 +315,7 @@ function renderTest(deadlineTs) {
     </div>`;
 
   document.getElementById('pageContent').innerHTML = html;
+  _startedAt = new Date().toISOString();
   startTimer(deadlineTs);
   updateProgress();
 }
@@ -467,8 +469,10 @@ function doSubmit(auto) {
   }
   // For BD/CS: pass determined after essay grading — save as pending
 
+  const now = new Date().toISOString();
   const submission = {
-    submittedAt:   new Date().toISOString(),
+    startedAt:     _startedAt || now,
+    submittedAt:   now,
     month:         _currentMonth,
     group:         MY_GROUP,
     mcqScore,

@@ -480,7 +480,12 @@ function parseQBankFile(file, group, allowEssay) {
       const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
       if (raw.length < 2) { alert('File contains no data.'); return; }
       const hdr = raw[0].map(h=>String(h).toLowerCase().replace(/[_\s]/g,''));
-      const col = (...names) => { for (const n of names) { const i=hdr.indexOf(n); if(i>=0) return i; } return -1; };
+      // Exact match first, then substring fallback so "điểm(0-4)" still matches "điểm"
+      const col = (...names) => {
+        for (const n of names) { const i=hdr.indexOf(n); if(i>=0) return i; }
+        for (const n of names) { const i=hdr.findIndex(h=>h.includes(n)); if(i>=0) return i; }
+        return -1;
+      };
       const qCol  = col('question','câuhỏi','cauhoi','q','nộidung');
       const tCol  = col('type','loại','loai','dạng','dang');
       const aCol  = col('a','optiona','a.');
@@ -492,6 +497,10 @@ function parseQBankFile(file, group, allowEssay) {
       const lietCol = col('liet','liệt','isliet','điểmliệt','kl');
       const rubricCol = col('rubric','tiêuchí','tieuchi','criteria','hướngdẫn');
       if (qCol < 0) { alert('Question column not found. Please check the column names.'); return; }
+      if (ptsCol < 0) {
+        const foundHdrs = raw[0].join(', ');
+        if (!confirm(`⚠️ Points column not found!\n\nDetected headers: ${foundHdrs}\n\nExpected one of: Points, Điểm, Diem, Pts, Score\n\nAll questions will have 0 points. Continue anyway?`)) return;
+      }
       const questions = [];
       for (let i=1; i<raw.length; i++) {
         const row = raw[i];
@@ -514,6 +523,9 @@ function parseQBankFile(file, group, allowEssay) {
       }
       if (!questions.length) { alert('No questions could be parsed.'); return; }
       const totalPoints = questions.reduce((s,q)=>s+q.points,0);
+      if (totalPoints === 0 && ptsCol >= 0) {
+        alert('⚠️ Warning: All questions have 0 points. Check that the Points column contains numeric values.');
+      }
       saveQBank(group, { updatedAt:new Date().toISOString(), totalPoints, questions });
 
       // Auto-regenerate tests for all configured months
@@ -961,7 +973,8 @@ function renderScoresTables() {
   function buildRowsBDCS(list) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
-      <th>#</th><th>Full Name</th><th>Username</th><th>Submission Status</th>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
+      <th>Start</th><th>Submit</th><th>Duration</th>
       <th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
@@ -971,16 +984,30 @@ function renderScoresTables() {
         const pct  = sc?.score ?? null;
         const liet = sc?.liet  ?? (sub?.lietWrong ?? null);
         const pf   = pfBDCS(sc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
+        const isOld = (ud.employeeType||'new') === 'old';
+        const typeBadge = isOld
+          ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
         const subBadge = sub
           ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>
              ${sub.essayPending?`<br><button class="btn-xs edi" style="margin-top:4px;font-size:0.7rem" onclick="openEssayModal('${un}','${month}')">📝 Essay</button>`:''}
              ${suggestScore!==null?`<br><span style="font-size:0.7rem;color:var(--text-muted)">MCQ: ${sub.mcqScore}pts</span>`:''}`
           : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
+        const fmtTime = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+        const fmtDur  = (s, e) => {
+          if (!s || !e) return '—';
+          const m = Math.round((new Date(e)-new Date(s))/60000);
+          return m < 60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m';
+        };
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
           <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${typeBadge}</td>
           <td>${subBadge}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
+          <td style="font-size:0.75rem;font-weight:600;color:var(--text-primary);white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
           <td>
             <input class="score-inp" id="sc_bdcs_${un}" type="number" min="0" max="300"
               value="${pct!==null?pct:(suggestScore!==null?suggestScore:'')}" placeholder="—"
@@ -1000,7 +1027,8 @@ function renderScoresTables() {
   function buildRowsOthers(list) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
-      <th>#</th><th>Full Name</th><th>Username</th><th>Submission Status</th>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
+      <th>Start</th><th>Submit</th><th>Duration</th>
       <th>Score (0–100)</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
@@ -1014,14 +1042,28 @@ function renderScoresTables() {
         const pf  = pfOthers(pfSrc); const pfTxt={pass:'✓ PASS',fail:'✗ FAIL',none:'—'}[pf];
         const isAuto = sc?.autoGraded || (pct === null && autoScore !== null);
         const autoTag = isAuto ? `<span style="font-size:0.68rem;color:var(--success);margin-left:4px;">(auto)</span>` : '';
+        const isOld = (ud.employeeType||'new') === 'old';
+        const typeBadge = isOld
+          ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
         const subBadge = sub
           ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>`
           : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
+        const fmtTime = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+        const fmtDur  = (s, e) => {
+          if (!s || !e) return '—';
+          const m = Math.round((new Date(e)-new Date(s))/60000);
+          return m < 60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m';
+        };
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
           <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${typeBadge}</td>
           <td>${subBadge}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
+          <td style="font-size:0.75rem;font-weight:600;color:var(--text-primary);white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
           <td>
             <input class="score-inp" id="sc_others_${un}" type="number" min="0" max="100"
               value="${displayScore!==null?displayScore:''}" placeholder="—"
