@@ -73,6 +73,44 @@
       margin-top: 12px;
       text-align: center;
     }
+    /* Notification bell */
+    .notif-bell-btn {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 6px 11px; color: var(--text-secondary); cursor: pointer;
+      font-size: 1rem; display: flex; align-items: center; gap: 5px; transition: all .18s;
+      position: relative; margin-left: 8px;
+    }
+    .notif-bell-btn:hover, .notif-bell-btn.active { background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.3); color: var(--gold); }
+    .notif-badge {
+      position: absolute; top: -6px; right: -6px;
+      background: var(--danger); color: #fff; font-size: 0.62rem; font-weight: 800;
+      min-width: 16px; height: 16px; border-radius: 99px; display: flex; align-items: center;
+      justify-content: center; padding: 0 4px; border: 2px solid var(--bg-primary);
+      pointer-events: none;
+    }
+    .notif-panel {
+      position: fixed; top: 60px; right: 16px; width: 310px; max-height: 80vh;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 300;
+      overflow-y: auto; animation: slideInRight .18s ease;
+    }
+    .notif-panel.hidden { display: none; }
+    @keyframes slideInRight { from { opacity:0; transform: translateX(10px); } to { opacity:1; transform:none; } }
+    /* Monthly test reminder banner */
+    .mt-reminder-banner {
+      display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px;
+      background: rgba(255,215,0,0.07); border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 14px; margin-bottom: 22px; cursor: pointer;
+      transition: background .18s;
+    }
+    .mt-reminder-banner:hover { background: rgba(255,215,0,0.11); }
+    .mt-reminder-banner.active { background: rgba(0,214,143,0.07); border-color: rgba(0,214,143,0.3); }
+    .mt-reminder-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+    .mt-reminder-body { flex: 1; }
+    .mt-reminder-title { font-weight: 700; font-size: 0.92rem; color: var(--gold); margin-bottom: 3px; }
+    .mt-reminder-banner.active .mt-reminder-title { color: var(--success); }
+    .mt-reminder-sub { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.6; }
+    .mt-reminder-tz  { font-size: 0.73rem; color: var(--text-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -102,6 +140,45 @@
       </div>
       <button class="btn btn-primary" onclick="doLogin()">Sign In</button>
       <div class="error-msg" id="loginError"></div>
+      <div style="text-align:center;margin-top:10px;">
+        <a href="#" onclick="showForgotPw();return false;" style="color:var(--text-muted);font-size:0.82rem;text-decoration:none;opacity:.8;">Forgot password?</a>
+      </div>
+    </div>
+
+    <!-- Forgot Password Panel -->
+    <div id="forgotPanel" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+        <button onclick="hideForgotPw()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1.1rem;padding:0;">←</button>
+        <span style="font-weight:700;font-size:1rem;color:var(--text-primary);">Reset Password</span>
+      </div>
+      <!-- Step 1: verify identity -->
+      <div id="fpStep1">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" id="fpUsername" placeholder="Your username" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label>Registered Email</label>
+          <input type="email" id="fpEmail" placeholder="Email linked to your account">
+          <div class="input-hint">Must match the email you registered with.</div>
+        </div>
+        <div class="error-msg" id="fpError"></div>
+        <button class="btn btn-primary" onclick="forgotVerify()">Verify Identity</button>
+      </div>
+      <!-- Step 2: set new password -->
+      <div id="fpStep2" style="display:none;">
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="fpNewPw" placeholder="Min 6 characters" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="fpConfirm" placeholder="Repeat new password" autocomplete="new-password">
+        </div>
+        <div class="error-msg" id="fpError2"></div>
+        <button class="btn btn-primary" onclick="forgotSave()">Set New Password</button>
+      </div>
+      <div id="fpSuccess" style="display:none;text-align:center;padding:16px 0;color:var(--success);font-weight:700;">✓ Password updated! Redirecting to login…</div>
     </div>
 
     <!-- Register Panel -->
@@ -186,6 +263,7 @@
       </div>
     </div>
     <button class="sidebar-edit-profile" id="editProfileBtn" style="display:none;" onclick="openDashboardProfileModal()">✎ Edit Profile</button>
+    <button class="sidebar-edit-profile" onclick="openChangePwModal()" style="margin-top:4px;background:rgba(100,150,255,0.08);border-color:rgba(100,150,255,0.3);color:#8aabff;">🔑 Change Password</button>
 
     <nav class="sidebar-nav">
       <div class="nav-section-title">Training Modules</div>
@@ -273,8 +351,12 @@
       <span class="top-bar-title">Dashboard</span>
       <div class="top-bar-actions">
         <div class="progress-pill" id="topProgressPill">0 / 7 Modules</div>
+        <button class="notif-bell-btn hidden" id="notifBellDash" onclick="toggleDashNotifPanel()" title="Monthly Test Notifications">
+          🔔 <span class="notif-badge hidden" id="notifBadgeDash">0</span>
+        </button>
       </div>
     </div>
+    <div class="notif-panel hidden" id="notifPanelDash"></div>
 
     <div class="page-content animate-in">
       <div class="welcome-banner">
@@ -304,6 +386,8 @@
           </div>
         </div>
       </div>
+
+      <div id="mtReminderBanner"></div>
 
       <div class="section-title">Training Modules</div>
       <div class="modules-grid" id="modulesGrid"></div>
@@ -401,6 +485,7 @@ async function doLogin() {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
     initDashboard(u);
+    autoUpgradeCheck(u);
   } else {
     err.textContent = 'Invalid username or password. Please try again.';
   }
@@ -536,6 +621,117 @@ function saveDashboardProfile() {
   const s = document.getElementById('dpmSuccess');
   s.style.display = 'block';
   setTimeout(() => { s.style.display = 'none'; }, 2000);
+}
+
+// ===== CHANGE PASSWORD =====
+function openChangePwModal() {
+  const existing = document.getElementById('changePwModal');
+  if (existing) { existing.classList.add('show'); return; }
+  const s = 'width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;';
+  const modal = document.createElement('div');
+  modal.id = 'changePwModal'; modal.className = 'modal-overlay show'; modal.style.zIndex = '400';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:380px;">
+      <h3 style="color:var(--gold);margin-bottom:20px;">🔑 Change Password</h3>
+      <div class="form-group"><label>Current Password</label>
+        <input type="password" id="cpCurrent" placeholder="Current password" style="${s}"></div>
+      <div class="form-group"><label>New Password</label>
+        <input type="password" id="cpNew" placeholder="Min 6 characters" style="${s}"></div>
+      <div class="form-group"><label>Confirm New Password</label>
+        <input type="password" id="cpConfirm" placeholder="Repeat new password" style="${s}"></div>
+      <div id="cpError" style="color:#ff4d6d;font-size:0.82rem;margin-top:4px;min-height:18px;"></div>
+      <div id="cpSuccess" style="display:none;color:#00d68f;font-size:0.82rem;margin-top:4px;">✓ Password changed successfully!</div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="document.getElementById('changePwModal').classList.remove('show')"
+          style="flex:1;padding:11px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#aaa;cursor:pointer;font-weight:600;">Cancel</button>
+        <button onclick="saveChangePw()"
+          style="flex:1;padding:11px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#0a0a16;font-weight:800;border:none;border-radius:10px;cursor:pointer;font-size:14px;">Save</button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+  document.body.appendChild(modal);
+}
+
+function saveChangePw() {
+  const user  = localStorage.getItem('wmt_user');
+  const users = getUsersDB();
+  const cur = document.getElementById('cpCurrent').value;
+  const nw  = document.getElementById('cpNew').value;
+  const cf  = document.getElementById('cpConfirm').value;
+  const err = document.getElementById('cpError');
+  err.textContent = '';
+  if (!users[user] || users[user].password !== cur) { err.textContent = 'Current password is incorrect.'; return; }
+  if (nw.length < 6) { err.textContent = 'New password must be at least 6 characters.'; return; }
+  if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
+  users[user].password = nw;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + user).update({ password: nw })
+    .catch(e => console.warn('[WMT] changePw Firebase error:', e.message));
+  document.getElementById('cpSuccess').style.display = 'block';
+  document.getElementById('cpCurrent').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpConfirm').value = '';
+  setTimeout(() => {
+    document.getElementById('changePwModal').classList.remove('show');
+    document.getElementById('cpSuccess').style.display = 'none';
+  }, 1500);
+}
+
+// ===== FORGOT PASSWORD =====
+function showForgotPw() {
+  document.getElementById('loginPanel').style.display   = 'none';
+  document.getElementById('forgotPanel').style.display  = 'block';
+  document.getElementById('fpStep1').style.display      = 'block';
+  document.getElementById('fpStep2').style.display      = 'none';
+  document.getElementById('fpSuccess').style.display    = 'none';
+  document.getElementById('fpUsername').value = '';
+  document.getElementById('fpEmail').value    = '';
+  document.getElementById('fpError').textContent = '';
+}
+
+function hideForgotPw() {
+  document.getElementById('forgotPanel').style.display = 'none';
+  document.getElementById('loginPanel').style.display  = 'block';
+  document.getElementById('fpSuccess').style.display   = 'none';
+}
+
+function forgotVerify() {
+  const un  = document.getElementById('fpUsername').value.trim().toLowerCase();
+  const em  = document.getElementById('fpEmail').value.trim().toLowerCase();
+  const err = document.getElementById('fpError');
+  err.textContent = '';
+  if (!un || !em) { err.textContent = 'Please enter both username and email.'; return; }
+  const users = getUsersDB();
+  const u = users[un];
+  if (!u) { err.textContent = 'Username not found.'; return; }
+  if (!u.email) { err.textContent = 'No email registered for this account. Please contact admin to reset your password.'; return; }
+  if (u.email.trim().toLowerCase() !== em) { err.textContent = 'Email does not match the account.'; return; }
+  document.getElementById('fpUsername').dataset.verified = un;
+  document.getElementById('fpStep1').style.display = 'none';
+  document.getElementById('fpStep2').style.display = 'block';
+  document.getElementById('fpNewPw').value  = '';
+  document.getElementById('fpConfirm').value = '';
+  document.getElementById('fpError2').textContent = '';
+  setTimeout(() => document.getElementById('fpNewPw').focus(), 80);
+}
+
+function forgotSave() {
+  const un  = document.getElementById('fpUsername').dataset.verified;
+  const nw  = document.getElementById('fpNewPw').value;
+  const cf  = document.getElementById('fpConfirm').value;
+  const err = document.getElementById('fpError2');
+  err.textContent = '';
+  if (!un) { err.textContent = 'Session expired. Please restart.'; return; }
+  if (nw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
+  const users = getUsersDB();
+  users[un].password = nw;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + un).update({ password: nw })
+    .catch(e => console.warn('[WMT] forgotPw Firebase error:', e.message));
+  document.getElementById('fpStep2').style.display   = 'none';
+  document.getElementById('fpSuccess').style.display = 'block';
+  setTimeout(hideForgotPw, 2000);
 }
 
 // ===== LOGOUT =====
@@ -699,6 +895,348 @@ function initDashboard(user) {
       }
     }
   }
+
+  initDashboardNotifications(user);
+}
+
+// ===== MONTHLY TEST NOTIFICATIONS (Dashboard) =====
+function _getMC() { return JSON.parse(localStorage.getItem('wmt_monthly_config') || '{}'); }
+function _isBDCS(udata) {
+  const g = (udata.testGroup || 'auto').toLowerCase();
+  if (g === 'bdcs')   return true;
+  if (g === 'others') return false;
+  const d = (udata.department || '').toLowerCase();
+  return d === 'bd' || d === 'cs' || d.includes('business dev') || d.includes('customer serv') || d.includes('sales');
+}
+function _getNotifPrefs(u) {
+  const def = { enabled: false, permission: 'default', reminders: ['24h','1h','start','2hClose'], timezone: Intl.DateTimeFormat().resolvedOptions().timeZone };
+  return Object.assign({}, def, JSON.parse(localStorage.getItem('wmt_notif_prefs_' + u) || 'null') || {});
+}
+function _saveNotifPrefs(u, p) {
+  localStorage.setItem('wmt_notif_prefs_' + u, JSON.stringify(p));
+  if (window.FDB) window.FDB.ref('notif_prefs/' + u).set(p).catch(() => {});
+}
+function _fmtLocalTime(iso, tz) {
+  if (!iso) return '—';
+  try { return new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone: tz, timeZoneName:'short' }); }
+  catch { return new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+}
+function _fmtMonth(m) {
+  if (!m) return '—';
+  const [y, mo] = m.split('-');
+  return new Date(+y, +mo - 1).toLocaleString('en-GB', { month:'long', year:'numeric' });
+}
+function _getUpcomingTests(u) {
+  const mc = _getMC(), users = getUsersDB();
+  const udata = users[u] || {};
+  const bdcs = _isBDCS(udata);
+  const now = Date.now();
+  return Object.keys(mc).sort().reverse().map(m => {
+    const cfg = mc[m];
+    const start = bdcs ? cfg.startDateBDCS : cfg.startDateOthers;
+    const end   = bdcs ? cfg.deadlineBDCS  : cfg.deadlineOthers;
+    const startTs = start ? new Date(start).getTime() : null;
+    const endTs   = end   ? new Date(end).getTime()   : null;
+    let status = 'none';
+    if (startTs) {
+      if (now < startTs)                status = 'upcoming';
+      else if (!endTs || now <= endTs)  status = 'active';
+      else                              status = 'expired';
+    }
+    return { m, start, end, startTs, endTs, status };
+  }).filter(t => t.status === 'upcoming' || t.status === 'active');
+}
+
+function _scheduleNotifs(u) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const prefs = _getNotifPrefs(u);
+  if (!prefs.enabled) return;
+  const tests = _getUpcomingTests(u);
+  if (!tests.length) return;
+  const { startTs, endTs, m } = tests[0];
+  if (!startTs) return;
+  const now = Date.now();
+  const slots = [
+    { key:'24h',     fireAt: startTs - 86400000, body: '24 hours to go! — ' + _fmtMonth(m) },
+    { key:'1h',      fireAt: startTs - 3600000,  body: '1 hour until test opens — ' + _fmtMonth(m) },
+    { key:'start',   fireAt: startTs,             body: 'Test is now OPEN — ' + _fmtMonth(m) },
+    { key:'2hClose', fireAt: endTs ? endTs - 7200000 : null, body: '2 hours left to submit — ' + _fmtMonth(m) },
+  ];
+  slots.forEach(({ key, fireAt, body }) => {
+    if (!prefs.reminders.includes(key) || !fireAt) return;
+    const delay = fireAt - now;
+    if (delay > 0 && delay < 172800000)
+      setTimeout(() => { if (Notification.permission === 'granted') new Notification('📅 WMT Monthly Test', { body, tag:'wmt-'+m+'-'+key }); }, delay);
+  });
+}
+
+async function _requestNotifPermission(u) {
+  if (!('Notification' in window)) { alert('Browser notifications not supported.'); return; }
+  const perm = await Notification.requestPermission();
+  const p = _getNotifPrefs(u);
+  p.enabled = perm === 'granted'; p.permission = perm;
+  _saveNotifPrefs(u, p);
+  _updateDashNotifBell(u);
+  renderDashNotifPanel(u);
+  if (perm === 'granted') {
+    _scheduleNotifs(u);
+    new Notification('📅 WMT Monthly Test', { body: 'Notifications enabled! You will be reminded before tests.', tag:'wmt-on' });
+  }
+}
+
+function _toggleDashNotifReminderKey(u, key) {
+  const p = _getNotifPrefs(u);
+  const idx = p.reminders.indexOf(key);
+  if (idx >= 0) p.reminders.splice(idx, 1); else p.reminders.push(key);
+  _saveNotifPrefs(u, p);
+  renderDashNotifPanel(u);
+}
+
+function _updateDashNotifBell(u) {
+  const tests  = _getUpcomingTests(u);
+  const bell   = document.getElementById('notifBellDash');
+  const badge  = document.getElementById('notifBadgeDash');
+  if (!bell) return;
+  if (tests.length > 0) {
+    bell.classList.remove('hidden');
+    badge.textContent = tests.length;
+    badge.classList.toggle('hidden', tests.length === 0);
+  } else {
+    bell.classList.add('hidden');
+  }
+}
+
+function toggleDashNotifPanel() {
+  const panel = document.getElementById('notifPanelDash');
+  const bell  = document.getElementById('notifBellDash');
+  const u     = localStorage.getItem('wmt_user');
+  const open  = panel.classList.toggle('hidden');
+  bell.classList.toggle('active', !open);
+  if (!open) renderDashNotifPanel(u);
+}
+
+function renderDashNotifPanel(u) {
+  const panel = document.getElementById('notifPanelDash');
+  if (!panel || panel.classList.contains('hidden')) return;
+  const prefs = _getNotifPrefs(u);
+  const tz    = prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tests = _getUpcomingTests(u);
+  const perm  = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+  const testRows = tests.length
+    ? tests.map(t => {
+        const badge = t.status === 'active'
+          ? `<span style="color:var(--success);font-size:0.75rem;font-weight:700;">🟢 Active</span>`
+          : `<span style="color:#6496ff;font-size:0.75rem;font-weight:700;">🔵 Upcoming</span>`;
+        return `<div style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-weight:700;color:var(--gold);font-size:0.88rem;">${_fmtMonth(t.m)}</span>${badge}
+          </div>
+          <div style="font-size:0.79rem;color:var(--text-secondary);line-height:1.7;">
+            🟢 Opens: <strong>${_fmtLocalTime(t.start, tz)}</strong><br>
+            🔴 Closes: <strong>${_fmtLocalTime(t.end, tz)}</strong>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--text-muted);font-size:0.83rem;padding:10px 0;">No upcoming tests.</div>`;
+
+  const OPTS = [
+    { key:'24h',     label:'24 hours before opens' },
+    { key:'1h',      label:'1 hour before opens' },
+    { key:'start',   label:'When test opens' },
+    { key:'2hClose', label:'2 hours before deadline' },
+  ];
+  let ctrl = '';
+  if (perm === 'unsupported') {
+    ctrl = `<p style="font-size:0.8rem;color:var(--text-muted);padding:10px 0;">Notifications not supported in this browser.</p>`;
+  } else if (perm === 'denied') {
+    ctrl = `<p style="font-size:0.8rem;color:var(--danger);padding:10px 0;">⚠️ Notifications blocked. Allow in browser settings and reload.</p>`;
+  } else if (!prefs.enabled || perm !== 'granted') {
+    ctrl = `
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:14px;line-height:1.6;">Enable reminders to get notified before each test, in your local timezone.</p>
+      <button onclick="_requestNotifPermission('${u}')"
+        style="width:100%;margin-top:12px;padding:12px;background:linear-gradient(135deg,#FFD700,#FFA500);color:#0a0a16;font-weight:800;border:none;border-radius:10px;cursor:pointer;font-size:0.88rem;">
+        🔔 Enable Notifications
+      </button>`;
+  } else {
+    const checks = OPTS.map(({ key, label }) => `
+      <label style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">
+        <input type="checkbox" ${prefs.reminders.includes(key) ? 'checked' : ''}
+          onchange="_toggleDashNotifReminderKey('${u}','${key}')"
+          style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;cursor:pointer;">
+        <span style="font-size:0.82rem;color:var(--text-secondary);">${label}</span>
+      </label>`).join('');
+    ctrl = `
+      <div style="margin-top:14px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;">Remind me</div>
+        ${checks}
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button onclick="_requestNotifPermission('${u}')"
+            style="padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:0.75rem;cursor:pointer;">
+            🔄 Re-check
+          </button>
+          <button onclick="_disableDashNotif('${u}')"
+            style="padding:6px 12px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:8px;color:var(--danger);font-size:0.75rem;cursor:pointer;">
+            🔕 Turn off
+          </button>
+        </div>
+      </div>`;
+  }
+
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <strong style="font-size:0.95rem;">🔔 Monthly Test</strong>
+      <button onclick="toggleDashNotifPanel()" style="background:none;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(100,150,255,0.07);border:1px solid rgba(100,150,255,0.2);border-radius:8px;margin-bottom:14px;font-size:0.78rem;color:var(--text-secondary);">
+      🌍 <strong>${tz}</strong>
+    </div>
+    <div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Upcoming Tests</div>
+    ${testRows}
+    ${ctrl}`;
+}
+
+function _disableDashNotif(u) {
+  const p = _getNotifPrefs(u); p.enabled = false;
+  _saveNotifPrefs(u, p); renderDashNotifPanel(u);
+}
+
+function renderMtReminderBanner(u) {
+  const el = document.getElementById('mtReminderBanner');
+  if (!el) return;
+  const tests = _getUpcomingTests(u);
+  if (!tests.length) { el.innerHTML = ''; return; }
+  const t   = tests[0];
+  const prefs = _getNotifPrefs(u);
+  const tz  = prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isActive = t.status === 'active';
+  el.innerHTML = `
+    <div class="mt-reminder-banner ${isActive ? 'active' : ''}" onclick="window.location.href='monthlytest.html'">
+      <div class="mt-reminder-icon">${isActive ? '📝' : '📅'}</div>
+      <div class="mt-reminder-body">
+        <div class="mt-reminder-title">${isActive ? '🟢 Monthly Test is OPEN' : '🔵 Upcoming Monthly Test'} — ${_fmtMonth(t.m)}</div>
+        <div class="mt-reminder-sub">
+          ${isActive
+            ? `Test open now → closes <strong>${_fmtLocalTime(t.end, tz)}</strong>`
+            : `Opens <strong>${_fmtLocalTime(t.start, tz)}</strong> · Closes <strong>${_fmtLocalTime(t.end, tz)}</strong>`}
+        </div>
+        <div class="mt-reminder-tz">🌍 ${tz} · Click to go to Monthly Test →</div>
+      </div>
+    </div>`;
+}
+
+function initDashboardNotifications(user) {
+  const udata = getUsersDB()[user] || {};
+  if (udata.role === 'admin' || udata.role === 'mod') return; // admin/mod skip reminder
+  // Detect & persist timezone
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const p  = _getNotifPrefs(user);
+  if (p.timezone !== tz) { p.timezone = tz; _saveNotifPrefs(user, p); }
+  // Show bell + reminder banner
+  _updateDashNotifBell(user);
+  renderMtReminderBanner(user);
+  // Schedule browser notifications if already enabled
+  if (p.enabled && ('Notification' in window) && Notification.permission === 'granted') _scheduleNotifs(user);
+  // Close panel on outside click
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('notifPanelDash');
+    const bell  = document.getElementById('notifBellDash');
+    if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && bell && !bell.contains(e.target)) {
+      panel.classList.add('hidden'); bell.classList.remove('active');
+    }
+  }, true);
+}
+
+// ===== AUTO-UPGRADE: New → Existed after 2 calendar months =====
+function _isUpgradeEligible(udata) {
+  if (!udata || !udata.createdAt) return false;
+  if ((udata.employeeType || 'new') === 'old') return false;
+  if (udata.role === 'admin' || udata.role === 'mod') return false;
+  const threshold = new Date(udata.createdAt);
+  threshold.setMonth(threshold.getMonth() + 2);
+  return Date.now() >= threshold.getTime();
+}
+
+async function autoUpgradeCheck(loginUser) {
+  const allUsers = getUsersDB();
+  const loginData = allUsers[loginUser] || {};
+  const isAdmin   = loginData.role === 'admin';
+  const toCheck   = isAdmin ? Object.keys(allUsers) : [loginUser];
+  const upgraded  = [];
+
+  for (const uname of toCheck) {
+    if (_isUpgradeEligible(allUsers[uname])) {
+      allUsers[uname].employeeType = 'old';
+      upgraded.push({ uname, fullName: allUsers[uname].fullName || uname, createdAt: allUsers[uname].createdAt });
+    }
+  }
+  if (!upgraded.length) return;
+
+  localStorage.setItem('wmt_users_db', JSON.stringify(allUsers));
+
+  if (window.FDB) {
+    await Promise.all(upgraded.map(({ uname }) =>
+      window.FDB.ref('users/' + uname).update({ employeeType: 'old' })
+        .catch(e => console.warn('[WMT] autoUpgrade Firebase sync error:', uname, e.message))
+    ));
+  }
+
+  if (isAdmin) showAutoUpgradeModal(upgraded);
+}
+
+function showAutoUpgradeModal(upgraded) {
+  const existing = document.getElementById('autoUpgradeModal');
+  if (existing) existing.remove();
+
+  const fmtDate = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+  const rows = upgraded.map(({ uname, fullName, createdAt }) => `
+    <tr>
+      <td style="padding:8px 12px;color:var(--text-primary);font-weight:600;">${uname}</td>
+      <td style="padding:8px 12px;color:var(--text-secondary);">${fullName !== uname ? fullName : '—'}</td>
+      <td style="padding:8px 12px;color:var(--text-muted);font-size:0.8rem;">${fmtDate(createdAt)}</td>
+      <td style="padding:8px 12px;">
+        <span style="background:rgba(0,214,143,0.12);color:var(--success);font-size:0.75rem;font-weight:700;padding:3px 10px;border-radius:6px;">🏅 Existed</span>
+      </td>
+    </tr>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'autoUpgradeModal';
+  modal.className = 'modal-overlay show';
+  modal.style.zIndex = '500';
+  modal.innerHTML = `
+    <div class="modal-box" style="max-width:520px;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+        <span style="font-size:1.6rem;">🏅</span>
+        <div>
+          <h3 style="color:var(--success);margin:0;">Auto-Upgrade Complete</h3>
+          <p style="color:var(--text-muted);font-size:0.82rem;margin:2px 0 0;">${upgraded.length} user${upgraded.length > 1 ? 's' : ''} automatically promoted to <strong>Existed</strong> status</p>
+        </div>
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:14px;line-height:1.6;">
+        These accounts reached 2 calendar months since registration. Monthly Test access has been unlocked. You can revert any account via <strong>Edit</strong> in the Users tab.
+      </p>
+      <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border);">
+        <table style="width:100%;border-collapse:collapse;font-size:0.84rem;">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.04);">
+              <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;">Username</th>
+              <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;">Full Name</th>
+              <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;">Joined</th>
+              <th style="padding:8px 12px;text-align:left;color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;">Status</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+        <button onclick="document.getElementById('autoUpgradeModal').remove()"
+          style="padding:10px 28px;background:linear-gradient(135deg,var(--success),#00a86b);color:#fff;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-size:0.88rem;">
+          Got it ✓
+        </button>
+      </div>
+    </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
 }
 
 // ===== SYNC READY GATE =====
@@ -718,6 +1256,7 @@ window.addEventListener('load', async function() {
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
     initDashboard(user);
+    await autoUpgradeCheck(user);
   }
 });
 </script>

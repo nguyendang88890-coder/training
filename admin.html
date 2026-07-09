@@ -324,7 +324,7 @@
 
         <div class="section-title">Registered Users</div>
         <div class="filter-bar" id="filterBar">
-          <input type="text" id="filterSearch" placeholder="🔍 Search username / name…" oninput="applyUserFilters()">
+          <input type="text" id="filterSearch" placeholder="🔍 Username, email, working name, leader…" oninput="applyUserFilters()">
           <select id="filterDept" onchange="applyUserFilters()">
             <option value="">All Departments</option>
           </select>
@@ -339,6 +339,7 @@
             <option value="">All Teams</option>
           </select>
           <button class="filter-clear" onclick="clearUserFilters()">✕ Clear</button>
+          <button class="filter-clear" onclick="fixAllDepartments()" title="Gộp các tên department bị lặp/sai chính tả thành tên chuẩn và đồng bộ Firebase" style="border-color:#a78bfa;color:#a78bfa;">🏷️ Fix Depts</button>
           <button class="filter-clear" onclick="migrateLeaderNames()" title="Chuẩn hoá tất cả leaderName trong database về đúng username của leader" style="border-color:#f59e0b;color:#f59e0b;">🔧 Fix Leader Names</button>
           <span id="filterCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
         </div>
@@ -480,6 +481,25 @@
   </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetPwModal">
+  <div class="modal-box" style="max-width:360px;">
+    <h3 style="color:var(--gold);margin-bottom:6px;">🔑 Reset Password</h3>
+    <p id="resetPwLabel" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px;"></p>
+    <div class="form-group"><label>New Password</label>
+      <input type="password" id="resetPwNew" placeholder="Min 6 characters"
+        style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;"></div>
+    <div class="form-group"><label>Confirm Password</label>
+      <input type="password" id="resetPwConfirm" placeholder="Repeat new password"
+        style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;"></div>
+    <div id="resetPwError" style="color:#ff4d6d;font-size:0.82rem;margin-top:4px;min-height:18px;"></div>
+    <div class="modal-footer" style="margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeResetPwModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveResetPw()">💾 Reset</button>
+    </div>
+  </div>
+</div>
+
 <!-- Exam Reset Modal -->
 <div class="modal-overlay" id="examResetModal">
   <div class="modal-box" style="max-width:480px;">
@@ -592,7 +612,104 @@ window.addEventListener('load', async function() {
   renderAdminPanel();
   renderInterviewsTable();
   updateRsBadge();
+  await runAutoUpgrade();
 });
+
+// ===== AUTO-UPGRADE: New → Existed after 2 calendar months =====
+function _isUpgradeEligible(udata) {
+  if (!udata || !udata.createdAt) return false;
+  if ((udata.employeeType || 'new') === 'old') return false;
+  if (udata.role === 'admin' || udata.role === 'mod') return false;
+  const threshold = new Date(udata.createdAt);
+  threshold.setMonth(threshold.getMonth() + 2);
+  return Date.now() >= threshold.getTime();
+}
+
+async function runAutoUpgrade() {
+  const allUsers = getUsersDB();
+  const upgraded = [];
+
+  for (const [uname, udata] of Object.entries(allUsers)) {
+    if (_isUpgradeEligible(udata)) {
+      allUsers[uname].employeeType = 'old';
+      upgraded.push({ uname, fullName: udata.fullName || uname, createdAt: udata.createdAt });
+    }
+  }
+  if (!upgraded.length) return;
+
+  localStorage.setItem('wmt_users_db', JSON.stringify(allUsers));
+
+  if (window.FDB) {
+    await Promise.all(upgraded.map(({ uname }) =>
+      window.FDB.ref('users/' + uname).update({ employeeType: 'old' })
+        .catch(e => console.warn('[WMT] autoUpgrade Firebase error:', uname, e.message))
+    ));
+  }
+
+  showUpgradeNotif(upgraded);
+  renderAdminPanel(); // refresh Users table to reflect new status
+}
+
+function showUpgradeNotif(upgraded) {
+  const existing = document.getElementById('autoUpgradeNotif');
+  if (existing) existing.remove();
+
+  const fmtDate = iso => iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+    : '—';
+
+  const rows = upgraded.map(({ uname, fullName, createdAt }) => `
+    <tr style="border-top:1px solid var(--border);">
+      <td style="padding:7px 12px;font-weight:600;color:var(--text-primary);">${uname}</td>
+      <td style="padding:7px 12px;color:var(--text-secondary);">${fullName !== uname ? fullName : '—'}</td>
+      <td style="padding:7px 12px;color:var(--text-muted);font-size:0.78rem;">${fmtDate(createdAt)}</td>
+    </tr>`).join('');
+
+  const notif = document.createElement('div');
+  notif.id = 'autoUpgradeNotif';
+  notif.style.cssText = `
+    position:fixed; bottom:24px; right:24px; width:380px; max-height:70vh;
+    background:var(--bg-card); border:1px solid rgba(0,214,143,0.35);
+    border-radius:16px; padding:20px; box-shadow:0 12px 40px rgba(0,0,0,.55);
+    z-index:400; overflow-y:auto; animation:slideUp .22s ease;`;
+
+  notif.innerHTML = `
+    <style>@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}</style>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.5rem;line-height:1;">🏅</span>
+        <div>
+          <div style="font-weight:800;color:var(--success);font-size:0.95rem;">Auto-Upgrade Complete</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+            ${upgraded.length} user${upgraded.length > 1 ? 's' : ''} → <strong>Existed</strong> · Monthly Test unlocked
+          </div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('autoUpgradeNotif').remove()"
+        style="background:none;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;flex-shrink:0;line-height:1;padding:2px;">✕</button>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;line-height:1.6;">
+      Accounts reached 2 calendar months since registration. Revert anytime via <strong>Edit</strong> in the Users tab.
+    </div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border);">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+        <thead>
+          <tr style="background:rgba(255,255,255,0.04);">
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Username</th>
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Full Name</th>
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Joined</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <button onclick="document.getElementById('autoUpgradeNotif').remove()"
+      style="width:100%;margin-top:14px;padding:9px;background:rgba(0,214,143,0.12);border:1px solid rgba(0,214,143,0.3);border-radius:8px;color:var(--success);font-weight:700;font-size:0.84rem;cursor:pointer;">
+      Dismiss ✓
+    </button>`;
+
+  document.body.appendChild(notif);
+}
 
 // ===== HELPERS =====
 function getUserProgress(username) {
@@ -684,15 +801,128 @@ function getLeaderKeys(leaderRef, allUsers) {
       if (ud.workName) keys.add(normL(ud.workName));
     }
   }
+  // Prefix match: any stored leaderName whose first token equals this ref
+  // e.g. ref="janny" also covers "janny giang", "janny - giang vu", "janny (quỳnh giang)"
+  const firstToken = ref.split(/[\s\-\(]+/)[0];
+  if (firstToken.length >= 3) {
+    for (const [, ud] of Object.entries(allUsers)) {
+      if (!ud.leaderName) continue;
+      const ln = normL(ud.leaderName);
+      if (ln.split(/[\s\-\(]+/)[0] === firstToken) keys.add(ln);
+    }
+  }
   keys.delete('');
   return keys;
 }
 
 function findLeaderEntry(leaderRef, allUsers) {
   const ref = normL(leaderRef);
-  return Object.entries(allUsers).find(([uname, ud]) =>
+  // 1. Exact match on username / fullName / workName
+  const exact = Object.entries(allUsers).find(([uname, ud]) =>
     normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref
-  ) || [null, {}];
+  );
+  if (exact) return exact;
+  // 2. First-word prefix: orphan like "janny giang" → match isLeader with username "janny"
+  const firstWord = ref.split(/[\s\-\(]+/)[0];
+  if (firstWord.length >= 3) {
+    const prefix = Object.entries(allUsers).find(([uname, ud]) =>
+      ud.isLeader && normL(uname) === firstWord
+    );
+    if (prefix) return prefix;
+  }
+  return [null, {}];
+}
+
+// ===== DEPARTMENT NORMALISATION =====
+// Maps lowercase variants → canonical display name.
+// Add new entries here whenever a new typo/variant appears.
+const DEPT_CANONICAL = {
+  // Assistance
+  'assistance':              'Assistance',
+  'assistant':               'Assistance',
+
+  // Audit
+  'audit':                   'Audit',
+
+  // BD group
+  'bd':                      'BD',
+  'bd cambodia':             'BD Cambodia',
+  'bdm':                     'BDM',
+  'business':                'Business Development',
+  'business dev':            'Business Development',
+  'business developement':   'Business Development',
+  'business development':    'Business Development',
+
+  // CS group
+  'cs':                      'CS',
+  'cs latam':                'CS Latam',
+  'costumer service':        'Customer Service',
+  'customer cervice':        'Customer Service',
+  'customer service':        'Customer Service',
+  'customer services':       'Customer Service',
+  'customer support':        'Customer Service',
+
+  // Finance / Accounting
+  'finance':                 'Finance',
+  'accounting':              'Finance',
+
+  // HR
+  'hr':                      'HR',
+  'human resource':          'HR',
+  'human resources':         'HR',
+
+  // IT
+  'it':                      'IT',
+  'information technology':  'IT',
+
+  // Marketing
+  'marketing':               'Marketing',
+
+  // Operations
+  'operation':               'Operations',
+  'operations':              'Operations',
+
+  // Sales
+  'sales':                   'Sales',
+};
+
+function normalizeDept(raw) {
+  if (!raw || !raw.trim()) return '';
+  return DEPT_CANONICAL[raw.trim().toLowerCase()] || raw.trim();
+}
+
+async function fixAllDepartments() {
+  const users = getUsersDB();
+  const changed = [];
+
+  Object.entries(users).forEach(([uname, u]) => {
+    if (!u.department) return;
+    const fixed = normalizeDept(u.department);
+    if (fixed !== u.department) {
+      changed.push({ uname, old: u.department, fixed });
+      users[uname].department = fixed;
+    }
+  });
+
+  if (!changed.length) {
+    alert('✅ All department names are already clean — nothing to fix.');
+    return;
+  }
+
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+
+  if (window.FDB) {
+    await Promise.all(changed.map(({ uname, fixed }) =>
+      window.FDB.ref('users/' + uname).update({ department: fixed })
+        .catch(e => console.warn('[WMT] fixDept Firebase error:', uname, e.message))
+    ));
+  }
+
+  populateFilterDropdowns();
+  renderUsersTableBody();
+
+  const lines = changed.map(({ uname, old, fixed }) => `  ${uname}: "${old}" → "${fixed}"`).join('\n');
+  alert(`✅ Fixed ${changed.length} department name${changed.length > 1 ? 's' : ''}:\n\n${lines}`);
 }
 
 // ===== USER FILTERS =====
@@ -705,7 +935,7 @@ function populateFilterDropdowns() {
   const leaders = new Set();
 
   Object.entries(users).forEach(([uname, u]) => {
-    if (u.department) depts.add(u.department);
+    if (u.department) depts.add(normalizeDept(u.department));
     if (u.isLeader)   leaders.add(uname);  // preferred: actual username
   });
 
@@ -732,12 +962,10 @@ function populateFilterDropdowns() {
   const prevLdr = ldrSel.value;
   ldrSel.innerHTML = '<option value="">All Teams</option>' +
     [...leaders].sort().map(l => {
-      // l is a username or normalized fallback — look up user entry for display
       const ud = users[l];
-      const display = ud?.fullName
-        ? `${l} (${ud.fullName})`
-        : (ud?.workName ? `${l} (${ud.workName})` : l);
-      return `<option value="${l}"${l===prevLdr?' selected':''}>${display}'s Team</option>`;
+      // Prefer workName → fullName → username for a clean display
+      const label = ud?.workName || ud?.fullName || l;
+      return `<option value="${l}"${l===prevLdr?' selected':''}>${label}'s Team</option>`;
     }).join('');
 }
 
@@ -768,10 +996,10 @@ function renderUsersTableBody() {
   // Apply filters
   userList = userList.filter(([uname, udata]) => {
     if (search) {
-      const hay = (uname + ' ' + (udata.fullName||'') + ' ' + (udata.workName||'')).toLowerCase();
+      const hay = [uname, udata.fullName||'', udata.workName||'', udata.email||'', udata.leaderName||''].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
-    if (dept   && udata.department !== dept) return false;
+    if (dept   && normalizeDept(udata.department) !== dept) return false;
     if (role === 'leader') { if (!udata.isLeader) return false; }
     else if (role && udata.role !== role) return false;
     if (leader) {
@@ -843,7 +1071,7 @@ function renderUsersTableBody() {
       <td style="color:var(--text-secondary)">${udata.fullName || '—'}</td>
       <td style="color:var(--text-muted);font-size:0.82rem;">${udata.email || '—'}</td>
       <td style="color:var(--text-secondary);font-size:0.82rem;">
-        ${udata.department || '—'}
+        ${normalizeDept(udata.department) || '—'}
         ${udata.testGroup === 'bdcs'   ? `<br><span style="font-size:0.68rem;background:rgba(255,165,0,0.15);color:#ffaa33;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📊 BDCS</span>` : ''}
         ${udata.testGroup === 'others' ? `<br><span style="font-size:0.68rem;background:rgba(100,150,255,0.15);color:#6496ff;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📋 Others</span>` : ''}
       </td>
@@ -889,6 +1117,7 @@ function renderUsersTableBody() {
       <td>
         <div class="action-btns">
           <button class="btn-xs edit"   onclick="openEditUser('${uname}')">✎ Edit</button>
+          <button class="btn-xs" onclick="openResetPwModal('${uname}')" style="background:rgba(100,150,255,0.1);border-color:rgba(100,150,255,0.35);color:#8aabff;">🔑 Pwd</button>
           <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
           <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${udata.role==='admin'?'disabled title="Revoke admin role first before deleting"':''}>✕ Delete</button>
         </div>
@@ -1819,12 +2048,49 @@ function resetRs(un, m) {
   updateRsBadge(); renderRescheduleTab();
 }
 
+// ===== RESET PASSWORD (admin) =====
+let _resetPwTarget = null;
+function openResetPwModal(uname) {
+  _resetPwTarget = uname;
+  document.getElementById('resetPwLabel').textContent = 'Set a new password for: ' + uname;
+  document.getElementById('resetPwNew').value     = '';
+  document.getElementById('resetPwConfirm').value = '';
+  document.getElementById('resetPwError').textContent = '';
+  document.getElementById('resetPwModal').classList.add('show');
+  setTimeout(() => document.getElementById('resetPwNew').focus(), 80);
+}
+
+function closeResetPwModal() {
+  document.getElementById('resetPwModal').classList.remove('show');
+  _resetPwTarget = null;
+}
+
+function saveResetPw() {
+  const uname = _resetPwTarget;
+  const nw  = document.getElementById('resetPwNew').value;
+  const cf  = document.getElementById('resetPwConfirm').value;
+  const err = document.getElementById('resetPwError');
+  err.textContent = '';
+  if (!uname) { err.textContent = 'No user selected.'; return; }
+  if (nw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
+  const users = getUsersDB();
+  if (!users[uname]) { err.textContent = 'User not found.'; return; }
+  users[uname].password = nw;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ password: nw })
+    .catch(e => console.warn('[WMT] resetPw Firebase error:', e.message));
+  closeResetPwModal();
+  alert('✅ Password for "' + uname + '" has been reset successfully.');
+}
+
 document.getElementById('editUserModal').addEventListener('click',   function(e) { if (e.target===this) closeEditUser(); });
 document.getElementById('confirmModal').addEventListener('click',    function(e) { if (e.target===this) closeConfirmModal(); });
 document.getElementById('examResetModal').addEventListener('click',  function(e) { if (e.target===this) closeExamReset(); });
+document.getElementById('resetPwModal').addEventListener('click',    function(e) { if (e.target===this) closeResetPwModal(); });
 
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); closeExamReset(); }
+  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); closeExamReset(); closeResetPwModal(); }
   if (e.key === 'Enter') {
     if (document.getElementById('editUserModal').classList.contains('show')) saveEditUser();
     if (document.getElementById('confirmModal').classList.contains('show'))  saveConfirmInterview();

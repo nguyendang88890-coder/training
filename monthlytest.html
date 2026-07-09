@@ -187,6 +187,54 @@
   transition: opacity .2s, transform .1s; border: none; cursor: pointer;
 }
 .obs-submit-btn:hover { opacity: .85; transform: translateY(-1px); color: #fff; }
+
+/* ===== NOTIFICATION BELL ===== */
+.notif-bell-wrap { position: relative; margin-left: auto; }
+.notif-bell-btn {
+  background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 7px 12px; color: var(--text-secondary); cursor: pointer;
+  font-size: 1rem; display: flex; align-items: center; gap: 6px; transition: all .18s;
+  position: relative;
+}
+.notif-bell-btn:hover { background: rgba(255,215,0,0.1); border-color: rgba(255,215,0,0.3); color: var(--gold); }
+.notif-bell-btn.active { background: rgba(255,215,0,0.12); border-color: rgba(255,215,0,0.4); color: var(--gold); }
+.notif-badge {
+  position: absolute; top: -6px; right: -6px;
+  background: var(--danger); color: #fff; font-size: 0.62rem; font-weight: 800;
+  min-width: 16px; height: 16px; border-radius: 99px; display: flex; align-items: center;
+  justify-content: center; padding: 0 4px; border: 2px solid var(--bg-primary);
+  pointer-events: none;
+}
+/* Notification Panel */
+.notif-panel {
+  position: fixed; top: 60px; right: 16px; width: 320px; max-height: 80vh;
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+  padding: 20px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 300;
+  overflow-y: auto; animation: slideInRight .18s ease;
+}
+.notif-panel.hidden { display: none; }
+@keyframes slideInRight { from { opacity:0; transform: translateX(12px); } to { opacity:1; transform: none; } }
+.notif-tz-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  background: rgba(100,150,255,0.07); border: 1px solid rgba(100,150,255,0.2);
+  border-radius: 8px; margin-bottom: 14px; font-size: 0.78rem; color: var(--text-secondary); }
+.notif-section-hdr { font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+.notif-test-row { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.notif-test-row:last-child { border-bottom: none; }
+.notif-test-month { font-weight: 700; color: var(--gold); font-size: 0.88rem; }
+.notif-test-time  { font-size: 0.79rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.7; }
+.notif-check-row  { display: flex; align-items: center; gap: 10px; padding: 7px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+.notif-check-row:last-child { border-bottom: none; }
+.notif-check-label { font-size: 0.82rem; color: var(--text-secondary); }
+.notif-enable-btn {
+  width: 100%; margin-top: 14px; padding: 12px;
+  background: linear-gradient(135deg,#FFD700,#FFA500); color: #0a0a16;
+  font-weight: 800; border: none; border-radius: 10px; cursor: pointer; font-size: 0.88rem;
+  transition: opacity .18s;
+}
+.notif-enable-btn:hover { opacity: .88; }
+.notif-status-msg { font-size: 0.8rem; padding: 10px 0; text-align: center; }
 </style>
 </head>
 <body>
@@ -198,7 +246,15 @@
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="top-bar-title">Monthly Test</span>
+      <div class="notif-bell-wrap" id="notifBellWrap" style="display:none;">
+        <button class="notif-bell-btn" id="notifBell" onclick="toggleNotifPanel()" title="Test Schedule Notifications">
+          🔔
+          <span class="notif-badge hidden" id="notifBadge">0</span>
+        </button>
+      </div>
     </div>
+    <!-- Notification Panel -->
+    <div class="notif-panel hidden" id="notifPanel"></div>
 
     <div class="page-content animate-in">
 
@@ -223,11 +279,13 @@
       <!-- ===== MOD VIEW ===== -->
       <div id="modView" class="hidden">
         <div class="page-tabs">
-          <button class="page-tab active" id="tabModQBank"    onclick="switchModTab('QBank')">📚 Question Bank</button>
-          <button class="page-tab"        id="tabModSchedule" onclick="switchModTab('Schedule')">📅 Test Schedule</button>
+          <button class="page-tab active" id="tabModSchedule" onclick="switchModTab('Schedule')">📅 Test Schedule</button>
+          <button class="page-tab"        id="tabModScores"   onclick="switchModTab('Scores')">📊 Results</button>
+          <button class="page-tab"        id="tabModUsers"    onclick="switchModTab('Users')">👥 Users</button>
         </div>
-        <div id="modQBankTab"></div>
-        <div id="modScheduleTab" class="hidden"></div>
+        <div id="modScheduleTab"></div>
+        <div id="modScoresTab"   class="hidden"></div>
+        <div id="modUsersTab"    class="hidden"></div>
       </div>
 
       <!-- ===== TRAINEE VIEW ===== -->
@@ -548,11 +606,13 @@ function parseQBankFile(file, group, allowEssay) {
 
 // ===== MOD VIEW =====
 function switchModTab(name) {
-  ['QBank','Schedule'].forEach(t => {
+  ['Schedule','Scores','Users'].forEach(t => {
     document.getElementById('mod'+t+'Tab').classList.toggle('hidden', t !== name);
     document.getElementById('tabMod'+t).classList.toggle('active', t === name);
   });
   if (name === 'Schedule') renderModScheduleTab();
+  else if (name === 'Scores') renderModScoresTab();
+  else if (name === 'Users') renderModUsersTab();
 }
 
 function renderModQBankTab() {
@@ -630,6 +690,171 @@ function renderModScheduleTab() {
     </div>`;
   }).join('');
   el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Current test schedule (read-only). Propose edits for Admin review.</p>${rows}`;
+}
+
+function renderModScoresTab() {
+  const el = document.getElementById('modScoresTab');
+  const cfgs = getMC(), months = Object.keys(cfgs).sort().reverse();
+  if (!months.length) { el.innerHTML = `<div class="empty-state">No tests configured yet.</div>`; return; }
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap;">
+      <label style="color:var(--text-secondary);font-weight:600;">Month:</label>
+      <select class="month-sel" id="modScMonth" onchange="renderModScoresTables()">
+        ${months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+      </select>
+      <input type="text" id="modScSearch" placeholder="🔍 Name, username or email…" oninput="renderModScoresTables()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
+               border-radius:8px;color:var(--text-primary);font-size:0.83rem;min-width:220px;flex:1;max-width:320px;">
+    </div>
+    <div id="modScoresTables"></div>`;
+  renderModScoresTables();
+}
+
+function renderModScoresTables() {
+  const month  = document.getElementById('modScMonth').value;
+  const search = (document.getElementById('modScSearch')?.value || '').toLowerCase().trim();
+  const cfg    = getMC()[month];
+  const scores = getMS()[month] || {};
+  let trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
+  if (search) {
+    trainees = trainees.filter(([un, ud]) =>
+      [un, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||''].join(' ').toLowerCase().includes(search));
+  }
+  const bdcs   = trainees.filter(([,u]) => isBDCS(u));
+  const others = trainees.filter(([,u]) => !isBDCS(u));
+  const passBDCS = cfg.passBDCS ?? 250, lietMax = cfg.lietMax ?? 10, passOthers = cfg.passOthers ?? 70;
+
+  const fmtTime = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+  const fmtDur  = (s, e) => {
+    if (!s || !e) return '—';
+    const m = Math.round((new Date(e)-new Date(s))/60000);
+    return m < 60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m';
+  };
+
+  function pfBadge(sc, pass, liet, max) {
+    if (!sc || sc.score === undefined) return '<span class="pf-badge none">—</span>';
+    const ok = sc.score >= pass && (liet === undefined || (sc.liet ?? 0) <= max);
+    return ok ? '<span class="pf-badge pass">✓ PASS</span>' : '<span class="pf-badge fail">✗ FAIL</span>';
+  }
+
+  function buildBDCS(list) {
+    if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
+    return `<div class="score-section-body"><table><thead><tr>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission</th>
+      <th>Start</th><th>Submit</th><th>Duration</th><th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th>
+    </tr></thead><tbody>
+      ${list.map(([un,ud],idx) => {
+        const sc = scores[un], sub = getSubmission(un, month);
+        const isOld = (ud.employeeType||'new') === 'old';
+        const typeBadge = isOld
+          ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
+        const subBadge = sub
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
+        const scoreVal = sc?.score ?? (sub?.mcqScore ?? '—');
+        const lietVal  = sc?.liet  ?? (sub?.lietWrong ?? '—');
+        return `<tr>
+          <td style="color:var(--text-muted);font-size:0.78rem">${idx+1}</td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${typeBadge}</td>
+          <td>${subBadge}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
+          <td style="font-size:0.75rem;font-weight:600;white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
+          <td style="font-weight:700;color:var(--gold)">${scoreVal}</td>
+          <td style="color:var(--text-muted)">${lietVal}</td>
+          <td>${pfBadge(sc, passBDCS, true, lietMax)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  }
+
+  function buildOthers(list) {
+    if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
+    return `<div class="score-section-body"><table><thead><tr>
+      <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission</th>
+      <th>Start</th><th>Submit</th><th>Duration</th><th>Score (0–100)</th><th>Pass / Fail</th>
+    </tr></thead><tbody>
+      ${list.map(([un,ud],idx) => {
+        const sc = scores[un], sub = getSubmission(un, month);
+        const autoScore = (!sc?.score && sub?.mcqScore != null) ? sub.mcqScore : null;
+        const displayScore = sc?.score ?? autoScore ?? '—';
+        const isOld = (ud.employeeType||'new') === 'old';
+        const typeBadge = isOld
+          ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
+        const subBadge = sub
+          ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>`
+          : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
+        const pfSc = displayScore !== '—' ? { score: displayScore } : sc;
+        const ok = pfSc?.score != null && pfSc.score >= passOthers;
+        const pfBadgeEl = pfSc?.score != null
+          ? (ok ? '<span class="pf-badge pass">✓ PASS</span>' : '<span class="pf-badge fail">✗ FAIL</span>')
+          : '<span class="pf-badge none">—</span>';
+        return `<tr>
+          <td style="color:var(--text-muted);font-size:0.78rem">${idx+1}</td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td style="font-weight:600;color:var(--text-primary)">${un}</td>
+          <td>${typeBadge}</td>
+          <td>${subBadge}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
+          <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
+          <td style="font-size:0.75rem;font-weight:600;white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
+          <td style="font-weight:700;color:var(--gold)">${displayScore}</td>
+          <td>${pfBadgeEl}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  }
+
+  document.getElementById('modScoresTables').innerHTML = `
+    <div class="score-section"><div class="score-section-hdr"><h3>🏢 BD & CS</h3><span class="score-count">${bdcs.length} trainees</span></div>${buildBDCS(bdcs)}</div>
+    <div class="score-section"><div class="score-section-hdr"><h3>🏛️ Other Departments</h3><span class="score-count">${others.length} trainees</span></div>${buildOthers(others)}</div>`;
+}
+
+function renderModUsersTab() {
+  const el = document.getElementById('modUsersTab');
+  const users = getUsersDB();
+  const trainees = Object.entries(users).filter(([,u]) => u.role !== 'admin').sort(([a],[b]) => a.localeCompare(b));
+
+  const rows = trainees.map(([un, ud], idx) => {
+    const ex = JSON.parse(localStorage.getItem('wmt_exam_'+un)||'{}');
+    let examBadge;
+    if (ex.passed) {
+      examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else if (ex.disqualified) {
+      examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
+    } else if (ex.score !== undefined) {
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1}/2 — ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else {
+      examBadge = `<span class="exam-badge none">Not Started</span>`;
+    }
+    const roleBadge = ud.role === 'mod'
+      ? `<span class="role-badge mod">🛡️ Mod</span>`
+      : `<span class="role-badge trainee">${ud.role||'trainee'}</span>`;
+    const empBadge = (ud.role==='mod') ? '—' : (ud.employeeType||'new')==='old'
+      ? `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+      : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
+    const joined = ud.createdAt ? new Date(ud.createdAt).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:0.78rem">${idx+1}</td>
+      <td style="font-weight:600;color:var(--text-primary)">${un}<br><span style="font-size:0.72rem;color:var(--text-muted);font-weight:400">${ud.workName||''}</span></td>
+      <td style="color:var(--text-secondary)">${ud.fullName||'—'}</td>
+      <td style="font-size:0.8rem;color:var(--text-muted)">${ud.department||'—'}</td>
+      <td>${roleBadge}</td>
+      <td>${empBadge}</td>
+      <td>${examBadge}</td>
+      <td style="font-size:0.78rem;color:var(--text-muted)">${joined}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">User list — view only.</p>
+    <div class="users-table-wrap"><table class="users-table"><thead><tr>
+      <th>#</th><th>Username</th><th>Full Name</th><th>Department</th><th>Role</th><th>Type</th><th>Final Exam</th><th>Joined</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // Proposal helpers
@@ -732,6 +957,254 @@ function submitMonthlyProposal(group, idx, isNew) {
   alert('✅ Proposal submitted. Admin will review and respond shortly.');
 }
 
+// ===== NOTIFICATIONS =====
+const NOTIF_PREFS_KEY = u => 'wmt_notif_prefs_' + u;
+
+function getNotifPrefs(u) {
+  const defaults = {
+    enabled: false,
+    permission: 'default',
+    reminders: ['24h', '1h', 'start', '2hClose'],
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+  };
+  const stored = JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY(u)) || 'null');
+  return stored ? Object.assign({}, defaults, stored) : defaults;
+}
+
+function saveNotifPrefs(u, prefs) {
+  localStorage.setItem(NOTIF_PREFS_KEY(u), JSON.stringify(prefs));
+  if (window.FDB) window.FDB.ref('notif_prefs/' + u).set(prefs)
+    .catch(e => console.warn('[WMT] notifPrefs sync error:', e.message));
+}
+
+function fmtLocalTime(iso, tz) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', timeZone: tz, timeZoneName: 'short'
+    });
+  } catch { return new Date(iso).toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+}
+
+function getUpcomingTestsForUser(u) {
+  const mc = getMC();
+  const months = Object.keys(mc).sort().reverse();
+  const user = ALL_USERS[u] || {};
+  const bdcs = isBDCS(user);
+  const now = Date.now();
+  return months.map(m => {
+    const cfg = mc[m];
+    const start = bdcs ? cfg.startDateBDCS : cfg.startDateOthers;
+    const end   = bdcs ? cfg.deadlineBDCS  : cfg.deadlineOthers;
+    const startTs = start ? new Date(start).getTime() : null;
+    const endTs   = end   ? new Date(end).getTime()   : null;
+    let status = 'none';
+    if (startTs) {
+      if (now < startTs)           status = 'upcoming';
+      else if (!endTs || now <= endTs) status = 'active';
+      else                         status = 'expired';
+    }
+    return { m, cfg, start, end, startTs, endTs, status, bdcs };
+  }).filter(t => t.status === 'upcoming' || t.status === 'active');
+}
+
+function scheduleReminderNotifs(u) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const prefs = getNotifPrefs(u);
+  if (!prefs.enabled) return;
+  const tests = getUpcomingTestsForUser(u);
+  if (!tests.length) return;
+  const { start, startTs, endTs, m } = tests[0];
+  if (!startTs) return;
+  const now = Date.now();
+
+  const slots = [
+    { key: '24h',     fireAt: startTs - 86400000, body: '24 hours to go! — ' + fmtMonth(m) },
+    { key: '1h',      fireAt: startTs - 3600000,  body: '1 hour until test opens — ' + fmtMonth(m) },
+    { key: 'start',   fireAt: startTs,             body: 'Test is now OPEN — ' + fmtMonth(m) },
+    { key: '2hClose', fireAt: endTs ? endTs - 7200000 : null, body: '2 hours left to submit — ' + fmtMonth(m) },
+  ];
+
+  slots.forEach(({ key, fireAt, body }) => {
+    if (!prefs.reminders.includes(key) || !fireAt) return;
+    const delay = fireAt - now;
+    if (delay > 0 && delay < 172800000) { // within 48h
+      setTimeout(() => {
+        if (Notification.permission === 'granted') {
+          new Notification('📅 WMT Monthly Test', { body, icon: '', tag: 'wmt-' + m + '-' + key });
+        }
+      }, delay);
+    }
+  });
+}
+
+async function requestNotifPermission() {
+  const u = CUR_USER;
+  if (!('Notification' in window)) { alert('Browser notifications are not supported.'); return; }
+  const perm = await Notification.requestPermission();
+  const prefs = getNotifPrefs(u);
+  prefs.enabled  = perm === 'granted';
+  prefs.permission = perm;
+  saveNotifPrefs(u, prefs);
+  updateNotifBell();
+  renderNotifPanel();
+  if (perm === 'granted') {
+    scheduleReminderNotifs(u);
+    new Notification('📅 WMT Monthly Test', { body: 'Notifications enabled! You will be reminded before tests.', tag: 'wmt-test-on' });
+  }
+}
+
+function toggleNotifReminderKey(key) {
+  const u = CUR_USER;
+  const prefs = getNotifPrefs(u);
+  const idx = prefs.reminders.indexOf(key);
+  if (idx >= 0) prefs.reminders.splice(idx, 1);
+  else prefs.reminders.push(key);
+  saveNotifPrefs(u, prefs);
+  renderNotifPanel();
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  const bell  = document.getElementById('notifBell');
+  const open  = panel.classList.toggle('hidden');
+  bell.classList.toggle('active', !open);
+  if (!open) renderNotifPanel();
+}
+
+function updateNotifBell() {
+  const u = CUR_USER;
+  if (!u) return;
+  const tests = getUpcomingTestsForUser(u);
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  badge.textContent = tests.length;
+  badge.classList.toggle('hidden', tests.length === 0);
+}
+
+function renderNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  if (!panel || panel.classList.contains('hidden')) return;
+  const u     = CUR_USER;
+  const prefs = getNotifPrefs(u);
+  const tz    = prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tests = getUpcomingTestsForUser(u);
+  const perm  = ('Notification' in window) ? Notification.permission : 'unsupported';
+
+  /* --- Upcoming test rows --- */
+  const testRows = tests.length
+    ? tests.map(t => {
+        const badge = t.status === 'active'
+          ? `<span style="color:var(--success);font-size:0.75rem;font-weight:700;">🟢 Active</span>`
+          : `<span style="color:#6496ff;font-size:0.75rem;font-weight:700;">🔵 Upcoming</span>`;
+        return `<div class="notif-test-row">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="notif-test-month">${fmtMonth(t.m)}</span>${badge}
+          </div>
+          <div class="notif-test-time">
+            🟢 Opens: <strong>${fmtLocalTime(t.start, tz)}</strong><br>
+            🔴 Closes: <strong>${fmtLocalTime(t.end, tz)}</strong>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--text-muted);font-size:0.83rem;padding:10px 0;">No upcoming or active tests.</div>`;
+
+  /* --- Reminder checkboxes (only when notifications enabled) --- */
+  const REMINDER_OPTS = [
+    { key: '24h',     label: '24 hours before test opens' },
+    { key: '1h',      label: '1 hour before test opens' },
+    { key: 'start',   label: 'When test opens' },
+    { key: '2hClose', label: '2 hours before deadline' },
+  ];
+
+  let notifSection = '';
+  if (perm === 'unsupported') {
+    notifSection = `<p class="notif-status-msg" style="color:var(--text-muted);">Browser notifications not supported.</p>`;
+  } else if (perm === 'denied') {
+    notifSection = `<p class="notif-status-msg" style="color:var(--danger);">⚠️ Notifications blocked. Please allow in browser settings, then reload.</p>`;
+  } else if (!prefs.enabled || perm !== 'granted') {
+    notifSection = `
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:14px;line-height:1.6;">
+        Enable browser notifications to get automatic reminders before each test, timed to your timezone.
+      </p>
+      <button class="notif-enable-btn" onclick="requestNotifPermission()">🔔 Enable Notifications</button>`;
+  } else {
+    const checks = REMINDER_OPTS.map(({ key, label }) => `
+      <label class="notif-check-row">
+        <input type="checkbox" ${prefs.reminders.includes(key) ? 'checked' : ''}
+          onchange="toggleNotifReminderKey('${key}')"
+          style="accent-color:var(--gold);width:15px;height:15px;flex-shrink:0;cursor:pointer;">
+        <span class="notif-check-label">${label}</span>
+      </label>`).join('');
+    notifSection = `
+      <div style="margin-top:14px;">
+        <div class="notif-section-hdr">Remind me</div>
+        ${checks}
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+          <button onclick="requestNotifPermission()"
+            style="padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;color:var(--text-muted);font-size:0.75rem;cursor:pointer;">
+            🔄 Re-check permission
+          </button>
+          <button onclick="disableNotifications()"
+            style="padding:6px 12px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:8px;color:var(--danger);font-size:0.75rem;cursor:pointer;">
+            🔕 Turn off
+          </button>
+        </div>
+      </div>`;
+  }
+
+  /* --- Timezone row --- */
+  const tzRow = `<div class="notif-tz-row">🌍 <strong>${tz}</strong></div>`;
+
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <strong style="font-size:0.95rem;">🔔 Test Notifications</strong>
+      <button onclick="toggleNotifPanel()" style="background:none;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    ${tzRow}
+    <div class="notif-section-hdr">Upcoming Tests</div>
+    ${testRows}
+    ${notifSection}`;
+}
+
+function disableNotifications() {
+  const u = CUR_USER;
+  const prefs = getNotifPrefs(u);
+  prefs.enabled = false;
+  saveNotifPrefs(u, prefs);
+  renderNotifPanel();
+}
+
+function initNotifications() {
+  const u = CUR_USER;
+  if (!u) return;
+  // Show bell for trainee + mod (not admin, who sees full schedule already)
+  if (!IS_ADMIN) document.getElementById('notifBellWrap').style.display = '';
+  // Detect & persist timezone
+  const detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const prefs = getNotifPrefs(u);
+  if (prefs.timezone !== detectedTz) {
+    prefs.timezone = detectedTz;
+    saveNotifPrefs(u, prefs);
+  }
+  // Update badge
+  updateNotifBell();
+  // Schedule browser reminders if already enabled
+  if (prefs.enabled && ('Notification' in window) && Notification.permission === 'granted') {
+    scheduleReminderNotifs(u);
+  }
+  // Close panel on outside click
+  document.addEventListener('click', e => {
+    const panel = document.getElementById('notifPanel');
+    const bell  = document.getElementById('notifBell');
+    if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && e.target !== bell && !bell.contains(e.target)) {
+      panel.classList.add('hidden');
+      bell.classList.remove('active');
+    }
+  }, true);
+}
+
 // ===== INIT =====
 window.addEventListener('load', async function() {
   await syncFromFirebase();
@@ -743,11 +1216,12 @@ window.addEventListener('load', async function() {
     updateRsBadge();
   } else if (IS_MOD) {
     document.getElementById('modView').classList.remove('hidden');
-    renderModQBankTab();
+    renderModScheduleTab();
   } else {
     document.getElementById('traineeView').classList.remove('hidden');
     renderTraineeView();
   }
+  initNotifications();
 });
 
 // ===== ADMIN TABS =====
@@ -930,7 +1404,7 @@ function renderScoresTab() {
       <select class="month-sel" id="scMonth" onchange="renderScoresTables()">
         ${months.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
       </select>
-      <input type="text" id="scSearch" placeholder="🔍 Name, username or email…" oninput="renderScoresTables()"
+      <input type="text" id="scSearch" placeholder="🔍 Username, email, working name, leader…" oninput="renderScoresTables()"
         style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
                border-radius:8px;color:var(--text-primary);font-size:0.83rem;min-width:220px;flex:1;max-width:320px;">
       <button class="export-btn xl" onclick="exportAll()">📥 Export All (Excel)</button>
@@ -946,10 +1420,9 @@ function renderScoresTables() {
   const scores = getMS()[month]||{};
   let trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
 
-  // Filter by name, username, work name, or email
   if (search) {
     trainees = trainees.filter(([uname, ud]) => {
-      const hay = [uname, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||''].join(' ').toLowerCase();
+      const hay = [uname, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||'', ud.leaderName||''].join(' ').toLowerCase();
       return hay.includes(search);
     });
   }
