@@ -579,6 +579,33 @@
           <option value="others">📋 Force Others Test (standard format)</option>
         </select>
       </div>
+
+      <!-- PASSWORD SECTION -->
+      <div class="form-group" style="grid-column:1/-1;margin-top:4px;padding-top:16px;border-top:1px solid var(--border);">
+        <label style="color:var(--text-secondary);margin-bottom:10px;display:block;">🔐 Password</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:5px;">Current Password</div>
+            <div style="position:relative;">
+              <input type="password" id="editCurrentPwDisplay" disabled
+                style="width:100%;padding:9px 38px 9px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:13px;font-family:monospace;box-sizing:border-box;letter-spacing:0.1em;">
+              <button type="button" onclick="toggleEditPwVis('editCurrentPwDisplay',this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.9rem;padding:2px;color:var(--text-muted);line-height:1;"
+                title="Show/hide password">👁️</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:5px;">Set New Password <span style="opacity:.6;">(leave blank to keep)</span></div>
+            <div style="position:relative;">
+              <input type="password" id="editNewPw" placeholder="Min 6 characters"
+                style="width:100%;padding:9px 38px 9px 12px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:13px;box-sizing:border-box;">
+              <button type="button" onclick="toggleEditPwVis('editNewPw',this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.9rem;padding:2px;color:var(--text-muted);line-height:1;"
+                title="Show/hide">👁️</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="error-msg" id="editUserError"></div>
     <div class="modal-footer">
@@ -1117,7 +1144,6 @@ function renderUsersTableBody() {
       <td>
         <div class="action-btns">
           <button class="btn-xs edit"   onclick="openEditUser('${uname}')">✎ Edit</button>
-          <button class="btn-xs" onclick="openResetPwModal('${uname}')" style="background:rgba(100,150,255,0.1);border-color:rgba(100,150,255,0.35);color:#8aabff;">🔑 Pwd</button>
           <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
           <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${udata.role==='admin'?'disabled title="Revoke admin role first before deleting"':''}>✕ Delete</button>
         </div>
@@ -1849,6 +1875,13 @@ function saveConfirmInterview() {
 
 // ===== ADD USER MODAL =====
 
+function toggleEditPwVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
 function openEditUser(uname) {
   const users = getUsersDB();
   const u = users[uname];
@@ -1866,6 +1899,16 @@ function openEditUser(uname) {
   document.getElementById('editIsLeader').checked      = u.isLeader    || false;
   document.getElementById('editLeaderName').value      = u.leaderName  || '';
   document.getElementById('editUserError').textContent = '';
+  // Password fields
+  const curPwEl = document.getElementById('editCurrentPwDisplay');
+  curPwEl.value = u.password || '';
+  curPwEl.type  = 'password';
+  const curBtn  = curPwEl.nextElementSibling;
+  if (curBtn) curBtn.textContent = '👁️';
+  document.getElementById('editNewPw').value = '';
+  document.getElementById('editNewPw').type  = 'password';
+  const newBtn = document.getElementById('editNewPw').nextElementSibling;
+  if (newBtn) newBtn.textContent = '👁️';
   document.getElementById('editUserModal').classList.add('show');
   setTimeout(() => document.getElementById('editFullName').focus(), 100);
 }
@@ -1875,6 +1918,15 @@ function saveEditUser() {
   const uname = document.getElementById('editUsername').value;
   const users = getUsersDB();
   if (!users[uname]) return;
+
+  const newPw = document.getElementById('editNewPw').value;
+  const err   = document.getElementById('editUserError');
+  err.textContent = '';
+  if (newPw && newPw.length < 6) {
+    err.textContent = 'New password must be at least 6 characters.';
+    return;
+  }
+
   const patch = {
     fullName:     document.getElementById('editFullName').value.trim(),
     workName:     document.getElementById('editWorkName').value.trim(),
@@ -1887,6 +1939,8 @@ function saveEditUser() {
     isLeader:     document.getElementById('editIsLeader').checked,
     leaderName:   document.getElementById('editLeaderName').value.trim().toLowerCase(),
   };
+  if (newPw) patch.password = newPw;
+
   Object.assign(users[uname], patch);
   localStorage.setItem('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update(patch);
