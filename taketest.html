@@ -169,6 +169,7 @@ let _currentMonth = null;
 let _currentCfg   = null;
 let _qbank        = null;
 let _startedAt    = null;
+let _effectiveDeadline = null;
 
 // Parse ?month= from URL
 const urlMonth = new URLSearchParams(location.search).get('month');
@@ -215,6 +216,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
   }
 
+  _effectiveDeadline = endD;
   const now = Date.now();
 
   if (!startD || !endD) {
@@ -504,11 +506,11 @@ function doSubmit(auto) {
 // ===== RESULT SCREEN =====
 function renderResult(sub, mc) {
   clearInterval(_timer);
-  const qs       = _qbank ? _qbank.questions : [];
-  const isBDCSU  = sub.group === 'bdcs';
-  const passScore = isBDCSU ? (mc.passBDCS??250) : (mc.passOthers??70);
-  const maxScore  = isBDCSU ? 300 : 100;
-  const lietMax   = mc.lietMax ?? 2;
+  const qs          = _qbank ? _qbank.questions : [];
+  const isBDCSU     = sub.group === 'bdcs';
+  const maxScore    = isBDCSU ? 300 : 100;
+  const lietMax     = mc.lietMax ?? 2;
+  const deadlinePassed = _effectiveDeadline && Date.now() > new Date(_effectiveDeadline).getTime();
 
   let statusHTML = '';
   if (isBDCSU && sub.essayPending) {
@@ -522,7 +524,6 @@ function renderResult(sub, mc) {
     statusHTML = `<div class="result-badge ${passed?'pass':'fail'}">${passed?'✓ PASS':'✗ FAIL'}</div>`;
   }
 
-  // Count answered for result details
   const mcqCount   = qs.filter(q=>q.type==='MCQ').length;
   const essayCount = qs.filter(q=>q.type==='Essay').length;
   const correctMCQ = sub.mcqResults ? Object.values(sub.mcqResults).filter(r=>r.correct).length : '—';
@@ -544,7 +545,16 @@ function renderResult(sub, mc) {
     ${qs.length ? `
     <!-- ===== ANSWER REVIEW ===== -->
     <div style="margin-top:24px;">
-      <div style="font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:14px;">📋 Review Your Answers</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+        <div style="font-size:1rem;font-weight:700;color:var(--text-primary);">📋 Review Your Answers</div>
+        ${!deadlinePassed ? `
+        <div style="font-size:0.78rem;color:#FFA500;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.25);border-radius:8px;padding:5px 12px;">
+          🔒 Correct answers revealed after: <strong>${fmtDT(_effectiveDeadline)}</strong>
+        </div>` : `
+        <div style="font-size:0.78rem;color:var(--success);background:rgba(0,214,143,0.07);border:1px solid rgba(0,214,143,0.2);border-radius:8px;padding:5px 12px;">
+          ✅ Test period ended — correct answers are now shown
+        </div>`}
+      </div>
 
       <!-- MCQ review -->
       ${qs.filter(q=>q.type==='MCQ').length ? `
@@ -553,12 +563,12 @@ function renderResult(sub, mc) {
           Multiple Choice Questions
         </div>
         ${qs.filter(q=>q.type==='MCQ').map((q,idx)=>{
-          const res    = sub.mcqResults ? sub.mcqResults[q.id] : null;
-          const chosen = res?.ans || null;
-          const correct= q.correct?.toUpperCase();
-          const isCorr = res?.correct;
-          const opts   = ['A','B','C','D'];
-          return `<div style="padding:14px 18px;border-top:${idx>0?'1px solid var(--border)':'none'};${q.isLiet?'border-left:3px solid var(--danger);':''}" >
+          const res     = sub.mcqResults ? sub.mcqResults[q.id] : null;
+          const chosen  = res?.ans?.toUpperCase() || null;
+          const correct = q.correct?.toUpperCase();
+          const isCorr  = res?.correct;
+          const opts    = ['A','B','C','D'];
+          return `<div style="padding:14px 18px;border-top:${idx>0?'1px solid var(--border)':'none'};${q.isLiet?'border-left:3px solid var(--danger);':''}">
             <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
               <span style="font-size:0.72rem;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;flex-shrink:0;
                 background:${isCorr?'rgba(0,214,143,0.12)':'rgba(255,61,113,0.1)'};
@@ -570,17 +580,30 @@ function renderResult(sub, mc) {
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;padding-left:4px;">
               ${opts.map(o=>{
-                if (!q['opt'+o]) return '';
-                const isChosen  = chosen?.toUpperCase()===o;
-                const isCorrect = correct===o;
-                let bg='transparent', border='rgba(255,255,255,0.05)', color='var(--text-secondary)';
-                if (isCorrect)        { bg='rgba(0,214,143,0.08)';  border='rgba(0,214,143,0.3)';  color='var(--success)'; }
-                if (isChosen && !isCorrect) { bg='rgba(255,61,113,0.07)'; border='rgba(255,61,113,0.3)'; color='var(--danger)'; }
-                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:7px;border:1px solid ${border};background:${bg};">
-                  <span style="font-weight:700;font-size:0.78rem;color:${color};min-width:16px;">${o}.</span>
-                  <span style="font-size:0.83rem;color:${color};">${q['opt'+o]}</span>
-                  ${isChosen?`<span style="margin-left:auto;font-size:0.72rem;color:${isCorrect?'var(--success)':'var(--danger)'};">${isCorrect?'✓ Your answer':'✗ Your answer'}</span>`:''}
-                  ${!isChosen&&isCorrect?`<span style="margin-left:auto;font-size:0.72rem;color:var(--success);">✓ Correct answer</span>`:''}
+                const optText  = q.opts?.[o];
+                if (!optText) return '';
+                const isChosen  = chosen === o;
+                const isCorrect = correct === o;
+                let bg='transparent', bdr='rgba(255,255,255,0.05)', col='var(--text-secondary)';
+                if (deadlinePassed) {
+                  if (isCorrect && isChosen)  { bg='rgba(0,214,143,0.12)'; bdr='rgba(0,214,143,0.4)';  col='var(--success)'; }
+                  else if (isCorrect)          { bg='rgba(0,214,143,0.08)'; bdr='rgba(0,214,143,0.3)';  col='var(--success)'; }
+                  else if (isChosen)           { bg='rgba(255,61,113,0.07)';bdr='rgba(255,61,113,0.3)'; col='var(--danger)'; }
+                } else {
+                  if (isChosen && isCorr)      { bg='rgba(0,214,143,0.08)'; bdr='rgba(0,214,143,0.3)';  col='var(--success)'; }
+                  else if (isChosen)           { bg='rgba(255,61,113,0.07)';bdr='rgba(255,61,113,0.3)'; col='var(--danger)'; }
+                }
+                const chosenLabel = deadlinePassed
+                  ? (isCorrect ? '✓ Your answer' : '✗ Your answer')
+                  : (isCorr    ? '✓ Your answer' : '✗ Your answer');
+                const chosenColor = deadlinePassed
+                  ? (isCorrect ? 'var(--success)' : 'var(--danger)')
+                  : (isCorr    ? 'var(--success)' : 'var(--danger)');
+                return `<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;border-radius:7px;border:1px solid ${bdr};background:${bg};">
+                  <span style="font-weight:700;font-size:0.78rem;color:${col};min-width:16px;">${o}.</span>
+                  <span style="font-size:0.83rem;color:${col};">${optText}</span>
+                  ${isChosen ? `<span style="margin-left:auto;font-size:0.72rem;color:${chosenColor};">${chosenLabel}</span>` : ''}
+                  ${deadlinePassed && !isChosen && isCorrect ? `<span style="margin-left:auto;font-size:0.72rem;color:var(--success);">✓ Correct answer</span>` : ''}
                 </div>`;
               }).join('')}
               ${!chosen?`<div style="font-size:0.78rem;color:var(--text-muted);padding:3px 10px;">⚠ Not answered</div>`:''}
@@ -599,7 +622,7 @@ function renderResult(sub, mc) {
           const ans = sub.essayAnswers?.[q.id] || '';
           return `<div style="padding:16px 18px;${idx>0?'border-top:1px solid var(--border)':''}">
             <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">${q.text}</div>
-            ${q.rubric?`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">📋 Rubric: ${q.rubric}</div>`:''}
+            ${deadlinePassed && q.rubric ? `<div style="font-size:0.75rem;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.2);border-radius:7px;padding:7px 10px;color:var(--success);margin-bottom:8px;">📋 Rubric: ${q.rubric}</div>` : ''}
             <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-secondary);white-space:pre-wrap;min-height:40px;">${ans||'<em style="color:var(--text-muted)">(No answer provided)</em>'}</div>
           </div>`;
         }).join('')}

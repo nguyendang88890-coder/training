@@ -705,6 +705,14 @@ function renderModScoresTab() {
       <input type="text" id="modScSearch" placeholder="🔍 Name, username or email…" oninput="renderModScoresTables()"
         style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
                border-radius:8px;color:var(--text-primary);font-size:0.83rem;min-width:220px;flex:1;max-width:320px;">
+      <button onclick="exportModScoresExcel()"
+        style="display:flex;align-items:center;gap:7px;padding:8px 16px;background:rgba(0,214,143,0.1);
+               border:1px solid rgba(0,214,143,0.3);border-radius:10px;color:var(--success);
+               font-weight:700;font-size:0.83rem;cursor:pointer;white-space:nowrap;transition:all .18s;"
+        onmouseover="this.style.background='rgba(0,214,143,0.18)'"
+        onmouseout="this.style.background='rgba(0,214,143,0.1)'">
+        📥 Export Excel
+      </button>
     </div>
     <div id="modScoresTables"></div>`;
   renderModScoresTables();
@@ -812,6 +820,105 @@ function renderModScoresTables() {
   document.getElementById('modScoresTables').innerHTML = `
     <div class="score-section"><div class="score-section-hdr"><h3>🏢 BD & CS</h3><span class="score-count">${bdcs.length} trainees</span></div>${buildBDCS(bdcs)}</div>
     <div class="score-section"><div class="score-section-hdr"><h3>🏛️ Other Departments</h3><span class="score-count">${others.length} trainees</span></div>${buildOthers(others)}</div>`;
+}
+
+function exportModScoresExcel() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded. Please reload the page and try again.'); return; }
+
+  const month  = document.getElementById('modScMonth')?.value;
+  const search = (document.getElementById('modScSearch')?.value || '').toLowerCase().trim();
+  if (!month) return;
+
+  const cfg      = getMC()[month];
+  const scores   = getMS()[month] || {};
+  const passBDCS = cfg?.passBDCS   ?? 250;
+  const lietMax  = cfg?.lietMax    ?? 10;
+  const passOth  = cfg?.passOthers ?? 70;
+
+  let trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
+  if (search) {
+    trainees = trainees.filter(([un, ud]) =>
+      [un, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||''].join(' ').toLowerCase().includes(search)
+    );
+  }
+
+  const bdcs   = trainees.filter(([,u]) => isBDCS(u));
+  const others = trainees.filter(([,u]) => !isBDCS(u));
+
+  const fmtT = iso => iso ? new Date(iso).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const fmtD = (s, e) => {
+    if (!s || !e) return '';
+    const m = Math.round((new Date(e) - new Date(s)) / 60000);
+    return m < 60 ? m + 'm' : Math.floor(m/60) + 'h ' + (m%60) + 'm';
+  };
+  const pfText = (passed) => passed === true ? 'PASS' : passed === false ? 'FAIL' : '—';
+
+  // ── BD & CS sheet ──
+  const bdcsRows = [
+    ['#', 'Full Name', 'Username', 'Department', 'Type', 'Submitted', 'Start Time', 'Submit Time', 'Duration', 'Score (0–300)', 'Liet ×', 'Pass / Fail']
+  ];
+  bdcs.forEach(([un, ud], i) => {
+    const sc  = scores[un];
+    const sub = getSubmission(un, month);
+    const scoreVal = sc?.score ?? sub?.mcqScore ?? '';
+    const lietVal  = sc?.liet  ?? sub?.lietWrong ?? '';
+    const passed   = scoreVal !== '' ? (scoreVal >= passBDCS && (lietVal === '' || lietVal <= lietMax)) : undefined;
+    bdcsRows.push([
+      i + 1,
+      ud.fullName || un,
+      un,
+      ud.department || '',
+      (ud.employeeType || 'new') === 'old' ? 'Existed' : 'New',
+      sub ? 'Submitted' : 'Not Submitted',
+      fmtT(sub?.startedAt),
+      fmtT(sub?.submittedAt),
+      fmtD(sub?.startedAt, sub?.submittedAt),
+      scoreVal,
+      lietVal,
+      pfText(passed)
+    ]);
+  });
+
+  // ── Others sheet ──
+  const othRows = [
+    ['#', 'Full Name', 'Username', 'Department', 'Type', 'Submitted', 'Start Time', 'Submit Time', 'Duration', 'Score (0–100)', 'Pass / Fail']
+  ];
+  others.forEach(([un, ud], i) => {
+    const sc   = scores[un];
+    const sub  = getSubmission(un, month);
+    const autoScore = (!sc?.score && sub?.mcqScore != null) ? sub.mcqScore : null;
+    const scoreVal  = sc?.score ?? autoScore ?? '';
+    const passed    = scoreVal !== '' ? scoreVal >= passOth : undefined;
+    othRows.push([
+      i + 1,
+      ud.fullName || un,
+      un,
+      ud.department || '',
+      (ud.employeeType || 'new') === 'old' ? 'Existed' : 'New',
+      sub ? 'Submitted' : 'Not Submitted',
+      fmtT(sub?.startedAt),
+      fmtT(sub?.submittedAt),
+      fmtD(sub?.startedAt, sub?.submittedAt),
+      scoreVal,
+      pfText(passed)
+    ]);
+  });
+
+  // ── Build workbook ──
+  const wb = XLSX.utils.book_new();
+
+  const wsBDCS = XLSX.utils.aoa_to_sheet(bdcsRows);
+  const wsOth  = XLSX.utils.aoa_to_sheet(othRows);
+
+  // Column widths
+  wsBDCS['!cols'] = [4,22,14,16,10,14,18,18,10,14,8,12].map(w => ({ wch: w }));
+  wsOth['!cols']  = [4,22,14,16,10,14,18,18,10,14,12].map(w => ({ wch: w }));
+
+  XLSX.utils.book_append_sheet(wb, wsBDCS, 'BD & CS');
+  XLSX.utils.book_append_sheet(wb, wsOth,  'Other Departments');
+
+  const monthLabel = fmtMonth(month).replace(/\s+/g, '_');
+  XLSX.writeFile(wb, `WMT_Monthly_Scores_${monthLabel}.xlsx`);
 }
 
 function renderModUsersTab() {
@@ -2362,6 +2469,17 @@ function renderCurrentTestCard() {
     </div>`;
   } else if (resolvedScore) {
     actionHTML = scoreBlock(resolvedScore, myBDCS);
+  } else if (existingSub?.submittedAt) {
+    // Expired but no graded score yet (e.g. BDCS essay still pending)
+    actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:1.3rem">✅</span>
+      <div>
+        <div style="font-size:0.72rem;color:var(--text-muted);">SUBMITTED</div>
+        <div style="font-size:0.83rem;color:var(--success);margin-top:2px;">${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">⏳ Awaiting essay grading</div>
+      </div>
+    </div>
+    <div style="margin-top:8px;"><a href="taketest.html?month=${m}" style="font-size:0.78rem;color:var(--gold);text-decoration:none;">📋 View Answers</a></div>`;
   }
 
   const driveLink = cfg.driveLink || '';
