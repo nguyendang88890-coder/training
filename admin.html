@@ -44,7 +44,6 @@
       background: var(--bg-card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      overflow: hidden;
     }
     .users-table-wrap table {
       font-size: 0.85rem;
@@ -284,8 +283,61 @@
     .btn-xs.exam:hover { background: rgba(100,150,255,0.18); }
 
     /* Scrollable wide table */
-    .users-table-wrap { overflow-x: auto; }
+    .users-table-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 295px);
+    }
     .users-table-wrap table { min-width: 1250px; }
+
+    /* Sticky thead */
+    .users-table-wrap thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: var(--bg-secondary);
+    }
+
+    /* Sticky first column — User */
+    .users-table-wrap th:first-child,
+    .users-table-wrap td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: 2px 0 8px rgba(0,0,0,0.18);
+    }
+    .users-table-wrap thead th:first-child {
+      background: var(--bg-secondary);
+      z-index: 4;
+    }
+
+    /* Sticky last column — Actions */
+    .users-table-wrap th:last-child,
+    .users-table-wrap td:last-child {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: -2px 0 8px rgba(0,0,0,0.18);
+    }
+    .users-table-wrap thead th:last-child {
+      background: var(--bg-secondary);
+      z-index: 4;
+    }
+
+    /* Row hover — giữ đúng màu cho sticky cells */
+    .users-table-wrap tbody tr:hover td:first-child,
+    .users-table-wrap tbody tr:hover td:last-child {
+      background: var(--bg-hover);
+    }
+
+    /* Custom scrollbars */
+    .users-table-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
+    .users-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .users-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.25); border-radius: 3px; }
+    .users-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.5); }
+    .users-table-wrap::-webkit-scrollbar-corner { background: transparent; }
 
   </style>
 </head>

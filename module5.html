@@ -171,7 +171,7 @@
       <div class="quiz-section">
         <div class="quiz-header">
           <h3>📝 Module 5 Quiz</h3>
-          <span class="quiz-counter">6 Questions</span>
+          <span class="quiz-counter">7 Questions</span>
         </div>
         <div class="quiz-progress-dots" id="quizDots"></div>
         <div id="quizContainer"></div>
@@ -208,6 +208,12 @@ const questions = [
     opts: ["$5 per lot", "$6 per lot", "0.035%", "$1 per lot"],
     _c: "MQ==",
     explain: "XAUUSD (Gold) commissions are $6 per lot. Forex pairs charge $5/lot, indices charge $0/lot, and crypto uses a percentage-based fee of 0.035% per trade."
+  },
+  {
+    q: "What is the commission for trading Indices (US30, NAS100, SPX500)?",
+    opts: ["$5 per lot", "$0.5 per lot", "$0 per lot", "0.035%"],
+    _c: "Mg==",
+    explain: "Indices (US30, NAS100, SPX500) have $0 commission per lot — no fixed commission is charged. This differs from Forex ($5/lot), Gold ($6/lot), and Crypto (0.035% per trade)."
   },
   {
     q: "Which index is NOT listed as a tradeable instrument on WeMasterTrade?",

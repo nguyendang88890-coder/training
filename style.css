@@ -757,10 +757,16 @@ a:hover {
 /* ======= TABLES ======= */
 .table-wrap {
   overflow-x: auto;
+  overflow-y: auto;
   border-radius: 8px;
   border: 1px solid var(--border);
   margin: 12px 0;
 }
+.table-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
+.table-wrap::-webkit-scrollbar-track { background: transparent; }
+.table-wrap::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.25); border-radius: 3px; }
+.table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.5); }
+.table-wrap::-webkit-scrollbar-corner { background: transparent; }
 
 table {
   width: 100%;
@@ -781,6 +787,10 @@ thead th {
   font-size: 0.75rem;
   letter-spacing: 0.8px;
   white-space: nowrap;
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 tbody tr {

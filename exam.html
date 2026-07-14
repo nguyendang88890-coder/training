@@ -304,17 +304,17 @@ function saveExamState(data) {
 
 // Persist question bank to localStorage on first load (allows admin edits)
 function getActiveQBank() {
-  const stored = localStorage.getItem('wmt_exam_qbank');
+  const stored = localStorage.getItem('wmt_exam_qbank_v2');
   if (stored) {
     const parsed = JSON.parse(stored);
     // Auto-reset if stored bank is missing module-0 (About WMT) questions
     if (!parsed.some(q => (q.module || 0) === 0)) {
-      dbWrite('wmt_exam_qbank', JSON.stringify(QUESTION_BANK));
+      dbWrite('wmt_exam_qbank_v2', JSON.stringify(QUESTION_BANK));
       return QUESTION_BANK;
     }
     return parsed;
   }
-  dbWrite('wmt_exam_qbank', JSON.stringify(QUESTION_BANK));
+  dbWrite('wmt_exam_qbank_v2', JSON.stringify(QUESTION_BANK));
   return QUESTION_BANK;
 }
 
@@ -336,7 +336,7 @@ function _ansQ(q) {
 // ===== ADMIN EXAM MANAGEMENT =====
 const EQ_MODULE_NAMES = ['About WMT','Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk'];
 function getExamQBank() {
-  const stored = JSON.parse(localStorage.getItem('wmt_exam_qbank') || 'null');
+  const stored = JSON.parse(localStorage.getItem('wmt_exam_qbank_v2') || 'null');
   if (!stored) return null;
   if (!stored.some(q => (q.module || 0) === 0)) {
     saveExamQBank(QUESTION_BANK);
@@ -344,7 +344,7 @@ function getExamQBank() {
   }
   return stored;
 }
-function saveExamQBank(d) { dbWrite('wmt_exam_qbank', JSON.stringify(d)); }
+function saveExamQBank(d) { dbWrite('wmt_exam_qbank_v2', JSON.stringify(d)); }
 
 function renderAdminExamView() {
   const bank = getExamQBank();

@@ -69,13 +69,35 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 295px);
     }
     .team-table-wrap table { min-width: 900px; font-size: 0.85rem; }
     .team-table-wrap thead th {
       background: var(--bg-secondary);
       padding: 13px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 3;
     }
     .team-table-wrap tbody td { padding: 12px 14px; vertical-align: middle; }
+    /* Sticky first column */
+    .team-table-wrap th:first-child,
+    .team-table-wrap td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: 2px 0 8px rgba(0,0,0,0.18);
+    }
+    .team-table-wrap thead th:first-child { background: var(--bg-secondary); z-index: 4; }
+    .team-table-wrap tbody tr:hover td:first-child { background: var(--bg-hover); }
+    /* Custom scrollbars */
+    .team-table-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
+    .team-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .team-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.25); border-radius: 3px; }
+    .team-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.5); }
+    .team-table-wrap::-webkit-scrollbar-corner { background: transparent; }
 
     /* Progress bar */
     .mod-progress { display:flex; align-items:center; gap:8px; }
