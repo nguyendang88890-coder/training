@@ -175,7 +175,29 @@ let _effectiveDeadline = null;
 const urlMonth = new URLSearchParams(location.search).get('month');
 
 document.addEventListener('DOMContentLoaded', async function() {
-  await syncFromFirebase();
+  // Targeted sync: only fetch the 4 paths taketest needs.
+  // Replaces the full syncFromFirebase() which reads ALL 100+ users (800+ Firebase reads → slow).
+  if (window.FDB && CUR_USER) {
+    try {
+      await Promise.all([
+        FDB.ref('monthly_config').once('value').then(s => {
+          if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
+        }).catch(()=>{}),
+        FDB.ref(`submissions/${CUR_USER}`).once('value').then(s => {
+          if (s.exists()) Object.entries(s.val()).forEach(([m,d]) =>
+            localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
+        }).catch(()=>{}),
+        FDB.ref('gentest').once('value').then(s => {
+          if (s.exists()) Object.entries(s.val()).forEach(([g, months]) =>
+            Object.entries(months).forEach(([m, d]) =>
+              localStorage.setItem(`wmt_gentest_${g}_${m}`, JSON.stringify(d))));
+        }).catch(()=>{}),
+        FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
+          if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+        }).catch(()=>{}),
+      ]);
+    } catch(e) { console.warn('[taketest] sync:', e.message); }
+  }
   if (!CUR_USER) { location.href = 'index.html'; return; }
   if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
 
