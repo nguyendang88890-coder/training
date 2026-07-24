@@ -252,6 +252,19 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Check if already submitted — show result/review regardless of date window
   const sub = getSubmission(CUR_USER, _currentMonth);
   if (sub && sub.submittedAt) {
+    // Backfill questionSnapshot for old submissions that don't have it yet
+    if (!sub.questionSnapshot && _qbank && _qbank.questions) {
+      const snapshot = {};
+      _qbank.questions.forEach(q => {
+        snapshot[q.id] = {
+          text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
+          ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
+          ...(q.rubric         ? { rubric: q.rubric }                  : {})
+        };
+      });
+      sub.questionSnapshot = snapshot;
+      saveSubmission(CUR_USER, _currentMonth, sub);
+    }
     renderResult(sub, _currentCfg);
     return;
   }
@@ -272,7 +285,64 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   document.getElementById('pageTitle').textContent = _currentCfg.title || 'Monthly Test';
   renderTest(new Date(endD).getTime());
+  startGentestListener();
 });
+
+// ===== REAL-TIME GENTEST LISTENER =====
+let _gentestListenerInitial = true;
+
+function startGentestListener() {
+  if (!window.FDB || !_currentMonth || MY_GROUP === undefined) return;
+  FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).on('value', snap => {
+    // First event is the initial load — already have it, skip
+    if (_gentestListenerInitial) { _gentestListenerInitial = false; return; }
+    if (!snap.exists()) return;
+    const fresh = snap.val();
+    // Only act if user is still mid-test (not yet submitted)
+    if (!document.getElementById('questionsWrap')) return;
+    // Skip if nothing actually changed
+    if (JSON.stringify(fresh) === JSON.stringify(_qbank)) return;
+
+    localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
+    _qbank = fresh;
+
+    // Update each question card in-place — preserves scroll position and answers
+    fresh.questions.forEach((q, idx) => {
+      const card = document.getElementById(`qcard_${q.id}`);
+      if (!card) return;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = renderQuestion(q, idx);
+      card.replaceWith(tmp.firstElementChild);
+      // Re-apply saved answer so selection is not lost
+      const saved = _answers[q.id];
+      if (saved) {
+        if (q.type === 'MCQ') selectOpt(q.id, saved);
+        else {
+          const ta = document.getElementById(`ans_${q.id}`);
+          if (ta) { ta.value = saved; ta.dispatchEvent(new Event('input')); }
+        }
+      }
+    });
+
+    updateProgress();
+    showTestUpdateBanner();
+  });
+}
+
+function showTestUpdateBanner() {
+  document.getElementById('testUpdateBanner')?.remove();
+  const b = document.createElement('div');
+  b.id = 'testUpdateBanner';
+  b.style.cssText = `position:fixed;top:72px;left:50%;transform:translateX(-50%);
+    background:rgba(100,150,255,0.93);color:#fff;border-radius:10px;
+    padding:10px 22px;font-size:0.85rem;font-weight:600;z-index:9999;
+    box-shadow:0 4px 20px rgba(0,0,0,0.25);white-space:nowrap;
+    transition:opacity 0.4s;`;
+  b.textContent = '📢 Admin updated the test — changes applied';
+  document.body.appendChild(b);
+  setTimeout(() => { b.style.opacity = '0'; }, 3500);
+  setTimeout(() => b.remove(), 4000);
+}
 
 function findActiveMonth(cfgs) {
   const months = Object.keys(cfgs).sort().reverse();
@@ -461,8 +531,23 @@ function submitTest() {
   doSubmit(false);
 }
 
-function doSubmit(auto) {
+async function doSubmit(auto) {
   clearInterval(_timer);
+
+  // Re-fetch the latest gentest from Firebase before grading.
+  // This ensures admin edits to correct answers (made after the user loaded the page)
+  // are applied to this submission, not the stale cached version.
+  if (window.FDB) {
+    try {
+      const snap = await FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value');
+      if (snap.exists()) {
+        const fresh = snap.val();
+        localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
+        _qbank = fresh;
+      }
+    } catch(e) { /* keep existing _qbank on network error */ }
+  }
+
   const qs = _qbank.questions;
   const mc = _currentCfg;
 
@@ -493,17 +578,28 @@ function doSubmit(auto) {
   }
   // For BD/CS: pass determined after essay grading — save as pending
 
+  // Compact snapshot of question texts/options — used when gentest is no longer cached
+  const questionSnapshot = {};
+  qs.forEach(q => {
+    questionSnapshot[q.id] = {
+      text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
+      ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
+      ...(q.rubric         ? { rubric: q.rubric }                  : {})
+    };
+  });
+
   const now = new Date().toISOString();
   const submission = {
-    startedAt:     _startedAt || now,
-    submittedAt:   now,
-    month:         _currentMonth,
-    group:         MY_GROUP,
+    startedAt:        _startedAt || now,
+    submittedAt:      now,
+    month:            _currentMonth,
+    group:            MY_GROUP,
     mcqScore,
     lietWrong,
     essayAnswers,
     mcqResults,
-    essayPending:  hasEssay,
+    questionSnapshot,
+    essayPending:     hasEssay,
     provisionalPassed
   };
   saveSubmission(CUR_USER, _currentMonth, submission);
@@ -528,7 +624,13 @@ function doSubmit(auto) {
 // ===== RESULT SCREEN =====
 function renderResult(sub, mc) {
   clearInterval(_timer);
-  const qs          = _qbank ? _qbank.questions : [];
+  // Prefer live gentest; fall back to snapshot stored in the submission at submit time
+  let qs = _qbank ? _qbank.questions : [];
+  if (!qs.length && sub.questionSnapshot) {
+    qs = Object.entries(sub.questionSnapshot)
+      .map(([id, q]) => ({ id, ...q }))
+      .sort((a, b) => (a.type === b.type ? 0 : a.type === 'MCQ' ? -1 : 1));
+  }
   const isBDCSU     = sub.group === 'bdcs';
   const maxScore    = isBDCSU ? 300 : 100;
   const lietMax     = mc.lietMax ?? 2;

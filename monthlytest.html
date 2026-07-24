@@ -1679,7 +1679,10 @@ function renderScoresTables() {
             <div class="score-section-sub">${bdcs.length} trainee${bdcs.length!==1?'s':''} · ${passedBdcs} passed · Pass: ${passBDCS}/300 · Max Liet wrong: ${lietMax}</div>
           </div>
         </div>
-        <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${getGenTest(month,'bdcs') ? `<button class="btn-xs edi" onclick="openTestPreviewModal('${month}','bdcs')" title="Edit questions in the active BD/CS test">✏️ Edit Questions</button>` : ''}
+          <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
+        </div>
       </div>
       ${buildRowsBDCS(bdcs)}
     </div>
@@ -1693,7 +1696,10 @@ function renderScoresTables() {
             <div class="score-section-sub">${others.length} trainee${others.length!==1?'s':''} · ${passedOthers} passed · Pass: ${passOthers}/100</div>
           </div>
         </div>
-        <button class="export-btn xl" onclick="exportGroup('${month}','others')">📥 Export Excel</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          ${getGenTest(month,'others') ? `<button class="btn-xs edi" onclick="openTestPreviewModal('${month}','others')" title="Edit questions in the active Others test">✏️ Edit Questions</button>` : ''}
+          <button class="export-btn xl" onclick="exportGroup('${month}','others')">📥 Export Excel</button>
+        </div>
       </div>
       ${buildRowsOthers(others)}
     </div>`;
