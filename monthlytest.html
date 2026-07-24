@@ -1680,7 +1680,7 @@ function renderScoresTables() {
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          ${getGenTest(month,'bdcs') ? `<button class="btn-xs edi" onclick="openTestPreviewModal('${month}','bdcs')" title="Edit questions in the active BD/CS test">✏️ Edit Questions</button>` : ''}
+          <button class="btn-xs edi" onclick="openTestPreviewModal('${month}','bdcs')" title="Edit questions in the active BD/CS test">✏️ Edit Questions</button>
           <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
         </div>
       </div>
@@ -1697,7 +1697,7 @@ function renderScoresTables() {
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          ${getGenTest(month,'others') ? `<button class="btn-xs edi" onclick="openTestPreviewModal('${month}','others')" title="Edit questions in the active Others test">✏️ Edit Questions</button>` : ''}
+          <button class="btn-xs edi" onclick="openTestPreviewModal('${month}','others')" title="Edit questions in the active Others test">✏️ Edit Questions</button>
           <button class="export-btn xl" onclick="exportGroup('${month}','others')">📥 Export Excel</button>
         </div>
       </div>
@@ -1982,6 +1982,10 @@ function editGenQ(idx) {
           ⚠ Liet Points
         </label>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;color:var(--text-secondary);cursor:pointer;margin-bottom:12px;">
+        <input type="checkbox" id="eq_alsoBank_${idx}" checked>
+        Also update Question Bank <span style="color:var(--text-muted);font-size:0.75rem;">(apply fix to future tests too)</span>
+      </label>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-success" style="font-size:0.82rem;padding:6px 16px;" onclick="saveGenQ(${idx})">💾 Save</button>
         <button class="btn btn-secondary" style="font-size:0.82rem;padding:6px 14px;" onclick="cancelEditGenQ(${idx})">Cancel</button>
@@ -2022,13 +2026,92 @@ function saveGenQ(idx) {
   gt.totalPoints = gt.questions.reduce((s, q) => s + q.points, 0);
   saveGenTest(_gtCtx.group, _gtCtx.m, gt);
 
+  // Optionally propagate fix to the question bank so future tests use the corrected version
+  if (document.getElementById(`eq_alsoBank_${idx}`)?.checked) {
+    const qb = getQBank(_gtCtx.group);
+    if (qb) {
+      const bq = qb.questions.find(x => x.id === q.id);
+      if (bq) {
+        bq.text   = q.text;
+        bq.points = q.points;
+        bq.isLiet = q.isLiet;
+        if (isMCQ) { bq.opts = q.opts; bq.correct = q.correct; }
+        else        { bq.rubric = q.rubric; }
+        saveQBank(_gtCtx.group, qb);
+      }
+    }
+  }
+
+  // Re-grade all submitted users and refresh their questionSnapshots
+  const regraded = regradeAllSubmissions(_gtCtx.group, _gtCtx.m, gt);
+
   // Re-render this question card
   const el = document.getElementById(`pqi_${idx}`);
   el.outerHTML = buildPreviewQHTML(q, idx, _gtCtx.group, _gtCtx.m);
 
   // Update header info
   const infoEl = document.getElementById('previewModalInfo');
-  if (infoEl) infoEl.textContent = `${fmtMonth(_gtCtx.m)} · ${gt.mcqCount} MCQ${gt.essayCount?' + '+gt.essayCount+' Essay':''} · ${gt.totalPoints}pts total · Last edited: just now`;
+  if (infoEl) infoEl.textContent = `${fmtMonth(_gtCtx.m)} · ${gt.mcqCount} MCQ${gt.essayCount?' + '+gt.essayCount+' Essay':''} · ${gt.totalPoints}pts total · Last edited: just now${regraded?' · ✅ Re-graded '+regraded+' submission'+(regraded>1?'s':''):''}`;
+}
+
+function regradeAllSubmissions(group, month, updatedGT) {
+  const cfg        = getMC()[month] || {};
+  const passOthers = cfg.passOthers ?? 70;
+  const isBDCSG    = group === 'bdcs';
+  const ms         = getMS();
+  let count = 0;
+
+  Object.entries(getUsersDB()).forEach(([un, ud]) => {
+    if (isBDCS(ud) !== isBDCSG) return;          // only matching group
+    const sub = getSubmission(un, month);
+    if (!sub || !sub.submittedAt || !sub.mcqResults) return;
+
+    // Re-calculate mcqScore + lietWrong from updated correct answers / points
+    let mcqScore = 0, lietWrong = 0;
+    updatedGT.questions.forEach(q => {
+      if (q.type !== 'MCQ') return;
+      const res = sub.mcqResults[q.id];
+      if (!res) return;
+      const correct = !!(res.ans && q.correct && res.ans.toUpperCase() === q.correct.toUpperCase());
+      res.correct = correct;
+      if (correct) mcqScore += q.points;
+      else if (q.isLiet) lietWrong++;
+    });
+
+    sub.mcqScore  = mcqScore;
+    sub.lietWrong = lietWrong;
+
+    // Refresh questionSnapshot so review page shows updated text/options/correct
+    if (sub.questionSnapshot) {
+      updatedGT.questions.forEach(q => {
+        if (!sub.questionSnapshot[q.id]) return;
+        sub.questionSnapshot[q.id] = {
+          text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
+          ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
+          ...(q.rubric         ? { rubric: q.rubric }                  : {})
+        };
+      });
+    }
+
+    // Others: update provisionalPassed + auto-graded monthly_scores entry
+    if (!isBDCSG) {
+      sub.provisionalPassed = mcqScore >= passOthers;
+      if (!ms[month]) ms[month] = {};
+      const sc = ms[month][un];
+      if (!sc || sc.autoGraded) {
+        ms[month][un] = {
+          score: mcqScore, passed: sub.provisionalPassed,
+          autoGraded: true, gradedAt: new Date().toISOString()
+        };
+      }
+    }
+
+    saveSubmission(un, month, sub);
+    count++;
+  });
+
+  if (!isBDCSG && count) saveMS(ms);   // one write for all Others scores
+  return count;
 }
 
 function openTestPreviewModal(m, group) {
