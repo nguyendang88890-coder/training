@@ -2565,6 +2565,7 @@ function renderCurrentTestCard() {
         // Others: auto-graded — show score immediately
         actionHTML = scoreBlock(resolvedScore, false);
         actionHTML += `<div style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);">✅ Submitted ${new Date(existingSub.submittedAt).toLocaleString('en-GB')}</div>`;
+        actionHTML += `<div style="margin-top:6px;"><a href="taketest.html?month=${m}" style="font-size:0.78rem;color:var(--gold);text-decoration:none;">📋 View Submitted Answers</a></div>`;
       } else {
         // BDCS: awaiting essay grading
         actionHTML = `<div style="margin-top:18px;padding:12px 18px;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.25);border-radius:10px;display:inline-flex;align-items:center;gap:12px;">

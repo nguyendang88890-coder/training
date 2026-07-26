@@ -187,10 +187,18 @@ document.addEventListener('DOMContentLoaded', async function() {
           if (s.exists()) Object.entries(s.val()).forEach(([m,d]) =>
             localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
         }).catch(()=>{}),
-        FDB.ref('gentest').once('value').then(s => {
-          if (s.exists()) Object.entries(s.val()).forEach(([g, months]) =>
-            Object.entries(months).forEach(([m, d]) =>
-              localStorage.setItem(`wmt_gentest_${g}_${m}`, JSON.stringify(d))));
+        // Fetch only this group's gentest for the target month — avoids reading the entire tree
+        FDB.ref(urlMonth
+          ? `gentest/${MY_GROUP}/${urlMonth}`
+          : `gentest/${MY_GROUP}`
+        ).once('value').then(s => {
+          if (!s.exists()) return;
+          if (urlMonth) {
+            localStorage.setItem(`wmt_gentest_${MY_GROUP}_${urlMonth}`, JSON.stringify(s.val()));
+          } else {
+            Object.entries(s.val()).forEach(([m, d]) =>
+              localStorage.setItem(`wmt_gentest_${MY_GROUP}_${m}`, JSON.stringify(d)));
+          }
         }).catch(()=>{}),
         FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
           if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
@@ -622,7 +630,7 @@ async function doSubmit(auto) {
 }
 
 // ===== RESULT SCREEN =====
-function renderResult(sub, mc) {
+function renderResult(sub, mc = {}) {
   clearInterval(_timer);
   // Prefer live gentest; fall back to snapshot stored in the submission at submit time
   let qs = _qbank ? _qbank.questions : [];
