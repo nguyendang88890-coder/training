@@ -2395,11 +2395,12 @@ function openTestPreviewModal(m, group) {
 function buildExportRows(list, month, isBDCSGroup) {
   const scores=getMS()[month]||{};
   const hdr = isBDCSGroup
-    ? ['Full Name','Work Name','Username','Department','Position','Score (/300)','Liet Wrong','Pass/Fail','Graded At']
-    : ['Full Name','Work Name','Username','Department','Position','Score (/100)','Pass/Fail','Graded At'];
+    ? ['Full Name','Work Name','Username','Department','Position','New/Existed','Score (/300)','Liet Wrong','Pass/Fail','Graded At']
+    : ['Full Name','Work Name','Username','Department','Position','New/Existed','Score (/100)','Pass/Fail','Graded At'];
   const rows=list.map(([un,ud])=>{
     const sc=scores[un];
-    const base=[ud.fullName||'',ud.workName||'',un,ud.department||'',ud.position||'',sc?sc.score:''];
+    const empType = ud.employeeType==='new' ? 'New' : ud.employeeType==='old' ? 'Existed' : '';
+    const base=[ud.fullName||'',ud.workName||'',un,ud.department||'',ud.position||'',empType,sc?sc.score:''];
     if (isBDCSGroup) base.push(sc?.liet??'');
     base.push(sc?(sc.passed?'PASS':'FAIL'):'', sc?fmtDT(sc.gradedAt):'');
     return base;
@@ -2491,33 +2492,65 @@ function renderHistTable() {
   let fc=0;
   const rows=months.map(m=>{
     const sc=scores[m]?.[uname], cfg=cfgs[m], rs=getRS(uname)[m];
+    const sub=getSubmission(uname,m);
     if (sc&&!sc.passed) fc++;
-    return {m,sc,cfg,rs,fc};
+    return {m,sc,cfg,rs,fc,sub};
   });
-  if (!rows.some(r=>r.sc)) {
+  if (!rows.some(r=>r.sc||r.sub)) {
     el.innerHTML=`<div style="color:var(--text-muted);padding:16px;">No test records for this trainee yet.</div>`; return;
   }
   const lietCol=userIsBDCS?'<th>Liet Score</th>':'';
   el.innerHTML=`<div class="hist-wrap"><table>
-    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScore})</th>${lietCol}<th>Result</th><th>Failed Count</th><th>Rescheduled</th></tr></thead>
+    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScore})</th>${lietCol}<th>Result</th><th>Failed Count</th><th>Rescheduled</th><th>Action</th></tr></thead>
     <tbody>
-      ${rows.map(({m,sc,cfg,rs,fc})=>{
+      ${rows.filter(r=>r.sc||r.sub).map(({m,sc,cfg,rs,fc,sub})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
         const rsTxt=rs?(rs.status==='approved'?`✓ ${fmtDT(rs.rsStart)}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
         const startD=userIsBDCS?cfg?.startDateBDCS:cfg?.startDateOthers;
         const endD  =userIsBDCS?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietCell=userIsBDCS?`<td style="text-align:center">${sc?.liet??'—'}</td>`:'';
+        const subInfo=sub?.submittedAt?`<div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">Submitted ${fmtDT(sub.submittedAt)}</div>`:'';
+        const hasSub=!!(sub?.submittedAt);
         return `<tr>
           <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>
           <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
-          <td style="font-size:1.05rem;font-weight:700">${sc?sc.score:'—'}</td>
+          <td style="font-size:1.05rem;font-weight:700">${sc?sc.score:(hasSub?'<span style="color:var(--text-muted);font-size:0.8rem;">Pending</span>':'—')}</td>
           ${lietCell}
-          <td><span class="${pfCls}">${sc?(sc.passed?'✓ PASS':'✗ FAIL'):'—'}</span></td>
+          <td><span class="${pfCls}">${sc?(sc.passed?'✓ PASS':'✗ FAIL'):(hasSub?'<span style="color:var(--text-muted);font-size:0.78rem;">Pending grade</span>':'—')}</span>${subInfo}</td>
           <td style="color:${fc>0?'var(--danger)':'var(--success)'};font-weight:600;">${sc?fc:'—'}</td>
           <td style="font-size:0.8rem;color:var(--text-secondary)">${rsTxt}</td>
+          <td>${hasSub?`<button class="btn-xs del" onclick="deleteSubmission('${uname}','${m}')" title="Delete this submission so the user can retake the test">🗑 Delete</button>`:'—'}</td>
         </tr>`;
       }).join('')}
     </tbody></table></div>`;
+}
+
+function deleteSubmission(un, month) {
+  const sub = getSubmission(un, month);
+  if (!sub) { alert('No submission found.'); return; }
+  const confirmed = confirm(
+    `Delete ${un}'s submission for ${fmtMonth(month)}?\n\n` +
+    `Submitted: ${fmtDT(sub.submittedAt)}\n` +
+    `This will also remove their score for this month.\n\n` +
+    `The user will be able to retake the test.`
+  );
+  if (!confirmed) return;
+
+  // Remove from localStorage
+  localStorage.removeItem(`wmt_sub_${un}_${month}`);
+
+  // Remove from Firebase
+  if (window.FDB) FDB.ref(`submissions/${un}/${month}`).remove().catch(() => {});
+
+  // Remove score from monthly_scores
+  const ms = getMS();
+  if (ms[month]?.[un]) {
+    delete ms[month][un];
+    saveMS(ms);
+  }
+
+  renderHistTable();
+  renderScoresTables();
 }
 
 // ===== RESCHEDULE TAB =====

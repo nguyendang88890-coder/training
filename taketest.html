@@ -159,9 +159,9 @@ function fmtDT(s) {
 // ===== INIT =====
 const CUR_USER  = localStorage.getItem('wmt_user') || '';
 const ALL_USERS = getUsersDB();
-const USER_DATA = ALL_USERS[CUR_USER] || {};
-const IS_BDCS   = isBDCS(USER_DATA);
-const MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
+let USER_DATA = ALL_USERS[CUR_USER] || {};
+let IS_BDCS   = isBDCS(USER_DATA);
+let MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
 
 let _timer = null;
 let _answers = {};   // { qid: 'A' | essay text }
@@ -175,10 +175,20 @@ let _effectiveDeadline = null;
 const urlMonth = new URLSearchParams(location.search).get('month');
 
 document.addEventListener('DOMContentLoaded', async function() {
-  // Targeted sync: only fetch the 4 paths taketest needs.
-  // Replaces the full syncFromFirebase() which reads ALL 100+ users (800+ Firebase reads → slow).
   if (window.FDB && CUR_USER) {
     try {
+      // Step 1: sync user profile first so testGroup is up-to-date before fetching gentest
+      await FDB.ref(`users/${CUR_USER}`).once('value').then(s => {
+        if (!s.exists()) return;
+        const db = getUsersDB();
+        db[CUR_USER] = { ...db[CUR_USER], ...s.val() };
+        localStorage.setItem('wmt_users_db', JSON.stringify(db));
+        USER_DATA = db[CUR_USER];
+        IS_BDCS   = isBDCS(USER_DATA);
+        MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
+      }).catch(() => {});
+
+      // Step 2: now fetch gentest with the correct (possibly updated) group
       await Promise.all([
         FDB.ref('monthly_config').once('value').then(s => {
           if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
@@ -187,7 +197,6 @@ document.addEventListener('DOMContentLoaded', async function() {
           if (s.exists()) Object.entries(s.val()).forEach(([m,d]) =>
             localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
         }).catch(()=>{}),
-        // Fetch only this group's gentest for the target month — avoids reading the entire tree
         FDB.ref(urlMonth
           ? `gentest/${MY_GROUP}/${urlMonth}`
           : `gentest/${MY_GROUP}`
