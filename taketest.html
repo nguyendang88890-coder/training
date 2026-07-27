@@ -232,6 +232,41 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   _currentCfg = cfgs[_currentMonth];
 
+  // Load qbank + submission early — can show review even if config failed to load
+  _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
+  const sub = getSubmission(CUR_USER, _currentMonth);
+  if (sub && sub.submittedAt) {
+    // Resolve deadline from config for correct-answer gating (best-effort)
+    if (_currentCfg) {
+      const myRS  = getRS(CUR_USER);
+      const myRsM = myRS[_currentMonth];
+      _effectiveDeadline = (myRsM?.status === 'approved' && myRsM.rsDeadline)
+        ? myRsM.rsDeadline
+        : (IS_BDCS ? _currentCfg.deadlineBDCS : _currentCfg.deadlineOthers);
+    }
+    // Backfill questionSnapshot for old submissions that don't have it yet
+    if (!sub.questionSnapshot && _qbank && _qbank.questions) {
+      const snapshot = {};
+      _qbank.questions.forEach(q => {
+        snapshot[q.id] = {
+          text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
+          ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
+          ...(q.rubric         ? { rubric: q.rubric }                  : {})
+        };
+      });
+      sub.questionSnapshot = snapshot;
+      saveSubmission(CUR_USER, _currentMonth, sub);
+    }
+    renderResult(sub, _currentCfg || {});
+    return;
+  }
+
+  // --- Below this point: user has NOT submitted yet, needs full config ---
+  if (!_currentCfg) {
+    renderError('Test configuration not found. Please refresh the page.');
+    return;
+  }
+
   // Determine effective test window: personal approved reschedule takes priority
   const myRS   = getRS(CUR_USER);
   const myRsM  = myRS[_currentMonth];
@@ -251,29 +286,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   if (!startD || !endD) {
     renderError('No test has been configured for your department.');
-    return;
-  }
-
-  // Load generated test snapshot (needed for both active test and result review)
-  _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
-
-  // Check if already submitted — show result/review regardless of date window
-  const sub = getSubmission(CUR_USER, _currentMonth);
-  if (sub && sub.submittedAt) {
-    // Backfill questionSnapshot for old submissions that don't have it yet
-    if (!sub.questionSnapshot && _qbank && _qbank.questions) {
-      const snapshot = {};
-      _qbank.questions.forEach(q => {
-        snapshot[q.id] = {
-          text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
-          ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
-          ...(q.rubric         ? { rubric: q.rubric }                  : {})
-        };
-      });
-      sub.questionSnapshot = snapshot;
-      saveSubmission(CUR_USER, _currentMonth, sub);
-    }
-    renderResult(sub, _currentCfg);
     return;
   }
 

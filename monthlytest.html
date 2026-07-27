@@ -1681,6 +1681,7 @@ function renderScoresTables() {
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button class="btn-xs edi" onclick="openTestPreviewModal('${month}','bdcs')" title="Edit questions in the active BD/CS test">✏️ Edit Questions</button>
+          <button class="btn-xs ok" onclick="openBulkEssayModal('${month}')" title="Bulk grade essay questions for all BD/CS trainees">📋 Bulk Grade Essays</button>
           <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
         </div>
       </div>
@@ -1743,12 +1744,187 @@ function saveOneOthers(un, month, passOthers) {
 
 // ===== AI ESSAY GRADING =====
 let _essayCtx = null;
+let _essayTemplate = null;
+
+function preScoreByKeywords(answer, keywords, required, maxPoints) {
+  if (!keywords || !keywords.length || !required) return null;
+  const norm = (answer || '').toLowerCase();
+  const found = keywords.filter(kw => norm.includes(kw.toLowerCase()));
+  const score = Math.round((Math.min(found.length, required) / required) * maxPoints * 10) / 10;
+  return { score, found, missing: keywords.filter(kw => !norm.includes(kw.toLowerCase())) };
+}
+
+function kwPreScoreModal() {
+  const ctx = _essayCtx;
+  if (!ctx) return;
+  let anyKeywords = false;
+  for (const [qid, q] of Object.entries(ctx.essayMap)) {
+    if (!q.keywords || !q.keywords.length) continue;
+    anyKeywords = true;
+    const r = preScoreByKeywords(q.ans, q.keywords, q.keywordsRequired, q.maxPts);
+    if (!r) continue;
+    const scoreEl = document.getElementById(`essay_score_${qid}`);
+    if (scoreEl && !scoreEl.value) scoreEl.value = r.score;
+    const hintEl = document.getElementById(`kw_hint_${qid}`);
+    if (hintEl) {
+      const fnd = r.found.map(k => `<span style="color:var(--success);background:rgba(0,200,100,0.1);border-radius:3px;padding:0 6px;margin:2px;display:inline-block;">${k}</span>`).join('');
+      const mis = r.missing.map(k => `<span style="color:var(--danger);background:rgba(255,80,80,0.07);border-radius:3px;padding:0 6px;margin:2px;display:inline-block;text-decoration:line-through;">${k}</span>`).join('');
+      hintEl.innerHTML = `🔑 ${fnd}${mis ? `<span style="color:var(--text-muted);margin:0 4px;">missing:</span>${mis}` : ''} <span style="margin-left:6px;font-weight:600;">→ ${r.score}/${q.maxPts}</span>`;
+      hintEl.style.display = 'block';
+    }
+  }
+  if (!anyKeywords) alert('No keywords configured for any essay question.\nConfigure via ✏️ Edit Questions → Essay question → Keywords field.');
+}
+
+function saveEssayTemplate() {
+  const ctx = _essayCtx;
+  if (!ctx) return;
+  const scores = {};
+  for (const qid of Object.keys(ctx.essayMap)) {
+    const v = parseFloat(document.getElementById(`essay_score_${qid}`)?.value);
+    if (!isNaN(v)) scores[qid] = v;
+  }
+  if (!Object.keys(scores).length) { alert('Enter at least one score before saving as template.'); return; }
+  _essayTemplate = { month: ctx.month, scores };
+  const btn = document.getElementById('essTemplateSaveBtn');
+  if (btn) { btn.textContent = '✅ Saved!'; setTimeout(() => { btn.textContent = '📋 Save as Template'; }, 2000); }
+}
+
+function applyTemplateToAll(month) {
+  if (!_essayTemplate || _essayTemplate.month !== month) { alert('No template saved for this month.'); return; }
+  const cfg = getMC()[month] || {};
+  let count = 0;
+  Object.entries(getUsersDB()).forEach(([un, ud]) => {
+    if (!isBDCS(ud)) return;
+    const sub = getSubmission(un, month);
+    if (!sub || !sub.submittedAt || !sub.essayAnswers || !sub.essayPending) return;
+    const essayTotal = Object.values(_essayTemplate.scores).reduce((a, b) => a + b, 0);
+    sub.essayScores = { ..._essayTemplate.scores };
+    sub.essayTotal = essayTotal;
+    sub.essayPending = false;
+    saveSubmission(un, month, sub);
+    const total = (sub.mcqScore || 0) + essayTotal;
+    const inp = document.getElementById(`sc_bdcs_${un}`);
+    if (inp && !inp.value) { inp.value = total; liveUpdatePFBDCS(un, cfg.passBDCS ?? 250, cfg.lietMax ?? 10); }
+    count++;
+  });
+  alert(`Template applied to ${count} pending submission${count !== 1 ? 's' : ''}.\nClick "Save Scores" in the Scores tab to persist.`);
+  document.getElementById('bulkEssayModal')?.remove();
+  if (count) openBulkEssayModal(month);
+}
+
+function bulkApplyKeywords(month) {
+  const gt = getGenTest('bdcs', month);
+  const qb = getQBank('bdcs');
+  const cfg = getMC()[month] || {};
+  const qs = (gt?.questions || qb?.questions || []).filter(q => q.type === 'Essay');
+  let applied = 0;
+  Object.entries(getUsersDB()).forEach(([un, ud]) => {
+    if (!isBDCS(ud)) return;
+    const sub = getSubmission(un, month);
+    if (!sub || !sub.submittedAt || !sub.essayAnswers || !sub.essayPending) return;
+    let essayTotal = 0;
+    const essayScores = {};
+    for (const q of qs) {
+      if (!q.keywords || !q.keywords.length) continue;
+      const r = preScoreByKeywords(sub.essayAnswers[q.id] || '', q.keywords, q.keywordsRequired || 1, q.points || 0);
+      if (r) { essayScores[q.id] = r.score; essayTotal += r.score; }
+    }
+    if (!Object.keys(essayScores).length) return;
+    sub.essayScores = essayScores; sub.essayTotal = essayTotal; sub.essayPending = false;
+    saveSubmission(un, month, sub);
+    const total = (sub.mcqScore || 0) + essayTotal;
+    const inp = document.getElementById(`sc_bdcs_${un}`);
+    if (inp && !inp.value) { inp.value = total; liveUpdatePFBDCS(un, cfg.passBDCS ?? 250, cfg.lietMax ?? 10); }
+    applied++;
+  });
+  alert(`Keyword scores applied to ${applied} submission${applied !== 1 ? 's' : ''}.\nClick "Save Scores" to persist. Review individually with 📝 Grade.`);
+  document.getElementById('bulkEssayModal')?.remove();
+  openBulkEssayModal(month);
+}
+
+function openBulkEssayModal(month) {
+  const gt = getGenTest('bdcs', month);
+  const qb = getQBank('bdcs');
+  const qs = (gt?.questions || qb?.questions || []).filter(q => q.type === 'Essay');
+  if (!qs.length) { alert('No essay questions found for this month.'); return; }
+  const ms = getMS()[month] || {};
+  const hasKeywords = qs.some(q => q.keywords && q.keywords.length);
+  const users = Object.entries(getUsersDB())
+    .filter(([, ud]) => isBDCS(ud))
+    .map(([un, ud]) => ({ un, ud, sub: getSubmission(un, month) }))
+    .filter(({ sub }) => sub && sub.submittedAt && sub.essayAnswers)
+    .sort((a, b) => a.un.localeCompare(b.un));
+  if (!users.length) { alert('No submitted essays found.'); return; }
+
+  document.getElementById('bulkEssayModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'bulkEssayModal';
+  modal.className = 'modal-overlay show';
+
+  const kwHeaders = hasKeywords ? `<th style="text-align:center;padding:6px 10px;">Keyword Pre-score<br><span style="font-size:0.7rem;font-weight:400;">${qs.map((_, i) => 'Q' + (i + 1)).join(' / ')} + MCQ</span></th>` : '';
+
+  const userRows = users.map(({ un, ud, sub }) => {
+    const existScore = ms[un] ? `${ms[un].score}pts` : (sub.essayScores ? `~${(sub.mcqScore||0)+(sub.essayTotal||0)}pts` : '—');
+    const statusBadge = sub.essayPending
+      ? `<span style="color:var(--warning,#f59e0b);font-size:0.72rem;">⏳ Pending</span>`
+      : `<span style="color:var(--success);font-size:0.72rem;">✅ Scored</span>`;
+
+    let kwCell = '';
+    if (hasKeywords) {
+      let kwTotal = sub.mcqScore || 0;
+      const parts = qs.map(q => {
+        const r = preScoreByKeywords(sub.essayAnswers[q.id] || '', q.keywords || [], q.keywordsRequired || 0, q.points || 0);
+        if (!r) return `<span style="color:var(--text-muted);">—</span>`;
+        kwTotal += r.score;
+        const ok = r.found.length >= (q.keywordsRequired || 0);
+        return `<span title="Found: ${r.found.join(', ') || 'none'}" style="cursor:help;color:${ok ? 'var(--success)' : 'var(--text-muted)'};">${r.score}</span>`;
+      });
+      kwCell = `<td style="text-align:center;font-size:0.82rem;">${parts.join(' / ')} = <strong>${kwTotal}</strong></td>`;
+    }
+
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 10px;font-size:0.82rem;">${un}${ud.fullName ? `<br><span style="color:var(--text-muted);font-size:0.72rem;">${ud.fullName}</span>` : ''}</td>
+      ${kwCell}
+      <td style="text-align:center;padding:8px;">${statusBadge}<br><span style="font-size:0.73rem;color:var(--text-secondary);">${existScore}</span></td>
+      <td style="text-align:center;padding:8px;"><button class="btn-xs" onclick="openEssayModal('${un}','${month}')">📝 Grade</button></td>
+    </tr>`;
+  }).join('');
+
+  const hasTpl = _essayTemplate?.month === month;
+  modal.innerHTML = `<div class="modal-box" style="max-width:760px;max-height:88vh;display:flex;flex-direction:column;">
+    <h3 style="margin-bottom:4px;">📋 Bulk Essay Grading — ${fmtMonth(month)}</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">${users.length} submission${users.length !== 1 ? 's' : ''} · ${qs.length} essay Q · ${hasKeywords ? '🔑 Keywords configured' : '<em>No keywords set — ✏️ Edit Questions to configure</em>'}</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);align-items:center;">
+      ${hasKeywords ? `<button class="btn btn-primary" style="font-size:0.82rem;padding:6px 16px;" onclick="bulkApplyKeywords('${month}')">🔑 Apply Keyword Scores to All Pending</button>` : ''}
+      ${hasTpl ? `<button class="btn btn-secondary" style="font-size:0.82rem;padding:6px 16px;" onclick="applyTemplateToAll('${month}')">📋 Apply Saved Template to Pending</button>` : ''}
+      ${!hasKeywords && !hasTpl ? `<span style="font-size:0.75rem;color:var(--text-muted);">Grade one user with 📝 Grade → "Save as Template" → come back here to apply to all.</span>` : ''}
+    </div>
+    <div style="overflow-y:auto;flex:1;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid var(--border);font-size:0.8rem;">
+          <th style="text-align:left;padding:6px 10px;">Trainee</th>
+          ${kwHeaders}
+          <th style="text-align:center;padding:6px 10px;">Status / Score</th>
+          <th style="text-align:center;padding:6px 10px;">Action</th>
+        </tr></thead>
+        <tbody>${userRows}</tbody>
+      </table>
+    </div>
+    <div class="modal-footer" style="margin-top:14px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('bulkEssayModal').remove()">Close</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
 
 function getGeminiKey() { return localStorage.getItem('wmt_gemini_key') || ''; }
 
 function openEssayModal(un, month) {
   const sub = getSubmission(un, month);
   const qb  = getQBank('bdcs');
+  const gt  = getGenTest('bdcs', month);
   if (!sub || !sub.essayAnswers) { alert('Submission not found.'); return; }
 
   document.getElementById('essayModal')?.remove();
@@ -1758,9 +1934,9 @@ function openEssayModal(un, month) {
 
   const essays = Object.entries(sub.essayAnswers);
   const rows = essays.map(([qid, ans], idx) => {
-    const q      = qb?.questions?.find(q => String(q.id) === String(qid));
+    const q      = gt?.questions?.find(x => String(x.id) === String(qid)) || qb?.questions?.find(x => String(x.id) === String(qid));
     const maxPts = q?.points || 0;
-    _essayCtx.essayMap[qid] = { text: q?.text||'', rubric: q?.rubric||'', ans: ans||'', maxPts };
+    _essayCtx.essayMap[qid] = { text: q?.text||'', rubric: q?.rubric||'', ans: ans||'', maxPts, keywords: q?.keywords||[], keywordsRequired: q?.keywordsRequired||0 };
 
     return `<div style="margin-bottom:22px;padding-bottom:22px;border-bottom:1px solid var(--border);">
       <div style="font-size:0.75rem;font-weight:700;color:#6496ff;margin-bottom:6px;">
@@ -1768,6 +1944,7 @@ function openEssayModal(un, month) {
       </div>
       <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||'<em>(question not found in bank)</em>'}</div>
       ${q?.rubric ? `<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>` : ''}
+      <div id="kw_hint_${qid}" style="display:none;font-size:0.73rem;line-height:1.8;margin-bottom:6px;padding:6px 10px;background:rgba(100,200,100,0.05);border-radius:6px;border:1px solid rgba(100,200,100,0.15);"></div>
       <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;margin-bottom:10px;">${ans || '<em style="color:var(--text-muted)">No answer provided</em>'}</div>
       <div class="essay-score-row">
         <label style="font-size:0.8rem;color:var(--text-muted);">Score:</label>
@@ -1789,14 +1966,16 @@ function openEssayModal(un, month) {
       Submitted: ${new Date(sub.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp;
       MCQ: <strong style="color:var(--gold)">${sub.mcqScore}pts</strong> &nbsp;·&nbsp; Liet Wrong: ${sub.lietWrong}
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-      <button id="aiGradeAllBtn" class="btn btn-primary" style="font-size:0.82rem;padding:6px 16px;" onclick="aiGradeAll()">🤖 Grade All with AI</button>
-      <span style="font-size:0.75rem;color:var(--text-muted);">AI suggests scores — review and adjust before applying.</span>
-      ${!getGeminiKey() ? `<span style="font-size:0.75rem;color:var(--danger);">⚠ No API key — set in Admin Panel → Settings</span>` : ''}
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <button class="btn btn-secondary" style="font-size:0.82rem;padding:6px 14px;" onclick="kwPreScoreModal()">🔑 Pre-score by Keywords</button>
+      <button id="aiGradeAllBtn" class="btn btn-primary" style="font-size:0.82rem;padding:6px 14px;" onclick="aiGradeAll()">🤖 Grade All with AI</button>
+      <span style="font-size:0.75rem;color:var(--text-muted);">Keyword → auto score · AI → Gemini suggestion · review before applying</span>
+      ${!getGeminiKey() ? `<span style="font-size:0.75rem;color:var(--danger);">⚠ No Gemini key</span>` : ''}
     </div>
     <div style="overflow-y:auto;flex:1;padding-right:4px;">${rows || '<div style="color:var(--text-muted)">No essay questions.</div>'}</div>
     <div class="modal-footer" style="margin-top:16px;">
       <button class="btn btn-secondary" onclick="document.getElementById('essayModal').remove();_essayCtx=null;">Close</button>
+      <button id="essTemplateSaveBtn" class="btn btn-secondary" onclick="saveEssayTemplate()" title="Save these scores as template to bulk-apply to all pending users">📋 Save as Template</button>
       <button class="btn btn-success" onclick="applyEssayScores()">✅ Apply & Fill Score</button>
     </div>
   </div>`;
@@ -1922,8 +2101,14 @@ function buildPreviewQHTML(q, idx, group, m) {
         <span>${q.opts[k]}</span>
         ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Answer</span>' : ''}
       </div>`).join('') + `</div>`;
-  } else if (q.type === 'Essay' && q.rubric) {
-    bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
+  } else if (q.type === 'Essay') {
+    if (q.rubric) bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
+    if (q.keywords && q.keywords.length) {
+      bodyHTML += `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;line-height:1.9;">
+        🔑 ${q.keywords.map(k => `<span style="background:rgba(100,150,255,0.12);border-radius:4px;padding:1px 7px;margin:2px 2px 0;display:inline-block;">${k}</span>`).join('')}
+        <span style="margin-left:4px;opacity:0.75;">— need ${q.keywordsRequired}/${q.keywords.length}</span>
+      </div>`;
+    }
   }
 
   return `<div class="preview-q-item" id="pqi_${idx}">
@@ -1960,6 +2145,15 @@ function editGenQ(idx) {
     <div style="margin-bottom:8px;">
       <label style="font-size:0.75rem;color:var(--text-muted);">Rubric / Grading Criteria</label>
       <textarea id="eq_rubric_${idx}" rows="3" style="${s}resize:vertical;">${q.rubric||''}</textarea>
+    </div>
+    <div style="margin-bottom:8px;">
+      <label style="font-size:0.75rem;color:var(--text-muted);">🔑 Keywords <span style="font-weight:400;font-style:italic;">(comma-separated — used for auto keyword scoring)</span></label>
+      <input id="eq_kw_${idx}" style="${s}" placeholder="e.g. stop loss, risk/reward, position size" value="${(q.keywords||[]).join(', ')}">
+    </div>
+    <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <label style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;">Min. keywords for full score:</label>
+      <input type="number" id="eq_kwReq_${idx}" min="1" value="${q.keywordsRequired||Math.max(1,Math.round((q.keywords||[]).length*0.6))}" style="${s}width:65px;">
+      <span style="font-size:0.73rem;color:var(--text-muted);">out of ${(q.keywords||[]).length||'?'} total</span>
     </div>`;
 
   const el = document.getElementById(`pqi_${idx}`);
@@ -2020,6 +2214,9 @@ function saveGenQ(idx) {
     q.correct = document.getElementById(`eq_correct_${idx}`).value;
   } else {
     q.rubric = document.getElementById(`eq_rubric_${idx}`).value.trim();
+    const kwRaw = document.getElementById(`eq_kw_${idx}`)?.value || '';
+    q.keywords = kwRaw.split(',').map(k => k.trim()).filter(Boolean);
+    q.keywordsRequired = Math.max(1, parseInt(document.getElementById(`eq_kwReq_${idx}`)?.value) || q.keywords.length || 1);
   }
 
   // Recalculate totals
@@ -2036,7 +2233,7 @@ function saveGenQ(idx) {
         bq.points = q.points;
         bq.isLiet = q.isLiet;
         if (isMCQ) { bq.opts = q.opts; bq.correct = q.correct; }
-        else        { bq.rubric = q.rubric; }
+        else        { bq.rubric = q.rubric; bq.keywords = q.keywords; bq.keywordsRequired = q.keywordsRequired; }
         saveQBank(_gtCtx.group, qb);
       }
     }
