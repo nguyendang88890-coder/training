@@ -477,7 +477,7 @@ function renderQBankTab() {
   el.innerHTML = `
     <div style="margin-bottom:20px;">
       <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">
-        Upload an Excel/CSV file with columns: <strong>Question, Type (MCQ/Essay), A, B, C, D, Answer, Points, Liet, Rubric</strong>.<br>
+        Upload an Excel/CSV file with columns: <strong>Question, Type (MCQ/Essay), A, B, C, D, Answer, Points, Liet, Rubric (Answer Guide)</strong>.<br>
         When a new file is uploaded, the question bank updates automatically for the next test session.
       </p>
     </div>
@@ -563,7 +563,7 @@ function parseQBankFile(file, group, allowEssay) {
       const ansCol = col('answer','đápán','dapan','correct','ans','đúng');
       const ptsCol = col('points','điểm','diem','pts','score','đ');
       const lietCol = col('liet','liệt','isliet','điểmliệt','kl');
-      const rubricCol = col('rubric','tiêuchí','tieuchi','criteria','hướngdẫn');
+      const rubricCol = col('rubric','tiêuchí','tieuchi','criteria','hướngdẫn','answerguidance','answerguide','guide','hướngdẫntrảlời');
       if (qCol < 0) { alert('Question column not found. Please check the column names.'); return; }
       if (ptsCol < 0) {
         const foundHdrs = raw[0].join(', ');
@@ -1682,6 +1682,7 @@ function renderScoresTables() {
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
           <button class="btn-xs edi" onclick="openTestPreviewModal('${month}','bdcs')" title="Edit questions in the active BD/CS test">✏️ Edit Questions</button>
           <button class="btn-xs ok" onclick="openBulkEssayModal('${month}')" title="Bulk grade essay questions for all BD/CS trainees">📋 Bulk Grade Essays</button>
+          <button class="btn-xs ok" style="background:var(--success);border-color:var(--success);color:#fff;font-weight:700;" onclick="saveAllBDCS('${month}')" title="Save all filled BD/CS scores at once">💾 Save All</button>
           <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
         </div>
       </div>
@@ -1732,6 +1733,27 @@ function saveOneBDCS(un, month, passBDCS, lietMax) {
   const all=getMS(); if (!all[month]) all[month]={};
   all[month][un]={ score:v, liet, passed: v>=passBDCS && liet<=lietMax, gradedAt:new Date().toISOString() };
   saveMS(all); renderScoresTables();
+}
+
+function saveAllBDCS(month) {
+  const cfg = getMC()[month] || {};
+  const passBDCS = cfg.passBDCS ?? 250;
+  const lietMax  = cfg.lietMax  ?? 10;
+  const all = getMS();
+  if (!all[month]) all[month] = {};
+  let saved = 0, skipped = 0;
+  document.querySelectorAll('[id^="sc_bdcs_"]').forEach(inp => {
+    const un = inp.id.replace('sc_bdcs_', '');
+    const v = parseFloat(inp.value);
+    if (isNaN(v) || v < 0 || v > 300) { skipped++; return; }
+    const liet = parseInt(document.getElementById(`liet_${un}`)?.value) || 0;
+    all[month][un] = { score: v, liet, passed: v >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
+    saved++;
+  });
+  if (!saved) { alert('No valid scores to save. Fill in score fields first.'); return; }
+  saveMS(all);
+  renderScoresTables();
+  if (skipped) alert(`Saved ${saved} score${saved !== 1 ? 's' : ''}. Skipped ${skipped} row${skipped !== 1 ? 's' : ''} with blank/invalid scores.`);
 }
 
 function saveOneOthers(un, month, passOthers) {
@@ -1943,7 +1965,8 @@ function openEssayModal(un, month) {
         Q${idx+1} — ${maxPts}pts${q?.isLiet?' <span style="color:var(--danger)">⚠ Liet</span>':''}
       </div>
       <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||'<em>(question not found in bank)</em>'}</div>
-      ${q?.rubric ? `<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:8px;">📋 ${q.rubric}</div>` : ''}
+      ${q?.rubric ? `<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:6px;">📋 Answer Guide: ${q.rubric}</div>` : ''}
+      ${(q?.keywords||[]).length ? `<div style="font-size:0.72rem;background:rgba(255,180,0,0.05);border:1px solid rgba(255,180,0,0.2);border-radius:6px;padding:7px 10px;margin-bottom:6px;color:var(--text-secondary);">🔑 Keywords (admin): ${(q.keywords).map(k=>`<span style="background:rgba(100,150,255,0.12);border-radius:3px;padding:1px 7px;margin:2px;display:inline-block;">${k}</span>`).join('')} — cần ${q.keywordsRequired}/${q.keywords.length}</div>` : ''}
       <div id="kw_hint_${qid}" style="display:none;font-size:0.73rem;line-height:1.8;margin-bottom:6px;padding:6px 10px;background:rgba(100,200,100,0.05);border-radius:6px;border:1px solid rgba(100,200,100,0.15);"></div>
       <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;margin-bottom:10px;">${ans || '<em style="color:var(--text-muted)">No answer provided</em>'}</div>
       <div class="essay-score-row">
@@ -2102,7 +2125,7 @@ function buildPreviewQHTML(q, idx, group, m) {
         ${q.correct===k ? '<span style="margin-left:auto;font-size:0.75rem;">✓ Answer</span>' : ''}
       </div>`).join('') + `</div>`;
   } else if (q.type === 'Essay') {
-    if (q.rubric) bodyHTML += `<div class="preview-q-rubric">📋 Rubric: ${q.rubric}</div>`;
+    if (q.rubric) bodyHTML += `<div class="preview-q-rubric">📋 Answer Guide: ${q.rubric}</div>`;
     if (q.keywords && q.keywords.length) {
       bodyHTML += `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;line-height:1.9;">
         🔑 ${q.keywords.map(k => `<span style="background:rgba(100,150,255,0.12);border-radius:4px;padding:1px 7px;margin:2px 2px 0;display:inline-block;">${k}</span>`).join('')}
@@ -2143,11 +2166,11 @@ function editGenQ(idx) {
       </select>
     </div>` : `
     <div style="margin-bottom:8px;">
-      <label style="font-size:0.75rem;color:var(--text-muted);">Rubric / Grading Criteria</label>
+      <label style="font-size:0.75rem;color:var(--text-muted);">📋 Rubric — Answer Guide <span style="font-weight:400;font-style:italic;">(shown to users during the test)</span></label>
       <textarea id="eq_rubric_${idx}" rows="3" style="${s}resize:vertical;">${q.rubric||''}</textarea>
     </div>
     <div style="margin-bottom:8px;">
-      <label style="font-size:0.75rem;color:var(--text-muted);">🔑 Keywords <span style="font-weight:400;font-style:italic;">(comma-separated — used for auto keyword scoring)</span></label>
+      <label style="font-size:0.75rem;color:var(--text-muted);">🔑 Keywords — Chấm điểm tự động <span style="font-weight:400;font-style:italic;">(chỉ admin thấy, không hiển thị cho user)</span></label>
       <input id="eq_kw_${idx}" style="${s}" placeholder="e.g. stop loss, risk/reward, position size" value="${(q.keywords||[]).join(', ')}">
     </div>
     <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">

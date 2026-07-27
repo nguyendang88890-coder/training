@@ -445,7 +445,7 @@ function renderQuestion(q, idx) {
       </div>
       <div class="q-text">${q.text}</div>
       ${q.rubric ? `<div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:0.78rem;color:var(--text-muted);">
-        📋 Rubric: ${q.rubric}</div>` : ''}
+        📋 Answer Guide: ${q.rubric}</div>` : ''}
       <textarea class="q-essay-area" id="ans_${q.id}" placeholder="Enter your answer here..."
         oninput="onEssayInput(${q.id}, this.value)"></textarea>
       <div class="q-essay-hint">Write a clear and complete answer. Your response will be reviewed and graded by admin.</div>
@@ -766,7 +766,7 @@ function renderResult(sub, mc = {}) {
           const ans = sub.essayAnswers?.[q.id] || '';
           return `<div style="padding:16px 18px;${idx>0?'border-top:1px solid var(--border)':''}">
             <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">${q.text}</div>
-            ${deadlinePassed && q.rubric ? `<div style="font-size:0.75rem;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.2);border-radius:7px;padding:7px 10px;color:var(--success);margin-bottom:8px;">📋 Rubric: ${q.rubric}</div>` : ''}
+            ${q.rubric ? `<div style="font-size:0.75rem;background:rgba(0,214,143,0.06);border:1px solid rgba(0,214,143,0.2);border-radius:7px;padding:7px 10px;color:var(--success);margin-bottom:8px;">📋 Answer Guide: ${q.rubric}</div>` : ''}
             <div style="background:var(--bg-secondary);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-secondary);white-space:pre-wrap;min-height:40px;">${ans||'<em style="color:var(--text-muted)">(No answer provided)</em>'}</div>
           </div>`;
         }).join('')}
