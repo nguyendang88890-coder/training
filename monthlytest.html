@@ -1815,36 +1815,46 @@ function saveEssayTemplate() {
 function applyTemplateToAll(month) {
   if (!_essayTemplate || _essayTemplate.month !== month) { alert('No template saved for this month.'); return; }
   const cfg = getMC()[month] || {};
+  const passBDCS = cfg.passBDCS ?? 250;
+  const lietMax  = cfg.lietMax  ?? 10;
+  const ms = getMS();
+  if (!ms[month]) ms[month] = {};
   let count = 0;
   Object.entries(getUsersDB()).forEach(([un, ud]) => {
     if (!isBDCS(ud)) return;
     const sub = getSubmission(un, month);
-    if (!sub || !sub.submittedAt || !sub.essayAnswers || !sub.essayPending) return;
+    if (!sub || !sub.submittedAt || !sub.essayAnswers) return;
     const essayTotal = Object.values(_essayTemplate.scores).reduce((a, b) => a + b, 0);
     sub.essayScores = { ..._essayTemplate.scores };
     sub.essayTotal = essayTotal;
     sub.essayPending = false;
     saveSubmission(un, month, sub);
     const total = (sub.mcqScore || 0) + essayTotal;
-    const inp = document.getElementById(`sc_bdcs_${un}`);
-    if (inp && !inp.value) { inp.value = total; liveUpdatePFBDCS(un, cfg.passBDCS ?? 250, cfg.lietMax ?? 10); }
+    const liet = ms[month]?.[un]?.liet ?? sub.lietWrong ?? 0;
+    ms[month][un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
     count++;
   });
-  alert(`Template applied to ${count} pending submission${count !== 1 ? 's' : ''}.\nClick "Save Scores" in the Scores tab to persist.`);
+  if (!count) { alert('No pending submissions found to apply template to.'); return; }
+  saveMS(ms);
   document.getElementById('bulkEssayModal')?.remove();
-  if (count) openBulkEssayModal(month);
+  renderScoresTables();
+  alert(`Template applied and saved for ${count} submission${count !== 1 ? 's' : ''}.`);
 }
 
 function bulkApplyKeywords(month) {
   const gt = getGenTest('bdcs', month);
   const qb = getQBank('bdcs');
   const cfg = getMC()[month] || {};
+  const passBDCS = cfg.passBDCS ?? 250;
+  const lietMax  = cfg.lietMax  ?? 10;
   const qs = (gt?.questions || qb?.questions || []).filter(q => q.type === 'Essay');
+  const ms = getMS();
+  if (!ms[month]) ms[month] = {};
   let applied = 0;
   Object.entries(getUsersDB()).forEach(([un, ud]) => {
     if (!isBDCS(ud)) return;
     const sub = getSubmission(un, month);
-    if (!sub || !sub.submittedAt || !sub.essayAnswers || !sub.essayPending) return;
+    if (!sub || !sub.submittedAt || !sub.essayAnswers) return;
     let essayTotal = 0;
     const essayScores = {};
     for (const q of qs) {
@@ -1856,13 +1866,15 @@ function bulkApplyKeywords(month) {
     sub.essayScores = essayScores; sub.essayTotal = essayTotal; sub.essayPending = false;
     saveSubmission(un, month, sub);
     const total = (sub.mcqScore || 0) + essayTotal;
-    const inp = document.getElementById(`sc_bdcs_${un}`);
-    if (inp && !inp.value) { inp.value = total; liveUpdatePFBDCS(un, cfg.passBDCS ?? 250, cfg.lietMax ?? 10); }
+    const liet = ms[month]?.[un]?.liet ?? sub.lietWrong ?? 0;
+    ms[month][un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
     applied++;
   });
-  alert(`Keyword scores applied to ${applied} submission${applied !== 1 ? 's' : ''}.\nClick "Save Scores" to persist. Review individually with 📝 Grade.`);
+  if (!applied) { alert('No pending submissions with configured keywords found.'); return; }
+  saveMS(ms);
   document.getElementById('bulkEssayModal')?.remove();
-  openBulkEssayModal(month);
+  renderScoresTables();
+  alert(`Keyword scores applied and saved for ${applied} submission${applied !== 1 ? 's' : ''}. Review individually with 📝 Grade.`);
 }
 
 function openBulkEssayModal(month) {
@@ -2089,20 +2101,36 @@ function applyEssayScores() {
   const ctx = _essayCtx;
   if (!ctx) return;
   let essayTotal = 0;
+  const essayScores = {};
   for (const qid of Object.keys(ctx.essayMap)) {
-    essayTotal += parseFloat(document.getElementById(`essay_score_${qid}`)?.value) || 0;
+    const v = parseFloat(document.getElementById(`essay_score_${qid}`)?.value) || 0;
+    essayScores[qid] = v;
+    essayTotal += v;
   }
   const total = ctx.mcqScore + essayTotal;
-  const scoreInput = document.getElementById(`sc_bdcs_${ctx.un}`);
-  if (scoreInput) {
-    scoreInput.value = total;
-    const cfg     = getMC()[ctx.month] || {};
-    const passBDCS = cfg.passBDCS ?? 250;
-    const lietMax  = cfg.lietMax  ?? 10;
-    liveUpdatePFBDCS(ctx.un, passBDCS, lietMax);
+  const cfg      = getMC()[ctx.month] || {};
+  const passBDCS = cfg.passBDCS ?? 250;
+  const lietMax  = cfg.lietMax  ?? 10;
+
+  // Save essay scores to submission
+  const sub = getSubmission(ctx.un, ctx.month);
+  if (sub) {
+    sub.essayScores = essayScores;
+    sub.essayTotal  = essayTotal;
+    sub.essayPending = false;
+    saveSubmission(ctx.un, ctx.month, sub);
   }
+
+  // Save directly to monthly_scores
+  const ms = getMS();
+  if (!ms[ctx.month]) ms[ctx.month] = {};
+  const liet = ms[ctx.month]?.[ctx.un]?.liet ?? sub?.lietWrong ?? 0;
+  ms[ctx.month][ctx.un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
+  saveMS(ms);
+
   document.getElementById('essayModal')?.remove();
   _essayCtx = null;
+  renderScoresTables();
 }
 
 // ===== TEST PREVIEW & INLINE EDIT =====
