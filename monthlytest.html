@@ -931,6 +931,47 @@ function exportModScoresExcel() {
   XLSX.writeFile(wb, `WMT_Monthly_Scores_${monthLabel}.xlsx`);
 }
 
+function exportModUsersExcel() {
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded. Please reload and try again.'); return; }
+
+  const users    = getUsersDB();
+  const trainees = Object.entries(users)
+    .filter(([, u]) => u.role !== 'admin')
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const fmtT = iso => iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+
+  const header = ['#', 'Username', 'Work Name', 'Full Name', 'Email', 'Department', 'Position', 'Role', 'Type', 'Final Exam', 'Exam Score %', 'Joined'];
+  const rows = trainees.map(([un, ud], i) => {
+    const ex = JSON.parse(localStorage.getItem('wmt_exam_' + un) || '{}');
+    let examStatus = 'Not Started';
+    let examPct    = '';
+    if (ex.disqualified)       { examStatus = 'Disqualified'; }
+    else if (ex.passed)        { examStatus = 'Passed'; examPct = Math.round((ex.score / (ex.total || 30)) * 100) + '%'; }
+    else if (ex.score != null) { examStatus = `Failed (${ex.attempts || 1} attempt${ex.attempts > 1 ? 's' : ''})`; examPct = Math.round((ex.score / (ex.total || 30)) * 100) + '%'; }
+    return [
+      i + 1,
+      un,
+      ud.workName    || '',
+      ud.fullName    || '',
+      ud.email       || '',
+      ud.department  || '',
+      ud.position    || '',
+      ud.role        || 'trainee',
+      (ud.employeeType || 'new') === 'old' ? 'Existed' : 'New',
+      examStatus,
+      examPct,
+      fmtT(ud.createdAt)
+    ];
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+  ws['!cols'] = [4, 14, 16, 22, 24, 18, 16, 10, 10, 18, 12, 14].map(w => ({ wch: w }));
+  XLSX.utils.book_append_sheet(wb, ws, 'Users');
+  XLSX.writeFile(wb, `WMT_Users_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
 function renderModUsersTab() {
   const el = document.getElementById('modUsersTab');
   const users = getUsersDB();
@@ -968,7 +1009,17 @@ function renderModUsersTab() {
   }).join('');
 
   el.innerHTML = `
-    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">User list — view only.</p>
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+      <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">User list — view only.</p>
+      <button onclick="exportModUsersExcel()"
+        style="display:inline-flex;align-items:center;gap:7px;padding:7px 16px;background:rgba(0,214,143,0.1);
+               border:1px solid rgba(0,214,143,0.3);border-radius:10px;color:var(--success);
+               font-weight:700;font-size:0.83rem;cursor:pointer;white-space:nowrap;transition:all .18s;"
+        onmouseover="this.style.background='rgba(0,214,143,0.18)'"
+        onmouseout="this.style.background='rgba(0,214,143,0.1)'">
+        📥 Export Excel
+      </button>
+    </div>
     <div class="users-table-wrap"><table class="users-table"><thead><tr>
       <th>#</th><th>Username</th><th>Full Name</th><th>Department</th><th>Role</th><th>Type</th><th>Final Exam</th><th>Joined</th>
     </tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -2562,30 +2613,110 @@ function updateRsBadge() {
 }
 
 function renderRescheduleTab() {
-  const users=getUsersDB(), reqs=[];
+  const users=getUsersDB(), allReqs=[];
   Object.entries(users).forEach(([un,ud])=>{
-    Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
+    Object.entries(getRS(un)).forEach(([m,req])=>{ allReqs.push({un,ud,m,req}); });
   });
-  // Approved-without-deadline entries block the user's test — sort them first as warnings
+
+  const el=document.getElementById('adminRescheduleTab');
+  if (!allReqs.length) { el.innerHTML=`<div class="empty-state">No reschedule requests.</div>`; return; }
+
+  // Build month list (newest first) for the filter dropdown
+  const allMonths = [...new Set(allReqs.map(r=>r.m))].sort().reverse();
+
+  // Read current filter from a data attr on the element (persists across re-renders)
+  const curMonth = el.dataset.rsMonth || 'all';
+  const curStatus = el.dataset.rsStatus || 'all';
+
+  // Filter
+  let reqs = allReqs.filter(r =>
+    (curMonth  === 'all' || r.m         === curMonth) &&
+    (curStatus === 'all' || r.req.status === curStatus)
+  );
+
+  // Sort within each group: warning (approved-no-deadline) first, then pending → approved → rejected
   reqs.sort((a,b)=>{
+    if (a.m !== b.m) return b.m.localeCompare(a.m); // newest month first
     const aWarn = a.req.status==='approved' && !a.req.rsDeadline ? -1 : 0;
     const bWarn = b.req.status==='approved' && !b.req.rsDeadline ? -1 : 0;
     if (aWarn !== bWarn) return aWarn - bWarn;
     return ({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9);
   });
-  const el=document.getElementById('adminRescheduleTab');
-  if (!reqs.length) { el.innerHTML=`<div class="empty-state">No reschedule requests.</div>`; return; }
 
-  // Global warning if any approved entry is missing deadline
-  const missingDeadline = reqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
+  // Counts for badge
+  const pendingTotal = allReqs.filter(r=>r.req.status==='pending').length;
+  const missingDeadline = allReqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
+
+  const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
+
+  // Warning banner
   const warningBanner = missingDeadline.length
-    ? `<div style="margin-bottom:14px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
-        ⚠️ <strong>${missingDeadline.length} request</strong> đã được approve nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi cho họ.
+    ? `<div style="margin-bottom:12px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
+        ⚠️ <strong>${missingDeadline.length} request</strong> approved nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi.
        </div>`
     : '';
 
-  const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
-  el.innerHTML=warningBanner+reqs.map(({un,ud,m,req})=>`
+  // Filter bar
+  const monthOptions = `<option value="all">All months (${allReqs.length})</option>`
+    + allMonths.map(m=>{
+        const cnt = allReqs.filter(r=>r.m===m).length;
+        const pend = allReqs.filter(r=>r.m===m&&r.req.status==='pending').length;
+        return `<option value="${m}" ${m===curMonth?'selected':''}>${fmtMonth(m)} — ${cnt} request${cnt!==1?'s':''}${pend?` (${pend} pending)`:''}`;
+      }).join('');
+
+  const statusOptions = `
+    <option value="all" ${curStatus==='all'?'selected':''}>All statuses</option>
+    <option value="pending"  ${curStatus==='pending' ?'selected':''}>⏳ Pending</option>
+    <option value="approved" ${curStatus==='approved'?'selected':''}>✓ Approved</option>
+    <option value="rejected" ${curStatus==='rejected'?'selected':''}>✗ Rejected</option>`;
+
+  const filterBar = `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <select onchange="document.getElementById('adminRescheduleTab').dataset.rsMonth=this.value;renderRescheduleTab()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.83rem;cursor:pointer;">
+        ${monthOptions}
+      </select>
+      <select onchange="document.getElementById('adminRescheduleTab').dataset.rsStatus=this.value;renderRescheduleTab()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.83rem;cursor:pointer;">
+        ${statusOptions}
+      </select>
+      <span style="font-size:0.8rem;color:var(--text-muted);">Showing <strong>${reqs.length}</strong> of <strong>${allReqs.length}</strong> requests</span>
+    </div>`;
+
+  // Build cards — group by month when "All months" is selected
+  let cardsHTML = '';
+  if (curMonth === 'all') {
+    // Group by month
+    const byMonth = {};
+    reqs.forEach(r=>{ (byMonth[r.m] = byMonth[r.m]||[]).push(r); });
+    const months = Object.keys(byMonth).sort().reverse();
+    cardsHTML = months.map(m => {
+      const group = byMonth[m];
+      const pend  = group.filter(r=>r.req.status==='pending').length;
+      const warn  = group.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline).length;
+      const badge = pend  ? `<span style="background:rgba(255,168,0,0.18);color:var(--warning);border:1px solid rgba(255,168,0,0.35);padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">${pend} pending</span>` : '';
+      const warnB = warn  ? `<span style="background:rgba(255,61,113,0.12);color:var(--danger);border:1px solid rgba(255,61,113,0.3);padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">⚠️ ${warn} no deadline</span>` : '';
+      return `
+        <div style="margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);">
+            <span style="font-size:1rem;font-weight:800;color:var(--text-primary);">📅 ${fmtMonth(m)}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);">${group.length} request${group.length!==1?'s':''}</span>
+            ${badge}${warnB}
+          </div>
+          ${group.map(r=>buildRsCard(r,stB)).join('')}
+        </div>`;
+    }).join('');
+  } else {
+    cardsHTML = reqs.length
+      ? reqs.map(r=>buildRsCard(r,stB)).join('')
+      : `<div class="empty-state">No requests match this filter.</div>`;
+  }
+
+  el.innerHTML = warningBanner + filterBar + cardsHTML;
+}
+
+function buildRsCard({un,ud,m,req}, stB) {
+  return `
     <div class="rsched-item" style="${req.status==='approved'&&!req.rsDeadline?'border-color:rgba(255,61,113,0.4);':''}">
       <div class="rsched-hdr">
         <div>
@@ -2615,7 +2746,7 @@ function renderRescheduleTab() {
           style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
           title="Xoá request này — user có thể gửi lại request mới">↩ Reset</button>
       </div>
-    </div>`).join('');
+    </div>`;
 }
 
 function approveRs(un, m) {

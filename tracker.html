@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New User Tracker — WeMasterTrade</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Layout ── */
+    body { margin: 0; display: flex; min-height: 100vh; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-family, 'Inter', sans-serif); }
+    #sidebar { width: 240px; min-height: 100vh; background: var(--bg-sidebar); border-right: 1px solid var(--border); flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    #main { flex: 1; padding: 28px 28px 48px; min-width: 0; overflow-x: hidden; }
+
+    /* ── Page header ── */
+    .page-title { font-size: 1.5rem; font-weight: 800; margin: 0 0 4px; }
+    .page-sub   { font-size: 0.82rem; color: var(--text-muted); margin: 0 0 22px; }
+    .top-bar    { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    .top-bar select, .top-bar input { padding: 7px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.83rem; }
+    .top-bar input { min-width: 180px; }
+    .btn { padding: 7px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.83rem; font-weight: 600; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: var(--accent, #4f6ef7); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-primary); }
+    .btn-pdf     { background: rgba(220,80,80,0.15); color: #e05050; border: 1px solid rgba(220,80,80,0.3); }
+    .btn-sm      { padding: 4px 10px; font-size: 0.75rem; }
+
+    /* ── Stat cards ── */
+    .stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 22px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 20px; min-width: 130px; flex: 1; }
+    .stat-card .sc-val { font-size: 1.6rem; font-weight: 800; }
+    .stat-card .sc-lbl { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Table ── */
+    .tbl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    thead th { background: var(--bg-secondary); padding: 9px 10px; text-align: left; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--bg-hover, rgba(255,255,255,0.03)); }
+    tbody td { padding: 8px 10px; vertical-align: middle; }
+    .cell-name { font-weight: 600; white-space: nowrap; }
+    .cell-sub  { font-size: 0.72rem; color: var(--text-muted); }
+
+    /* ── Module cells ── */
+    .mod-cell { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; font-size: 0.72rem; }
+    .mod-cell .mi { font-size: 0.9rem; }
+    .mod-cell .ms { font-size: 0.65rem; color: var(--text-muted); }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; padding: 2px 7px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; white-space: nowrap; }
+    .badge-pass   { background: rgba(0,214,143,0.15); color: var(--success, #00d68f); border: 1px solid rgba(0,214,143,0.3); }
+    .badge-fail   { background: rgba(255,61,113,0.12); color: var(--danger, #ff3d71); border: 1px solid rgba(255,61,113,0.25); }
+    .badge-dq     { background: rgba(180,60,60,0.18); color: #e06060; border: 1px solid rgba(180,60,60,0.3); }
+    .badge-pend   { background: rgba(255,168,0,0.12); color: var(--warning, #ffaa00); border: 1px solid rgba(255,168,0,0.3); }
+    .badge-done   { background: rgba(100,150,255,0.12); color: #6496ff; border: 1px solid rgba(100,150,255,0.3); }
+    .badge-new    { background: rgba(0,214,143,0.1); color: var(--success, #00d68f); border: 1px solid rgba(0,214,143,0.2); }
+    .badge-old    { background: rgba(144,144,176,0.12); color: var(--text-muted); border: 1px solid var(--border); }
+
+    /* ── Progress bar ── */
+    .prog-wrap { min-width: 70px; }
+    .prog-bar  { height: 5px; border-radius: 3px; background: var(--bg-secondary); overflow: hidden; margin-top: 3px; }
+    .prog-fill { height: 100%; border-radius: 3px; background: var(--accent, #4f6ef7); }
+
+    /* ── Empty / loading ── */
+    .empty-row td { text-align: center; color: var(--text-muted); padding: 32px; font-size: 0.85rem; }
+
+    /* ── PDF Modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box  { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px 32px; position: relative; }
+    .modal-box .close-btn { position: absolute; top: 14px; right: 18px; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-muted); }
+
+    /* ── Print styles ── */
+    @media print {
+      #sidebar, .top-bar, .no-print, .stat-row { display: none !important; }
+      #main { padding: 0; }
+      .tbl-wrap { border: none; }
+      table { font-size: 0.75rem; }
+      thead th { background: #eee !important; color: #333 !important; }
+      .badge { border: 1px solid #ccc !important; color: #333 !important; background: #f5f5f5 !important; }
+      .prog-fill { background: #555 !important; }
+      body { color: #000; background: #fff; }
+    }
+    @page { margin: 15mm; }
+
+    /* ── PDF profile print ── */
+    .pdf-profile { font-family: 'Inter', Arial, sans-serif; }
+    .pdf-profile h2 { margin: 0 0 4px; font-size: 1.3rem; }
+    .pdf-profile .pdf-sub { color: #666; font-size: 0.8rem; margin-bottom: 18px; }
+    .pdf-profile .pdf-section { margin: 16px 0 8px; font-weight: 700; font-size: 0.9rem; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+    .pdf-profile table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .pdf-profile table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+    .pdf-profile table td:first-child { width: 40%; color: #555; font-weight: 600; }
+    .pdf-profile .mod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+    .pdf-profile .mod-box  { border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px 8px; text-align: center; font-size: 0.78rem; }
+    .pdf-profile .mod-box .mb-title { font-weight: 700; margin-bottom: 2px; }
+    .pdf-profile .mod-box .mb-done  { color: #00aa66; font-size: 1.1rem; }
+    .pdf-profile .mod-box .mb-nope  { color: #cc3355; font-size: 1.1rem; }
+  </style>
+</head>
+<body>
+<div id="sidebar"></div>
+<div id="main">
+  <div class="page-title">📊 Monthly New User Tracker</div>
+  <div class="page-sub">Track training progress for new hires by join month. Accessible to Admin &amp; Moderator.</div>
+
+  <!-- Controls -->
+  <div class="top-bar no-print">
+    <div>
+      <label style="font-size:0.78rem;color:var(--text-muted);margin-right:6px;">Month Joined</label>
+      <select id="monthSel" onchange="renderTracker()"></select>
+    </div>
+    <div>
+      <label style="font-size:0.78rem;color:var(--text-muted);margin-right:6px;">Type</label>
+      <select id="typeSel" onchange="renderTracker()">
+        <option value="all">All</option>
+        <option value="new" selected>New</option>
+        <option value="old">Existed</option>
+      </select>
+    </div>
+    <input id="searchBox" type="text" placeholder="Search name / username…" oninput="renderTracker()">
+    <button class="btn btn-outline btn-sm" onclick="renderTracker()">🔄 Refresh</button>
+    <button class="btn btn-pdf btn-sm no-print" onclick="window.print()">🖨️ Print / Export PDF</button>
+  </div>
+
+  <!-- Stat cards -->
+  <div class="stat-row" id="statRow">
+    <div class="stat-card"><div class="sc-val" id="st-total">—</div><div class="sc-lbl">New Users</div></div>
+    <div class="stat-card"><div class="sc-val" id="st-modavg">—</div><div class="sc-lbl">Avg Modules Done</div></div>
+    <div class="stat-card"><div class="sc-val" id="st-exampass">—</div><div class="sc-lbl">Exam Pass Rate</div></div>
+    <div class="stat-card"><div class="sc-val" id="st-ivdone">—</div><div class="sc-lbl">Interview Done</div></div>
+    <div class="stat-card"><div class="sc-val" id="st-complete">—</div><div class="sc-lbl">Fully Completed</div></div>
+  </div>
+
+  <!-- Table -->
+  <div class="tbl-wrap">
+    <table id="trackerTable">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name / Username</th>
+          <th>Type</th>
+          <th>Joined</th>
+          <th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>M5</th><th>M6</th><th>M7</th>
+          <th>Modules</th>
+          <th>Final Exam</th>
+          <th>Interview</th>
+          <th>Completion</th>
+          <th>Status</th>
+          <th class="no-print">Action</th>
+        </tr>
+      </thead>
+      <tbody id="trackerBody">
+        <tr class="empty-row"><td colspan="17">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="module-common.js"></script>
+<script>
+// ── Access guard + init ──────────────────────────────────────────────────────
+const CUR_USER = localStorage.getItem('wmt_user') || '';
+
+window.addEventListener('load', async function () {
+  if (typeof syncFromFirebase === 'function') await syncFromFirebase();
+
+  const users = getUsersDB();
+  const me = users[CUR_USER];
+  if (!me || (me.role !== 'admin' && me.role !== 'mod')) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('tracker');
+  if (typeof updateSidebarProgress === 'function') updateSidebarProgress();
+
+  buildMonthSelector();
+  renderTracker();
+});
+
+// ── Helper: get per-user data ────────────────────────────────────────────────
+function getExam(un)       { return JSON.parse(localStorage.getItem('wmt_exam_' + un) || '{}'); }
+function getIV(un)         { return JSON.parse(localStorage.getItem('wmt_interview_' + un) || 'null'); }
+function getProgressFor(un) { return JSON.parse(localStorage.getItem('wmt_progress_' + un) || '{}'); }
+
+function fmtD(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+function fmtDT(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+function toYM(iso) {
+  if (!iso) return '';
+  return iso.slice(0, 7); // "YYYY-MM"
+}
+
+// ── Month selector ───────────────────────────────────────────────────────────
+function buildMonthSelector() {
+  const users = getUsersDB();
+  const months = new Set();
+  const now = new Date();
+  const nowYM = now.toISOString().slice(0, 7);
+
+  Object.values(users).forEach(ud => {
+    if (ud.createdAt) months.add(toYM(ud.createdAt));
+  });
+  months.add(nowYM);
+
+  const sorted = [...months].filter(Boolean).sort().reverse();
+  const sel = document.getElementById('monthSel');
+  sel.innerHTML = sorted.map(m => {
+    const [y, mo] = m.split('-');
+    const label = new Date(+y, +mo - 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    return `<option value="${m}">${label}</option>`;
+  }).join('');
+}
+
+// ── Main render ──────────────────────────────────────────────────────────────
+function renderTracker() {
+  const selectedMonth = document.getElementById('monthSel').value;
+  const typeFilter    = document.getElementById('typeSel').value;
+  const search        = (document.getElementById('searchBox').value || '').toLowerCase().trim();
+
+  const users = getUsersDB();
+
+  // Filter users
+  let list = Object.entries(users).filter(([un, ud]) => {
+    if (ud.role === 'admin' || ud.role === 'mod') return false;
+    if (toYM(ud.createdAt) !== selectedMonth) return false;
+    if (typeFilter === 'new' && ud.employeeType !== 'new') return false;
+    if (typeFilter === 'old' && ud.employeeType !== 'old') return false;
+    if (search) {
+      const hay = `${(ud.fullName || '')} ${(ud.workName || '')} ${un}`.toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort: fullName → username
+  list.sort((a, b) => {
+    const na = (a[1].fullName || a[0]).toLowerCase();
+    const nb = (b[1].fullName || b[0]).toLowerCase();
+    return na < nb ? -1 : na > nb ? 1 : 0;
+  });
+
+  // Compute rows
+  let totalMod = 0, examPassed = 0, ivDone = 0, fullyComplete = 0;
+  const rows = list.map(([un, ud], idx) => {
+    const prog = getProgressFor(un);
+    const exam = getExam(un);
+    const iv   = getIV(un);
+
+    // Modules (1-7)
+    const modDone  = [];
+    const modScore = [];
+    for (let n = 1; n <= 7; n++) {
+      modDone.push(prog[`module${n}_done`] === true);
+      modScore.push(prog[`module${n}_score`] != null ? prog[`module${n}_score`] : null);
+    }
+    const doneCount = modDone.filter(Boolean).length;
+    totalMod += doneCount;
+
+    // Exam
+    const examOK  = exam.passed === true;
+    const examDQ  = exam.disqualified === true;
+    const examAtt = exam.attempts || 0;
+    if (examOK) examPassed++;
+
+    // Interview
+    const ivStatus = iv ? iv.status : null;
+    const ivComplete = ivStatus === 'completed';
+    if (ivComplete || ivStatus === 'confirmed') ivDone++;
+
+    // Completion % — weights: modules 7pts, exam 2pt, interview 1pt → /10 total
+    const pct = Math.round((doneCount / 7 * 70 + (examOK ? 20 : 0) + (ivComplete ? 10 : 0)));
+
+    // Overall status
+    let status, statusBadge;
+    if (examDQ) {
+      status = 'Disqualified'; statusBadge = 'badge-dq';
+    } else if (doneCount === 7 && examOK && ivComplete) {
+      status = 'Completed'; statusBadge = 'badge-pass'; fullyComplete++;
+    } else if (doneCount === 7 && examOK) {
+      status = 'Exam Passed'; statusBadge = 'badge-done';
+    } else if (examAtt >= 2 && !examOK && !examDQ) {
+      status = 'Exam Failed'; statusBadge = 'badge-fail';
+    } else {
+      status = 'In Progress'; statusBadge = 'badge-pend';
+    }
+
+    return { un, ud, modDone, modScore, doneCount, exam, examOK, examDQ, examAtt, iv, ivStatus, ivComplete, pct, status, statusBadge, idx: idx + 1 };
+  });
+
+  // Update stat cards
+  document.getElementById('st-total').textContent    = rows.length;
+  document.getElementById('st-modavg').textContent   = rows.length ? (totalMod / rows.length).toFixed(1) + '/7' : '—';
+  document.getElementById('st-exampass').textContent = rows.length ? Math.round(examPassed / rows.length * 100) + '%' : '—';
+  document.getElementById('st-ivdone').textContent   = rows.length ? Math.round(ivDone / rows.length * 100) + '%' : '—';
+  document.getElementById('st-complete').textContent = rows.length ? fullyComplete + '/' + rows.length : '—';
+
+  // Render tbody
+  const tbody = document.getElementById('trackerBody');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="17">No users found for this month / filter.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const empBadge = r.ud.employeeType === 'old'
+      ? `<span class="badge badge-old">Existed</span>`
+      : `<span class="badge badge-new">New</span>`;
+
+    // Module cells
+    const modCells = r.modDone.map((done, i) => {
+      const sc = r.modScore[i];
+      if (done) return `<td title="M${i+1} done${sc != null ? ' · Score: '+sc : ''}"><div class="mod-cell"><span class="mi">✅</span>${sc != null ? `<span class="ms">${sc}</span>` : ''}</div></td>`;
+      return `<td title="M${i+1} not done"><div class="mod-cell"><span class="mi" style="opacity:.35">⬜</span></div></td>`;
+    }).join('');
+
+    // Exam cell
+    let examCell;
+    if (r.examDQ) {
+      examCell = `<span class="badge badge-dq">DQ</span>`;
+    } else if (r.examOK) {
+      examCell = `<span class="badge badge-pass">✓ PASS</span><br><span class="cell-sub">${r.exam.score ?? '—'}/${r.exam.total ?? '—'}</span><br><span class="cell-sub">${fmtD(r.exam.passDate)}</span>`;
+    } else if (r.examAtt > 0) {
+      const bestScore = r.exam.fail2Score ?? r.exam.fail1Score ?? r.exam.score ?? '—';
+      examCell = `<span class="badge badge-fail">✗ FAIL (${r.examAtt}x)</span><br><span class="cell-sub">${bestScore}/${r.exam.total ?? '—'}</span>`;
+    } else {
+      examCell = `<span style="color:var(--text-muted);font-size:0.75rem;">Not taken</span>`;
+    }
+
+    // Interview cell
+    const ivLabels = { pending: '⏳ Pending', confirmed: '✅ Confirmed', completed: '🏆 Done', cancelled: '↺ Cancelled' };
+    let ivCell;
+    if (!r.ivStatus) {
+      ivCell = `<span style="color:var(--text-muted);font-size:0.75rem;">Not booked</span>`;
+    } else {
+      const cls = r.ivStatus === 'completed' ? 'badge-pass' : r.ivStatus === 'confirmed' ? 'badge-done' : r.ivStatus === 'cancelled' ? 'badge-fail' : 'badge-pend';
+      ivCell = `<span class="badge ${cls}">${ivLabels[r.ivStatus] || r.ivStatus}</span>`;
+      if (r.iv.confirmedSlot) ivCell += `<br><span class="cell-sub">${fmtD(r.iv.confirmedSlot)}</span>`;
+    }
+
+    // Progress bar
+    const progCell = `<div class="prog-wrap">${r.pct}%<div class="prog-bar"><div class="prog-fill" style="width:${r.pct}%"></div></div></div>`;
+
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:0.75rem;">${r.idx}</td>
+      <td>
+        <div class="cell-name">${r.ud.fullName || r.un}</div>
+        ${r.ud.workName ? `<div class="cell-sub">${r.ud.workName} · </div>` : ''}
+        <div class="cell-sub">${r.un}${r.ud.department ? ' · ' + r.ud.department : ''}</div>
+      </td>
+      <td>${empBadge}</td>
+      <td><span style="white-space:nowrap">${fmtD(r.ud.createdAt)}</span></td>
+      ${modCells}
+      <td><strong>${r.doneCount}/7</strong><br><span class="cell-sub">${r.doneCount === 7 ? '✅' : r.doneCount > 0 ? '🔄' : '—'}</span></td>
+      <td>${examCell}</td>
+      <td>${ivCell}</td>
+      <td>${progCell}</td>
+      <td><span class="badge ${r.statusBadge}">${r.status}</span></td>
+      <td class="no-print"><button class="btn btn-pdf btn-sm" onclick="openUserPDF('${r.un}')">📄 PDF</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Per-user PDF profile ─────────────────────────────────────────────────────
+function openUserPDF(un) {
+  const users = getUsersDB();
+  const ud    = users[un] || {};
+  const prog  = getProgressFor(un);
+  const exam  = getExam(un);
+  const iv    = getIV(un);
+
+  const modNames = ['Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk'];
+
+  // Modules grid
+  const modGrid = modNames.map((name, i) => {
+    const n    = i + 1;
+    const done = prog[`module${n}_done`] === true;
+    const sc   = prog[`module${n}_score`];
+    return `<div class="mod-box">
+      <div class="mb-title">M${n}</div>
+      <div>${done ? '<span class="mb-done">✅</span>' : '<span class="mb-nope">⬜</span>'}</div>
+      <div>${name.split(' ').slice(0,2).join(' ')}</div>
+      ${sc != null ? `<div style="font-size:0.7rem;color:#888;">Score: ${sc}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const doneCount = modNames.filter((_, i) => prog[`module${i+1}_done`] === true).length;
+
+  // Exam info
+  let examRows = '';
+  if (exam.passed) {
+    examRows = `<tr><td>Result</td><td><b>PASSED</b></td></tr>
+      <tr><td>Score</td><td>${exam.score ?? '—'} / ${exam.total ?? '—'} (threshold: ${exam.passThreshold ?? '—'})</td></tr>
+      <tr><td>Pass Date</td><td>${fmtDT(exam.passDate)}</td></tr>
+      <tr><td>Attempts</td><td>${exam.attempts ?? '—'}</td></tr>`;
+  } else if (exam.disqualified) {
+    examRows = `<tr><td>Result</td><td><b>DISQUALIFIED</b></td></tr>`;
+  } else if (exam.attempts > 0) {
+    const bestScore = exam.fail2Score ?? exam.fail1Score ?? exam.score ?? '—';
+    examRows = `<tr><td>Result</td><td><b>FAILED</b></td></tr>
+      <tr><td>Best Score</td><td>${bestScore} / ${exam.total ?? '—'}</td></tr>
+      <tr><td>Attempts</td><td>${exam.attempts}</td></tr>
+      ${exam.fail1Date ? `<tr><td>Attempt 1</td><td>${fmtDT(exam.fail1Date)} — ${exam.fail1Score ?? '—'}</td></tr>` : ''}
+      ${exam.fail2Date ? `<tr><td>Attempt 2</td><td>${fmtDT(exam.fail2Date)} — ${exam.fail2Score ?? '—'}</td></tr>` : ''}`;
+  } else {
+    examRows = `<tr><td>Result</td><td>Not taken yet</td></tr>`;
+  }
+
+  // Interview info
+  let ivRows = '';
+  if (!iv) {
+    ivRows = `<tr><td>Status</td><td>Not booked</td></tr>`;
+  } else {
+    const statusLabel = { pending:'⏳ Pending approval', confirmed:'✅ Confirmed', completed:'🏆 Completed', cancelled:'↺ Cancelled' }[iv.status] || iv.status;
+    ivRows = `<tr><td>Status</td><td>${statusLabel}</td></tr>
+      ${iv.confirmedSlot ? `<tr><td>Scheduled</td><td>${fmtDT(iv.confirmedSlot)}</td></tr>` : ''}
+      ${iv.submittedAt   ? `<tr><td>Requested</td><td>${fmtDT(iv.submittedAt)}</td></tr>` : ''}
+      ${iv.meetingLink   ? `<tr><td>Meeting Link</td><td>${iv.meetingLink}</td></tr>` : ''}
+      ${iv.adminNotes    ? `<tr><td>Notes</td><td>${iv.adminNotes}</td></tr>` : ''}`;
+  }
+
+  const pct = Math.round((doneCount / 7 * 70) + (exam.passed ? 20 : 0) + (iv?.status === 'completed' ? 10 : 0));
+
+  const html = `
+    <div class="pdf-profile">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div>
+          <h2>${ud.fullName || un}</h2>
+          <div class="pdf-sub">
+            ${ud.workName ? ud.workName + ' · ' : ''}${un}${ud.department ? ' · ' + ud.department : ''}${ud.position ? ' · ' + ud.position : ''}
+          </div>
+        </div>
+        <div style="text-align:right;font-size:0.78rem;color:#888;">
+          Generated ${new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})}<br>
+          WeMasterTrade Training Portal
+        </div>
+      </div>
+      <div style="height:2px;background:linear-gradient(90deg,#4f6ef7,#00d68f);border-radius:2px;margin-bottom:16px;"></div>
+
+      <div class="pdf-section">👤 Personal Info</div>
+      <table>
+        <tr><td>Username</td><td>${un}</td></tr>
+        <tr><td>Full Name</td><td>${ud.fullName || '—'}</td></tr>
+        <tr><td>Work Name</td><td>${ud.workName || '—'}</td></tr>
+        <tr><td>Email</td><td>${ud.email || '—'}</td></tr>
+        <tr><td>Department</td><td>${ud.department || '—'}</td></tr>
+        <tr><td>Position</td><td>${ud.position || '—'}</td></tr>
+        <tr><td>Employee Type</td><td>${ud.employeeType === 'old' ? 'Existed' : 'New'}</td></tr>
+        <tr><td>Join Date</td><td>${fmtD(ud.createdAt)}</td></tr>
+        <tr><td>Overall Completion</td><td><b>${pct}%</b></td></tr>
+      </table>
+
+      <div class="pdf-section">📚 Training Modules (${doneCount}/7 done)</div>
+      <div class="mod-grid">${modGrid}</div>
+
+      <div class="pdf-section">📝 Final Exam</div>
+      <table>${examRows}</table>
+
+      <div class="pdf-section">🎤 Interview</div>
+      <table>${ivRows}</table>
+    </div>
+  `;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'pdfModal';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <button class="close-btn" onclick="document.getElementById('pdfModal').remove()">✕</button>
+      ${html}
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:flex-end;" class="no-print">
+        <button class="btn btn-outline" onclick="document.getElementById('pdfModal').remove()">Close</button>
+        <button class="btn btn-pdf" onclick="printUserPDF('${un}')">🖨️ Print / Save as PDF</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function printUserPDF(un) {
+  const modal = document.getElementById('pdfModal');
+  if (!modal) return;
+  const content = modal.querySelector('.pdf-profile').outerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Training Profile — ${un}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 20mm; color: #111; font-size: 13px; }
+      h2 { margin: 0 0 4px; font-size: 20px; }
+      .pdf-sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+      .pdf-section { margin: 16px 0 8px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      table td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+      table td:first-child { width: 40%; color: #555; font-weight: 600; }
+      .mod-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+      .mod-box { border: 1px solid #e0e0e0; border-radius: 6px; padding: 6px 8px; text-align: center; font-size: 11px; }
+      .mod-box .mb-title { font-weight: 700; margin-bottom: 2px; }
+    </style>
+  </head><body>${content}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 400);
+}
+</script>
+</body>
+</html>

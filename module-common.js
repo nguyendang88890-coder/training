@@ -501,11 +501,19 @@ function getSidebarHTML(activeModule) {
       <a href="admin.html" class="nav-item ${activeModule === 'admin' ? 'active' : ''}">
         <span class="nav-icon">⚙️</span> Admin Panel
         <span class="nav-badge" style="background:rgba(255,215,0,0.2);color:var(--gold)">ADMIN</span>
+      </a>
+      <a href="tracker.html" class="nav-item ${activeModule === 'tracker' ? 'active' : ''}">
+        <span class="nav-icon">📊</span> User Tracker
+        <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">NEW</span>
       </a>` : ''}
       ${isMod ? `
       <div class="nav-section-title">Moderator</div>
       <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
         <span class="nav-icon">📝</span> Final Exam <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">VIEW</span>
+      </a>
+      <a href="tracker.html" class="nav-item ${activeModule === 'tracker' ? 'active' : ''}">
+        <span class="nav-icon">📊</span> User Tracker
+        <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">MOD</span>
       </a>` : ''}
     </nav>
     <div class="sidebar-footer">
