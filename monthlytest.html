@@ -840,7 +840,6 @@ function exportModScoresExcel() {
   if (typeof XLSX === 'undefined') { alert('SheetJS not loaded. Please reload the page and try again.'); return; }
 
   const month  = document.getElementById('modScMonth')?.value;
-  const search = (document.getElementById('modScSearch')?.value || '').toLowerCase().trim();
   if (!month) return;
 
   const cfg      = getMC()[month];
@@ -849,12 +848,7 @@ function exportModScoresExcel() {
   const lietMax  = cfg?.lietMax    ?? 10;
   const passOth  = cfg?.passOthers ?? 70;
 
-  let trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
-  if (search) {
-    trainees = trainees.filter(([un, ud]) =>
-      [un, ud.fullName||'', ud.workName||'', ud.email||'', ud.department||''].join(' ').toLowerCase().includes(search)
-    );
-  }
+  const trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
 
   const bdcs   = trainees.filter(([,u]) => isBDCS(u));
   const others = trainees.filter(([,u]) => !isBDCS(u));
@@ -900,7 +894,7 @@ function exportModScoresExcel() {
   others.forEach(([un, ud], i) => {
     const sc   = scores[un];
     const sub  = getSubmission(un, month);
-    const autoScore = (!sc?.score && sub?.mcqScore != null) ? sub.mcqScore : null;
+    const autoScore = (sc?.score == null && sub?.mcqScore != null) ? sub.mcqScore : null;
     const scoreVal  = sc?.score ?? autoScore ?? '';
     const passed    = scoreVal !== '' ? scoreVal >= passOth : undefined;
     othRows.push([
@@ -2448,35 +2442,73 @@ function openTestPreviewModal(m, group) {
 }
 
 function buildExportRows(list, month, isBDCSGroup) {
-  const scores=getMS()[month]||{};
+  const scores  = getMS()[month] || {};
+  const cfg     = getMC()[month] || {};
+  const passOth = cfg.passOthers ?? 70;
+  const passBDCS= cfg.passBDCS   ?? 250;
+  const lietMax = cfg.lietMax    ?? 10;
+
+  const fmtT = iso => iso ? new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const fmtDur = (s, e) => {
+    if (!s || !e) return '';
+    const m = Math.round((new Date(e)-new Date(s))/60000);
+    return m < 60 ? m+'m' : Math.floor(m/60)+'h '+(m%60)+'m';
+  };
+
   const hdr = isBDCSGroup
-    ? ['Full Name','Work Name','Username','Department','Position','New/Existed','Score (/300)','Liet Wrong','Pass/Fail','Graded At']
-    : ['Full Name','Work Name','Username','Department','Position','New/Existed','Score (/100)','Pass/Fail','Graded At'];
-  const rows=list.map(([un,ud])=>{
-    const sc=scores[un];
+    ? ['Full Name','Work Name','Username','Department','Position','New/Existed','Submitted','Start','Submit','Duration','Score (/300)','Liet Wrong','Pass/Fail','Graded At']
+    : ['Full Name','Work Name','Username','Department','Position','New/Existed','Submitted','Start','Submit','Duration','Score (/100)','Pass/Fail','Graded At'];
+
+  const rows = list.map(([un, ud]) => {
+    const sc  = scores[un];
+    const sub = getSubmission(un, month);
     const empType = ud.employeeType==='new' ? 'New' : ud.employeeType==='old' ? 'Existed' : '';
-    const base=[ud.fullName||'',ud.workName||'',un,ud.department||'',ud.position||'',empType,sc?sc.score:''];
-    if (isBDCSGroup) base.push(sc?.liet??'');
-    base.push(sc?(sc.passed?'PASS':'FAIL'):'', sc?fmtDT(sc.gradedAt):'');
+
+    // Score: monthly_scores first, then submission fallback for Others
+    let score = '', passText = '', gradedAt = '';
+    if (sc && sc.score != null) {
+      score    = sc.score;
+      gradedAt = fmtDT(sc.gradedAt);
+      if (isBDCSGroup) {
+        const liet = sc.liet ?? 0;
+        passText = sc.score >= passBDCS && liet <= lietMax ? 'PASS' : 'FAIL';
+      } else {
+        passText = (sc.passed != null ? sc.passed : sc.score >= passOth) ? 'PASS' : 'FAIL';
+      }
+    } else if (!isBDCSGroup && sub?.mcqScore != null) {
+      // Others: use submission auto-score as fallback when monthly_scores not yet written
+      score    = sub.mcqScore;
+      passText = sub.mcqScore >= passOth ? 'PASS' : 'FAIL';
+      gradedAt = fmtDT(sub.submittedAt);
+    }
+
+    const subStatus = sub?.submittedAt ? 'Submitted' : 'Not Submitted';
+    const base = [
+      ud.fullName||'', ud.workName||'', un, ud.department||'', ud.position||'', empType,
+      subStatus, fmtT(sub?.startedAt), fmtT(sub?.submittedAt), fmtDur(sub?.startedAt, sub?.submittedAt),
+      score
+    ];
+    if (isBDCSGroup) base.push(sc?.liet ?? '');
+    base.push(passText, gradedAt);
     return base;
   });
-  return [hdr,...rows];
+  return [hdr, ...rows];
 }
 
 function exportGroup(month, group) {
-  const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
-  const isBDCSG = group==='bdcs';
-  const list = isBDCSG ? trainees.filter(([,u])=>isBDCS(u)) : trainees.filter(([,u])=>!isBDCS(u));
+  const trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
+  const isBDCSG  = group === 'bdcs';
+  const list     = isBDCSG ? trainees.filter(([,u]) => isBDCS(u)) : trainees.filter(([,u]) => !isBDCS(u));
   const sheetName = isBDCSG ? 'BD & CS' : 'Other Departments';
-  doExport([buildExportRows(list,month,isBDCSG)],[sheetName],`Monthly_${month}_${sheetName.replace(/ /g,'_')}`);
+  doExport([buildExportRows(list, month, isBDCSG)], [sheetName], `Monthly_${month}_${sheetName.replace(/ /g,'_')}`);
 }
 
 function exportAll() {
-  const month=document.getElementById('scMonth')?.value; if (!month) return;
-  const trainees=Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
-  const bdcs=trainees.filter(([,u])=>isBDCS(u));
-  const others=trainees.filter(([,u])=>!isBDCS(u));
-  doExport([buildExportRows(bdcs,month,true),buildExportRows(others,month,false)],['BD & CS','Other Departments'],`Monthly_Test_${month}_All`);
+  const month = document.getElementById('scMonth')?.value; if (!month) return;
+  const trainees = Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && u.role !== 'mod');
+  const bdcs   = trainees.filter(([,u]) => isBDCS(u));
+  const others = trainees.filter(([,u]) => !isBDCS(u));
+  doExport([buildExportRows(bdcs,month,true), buildExportRows(others,month,false)], ['BD & CS','Other Departments'], `Monthly_Test_${month}_All`);
 }
 
 function doExport(sheetsData, sheetNames, filename) {
