@@ -469,7 +469,11 @@ function regenTest(m) {
   alert('Test generation result:\n\n' + msgs.join('\n'));
   renderSetupTab();
 }
-function getSubmission(un, month) { return JSON.parse(localStorage.getItem('wmt_sub_'+un+'_'+month)||'null'); }
+function getSubmission(un, month) {
+  const raw = localStorage.getItem('wmt_sub_'+un+'_'+month);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch(e) { console.warn('[getSubmission] corrupt data for', un, month, e); return null; }
+}
 function saveSubmission(un, month, data) { dbWrite('wmt_sub_'+un+'_'+month, JSON.stringify(data)); }
 
 function renderQBankTab() {
