@@ -245,6 +245,15 @@
 }
 .notif-enable-btn:hover { opacity: .88; }
 .notif-status-msg { font-size: 0.8rem; padding: 10px 0; text-align: center; }
+
+/* Supplementary test */
+.supp-card { background:rgba(160,100,255,0.06); border:1px solid rgba(160,100,255,0.25); border-radius:14px; padding:22px 24px; margin-bottom:20px; }
+.supp-card h4 { color:#b87cff; margin-bottom:14px; font-size:1rem; display:flex;align-items:center;gap:8px; }
+.supp-badge { display:inline-flex;align-items:center;gap:5px;padding:3px 9px;background:rgba(160,100,255,0.15);border:1px solid rgba(160,100,255,0.35);border-radius:20px;font-size:0.72rem;font-weight:700;color:#b87cff;margin-left:6px; }
+.supp-hero { background:rgba(160,100,255,0.07);border:1px solid rgba(160,100,255,0.22);border-radius:14px;padding:24px 28px;margin-bottom:18px; }
+.supp-status { font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:10px;background:rgba(160,100,255,0.18);color:#b87cff; }
+.supp-row { display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin-top:14px; }
+.supp-item { display:flex;align-items:center;gap:10px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:10px 14px;flex:1;min-width:180px; }
 </style>
 </head>
 <body>
@@ -278,12 +287,14 @@
             🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span>
           </button>
           <button class="page-tab" id="tabQBank" onclick="switchAdminTab('QBank')">📚 Question Bank</button>
+          <button class="page-tab" id="tabSupp" onclick="switchAdminTab('Supp')">📝 Supplementary</button>
         </div>
         <div id="adminSetupTab"></div>
         <div id="adminScoresTab"     class="hidden"></div>
         <div id="adminHistoryTab"    class="hidden"></div>
         <div id="adminRescheduleTab" class="hidden"></div>
-        <div id="adminQBankTab" class="hidden"></div>
+        <div id="adminQBankTab"      class="hidden"></div>
+        <div id="adminSuppTab"       class="hidden"></div>
       </div>
 
       <!-- ===== MOD VIEW ===== -->
@@ -301,6 +312,7 @@
       <!-- ===== TRAINEE VIEW ===== -->
       <div id="traineeView" class="hidden">
         <div id="currentTestCard"></div>
+        <div id="suppTestCard"></div>
         <div id="rescheduleSection"></div>
         <div class="section-title">My Test History</div>
         <div id="traineeHistoryWrap"></div>
@@ -325,6 +337,11 @@ function getMS()      { return JSON.parse(localStorage.getItem(MS_KEY) || '{}');
 function saveMS(d)    { dbWrite(MS_KEY, JSON.stringify(d)); }
 function getRS(u)     { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
 function saveRS(u,d)  { dbWrite('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
+const SUPP_KEY = 'wmt_supp_schedules';
+function getSS()      { return JSON.parse(localStorage.getItem(SUPP_KEY) || '{}'); }
+function saveSS(d)    { dbWrite(SUPP_KEY, JSON.stringify(d)); }
+function getSuppRS(u) { return JSON.parse(localStorage.getItem(`wmt_supp_reschedule_${u}`) || '{}'); }
+function saveSuppRS(u,d) { dbWrite(`wmt_supp_reschedule_${u}`, JSON.stringify(d)); }
 
 const CUR_USER = localStorage.getItem('wmt_user') || '';
 const ALL_USERS= getUsersDB();
@@ -703,7 +720,29 @@ function renderModScheduleTab() {
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Current test schedule (read-only). Propose edits for Admin review.</p>${rows}`;
+  // Supplementary schedules section
+  const ss = getSS();
+  const suppEntries = Object.values(ss).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  const suppHTML = suppEntries.length ? suppEntries.map(s => {
+    const now = Date.now();
+    const stB = s.startDateBDCS   ? (now < new Date(s.startDateBDCS).getTime()  ? 'upcoming' : now <= new Date(s.deadlineBDCS).getTime()   ? 'active' : 'expired') : 'none';
+    const stO = s.startDateOthers ? (now < new Date(s.startDateOthers).getTime()? 'upcoming' : now <= new Date(s.deadlineOthers).getTime()  ? 'active' : 'expired') : 'none';
+    const anyActive = stB==='active' || stO==='active';
+    const anyUp     = stB==='upcoming' || stO==='upcoming';
+    const stLbl = anyActive ? '🟢 Active' : anyUp ? '⏳ Upcoming' : '⌛ Ended';
+    const stColor = anyActive ? 'var(--success)' : anyUp ? '#6496ff' : 'var(--text-muted)';
+    return `<div class="test-cfg-row" style="border-color:rgba(160,100,255,0.25);">
+      <div>
+        <div class="test-cfg-month" style="color:#b87cff;">${s.note || 'Supplementary'} <span style="font-size:0.72rem;font-weight:400;color:var(--text-muted)">→ results for ${fmtMonth(s.targetMonth)}</span></div>
+        <div class="test-cfg-info">🏢 BD/CS: ${s.startDateBDCS?fmtDT(s.startDateBDCS):'—'} → ${s.deadlineBDCS?fmtDT(s.deadlineBDCS):'—'}</div>
+        <div class="test-cfg-info">🏛️ Others: ${s.startDateOthers?fmtDT(s.startDateOthers):'—'} → ${s.deadlineOthers?fmtDT(s.deadlineOthers):'—'}</div>
+      </div>
+      <span style="font-size:0.82rem;color:${stColor};">${stLbl}</span>
+    </div>`;
+  }).join('') : `<div class="empty-state" style="padding:14px;">No supplementary tests scheduled.</div>`;
+
+  el.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:18px;">Current test schedule (read-only). Propose edits for Admin review.</p>${rows}
+    <div class="section-title" style="margin-top:28px;">📝 Supplementary Tests</div>${suppHTML}`;
 }
 
 function renderModScoresTab() {
@@ -1392,7 +1431,7 @@ window.addEventListener('load', async function() {
 
 // ===== ADMIN TABS =====
 function switchAdminTab(name) {
-  ['Setup','QBank','Scores','History','Reschedule'].forEach(t => {
+  ['Setup','QBank','Scores','History','Reschedule','Supp'].forEach(t => {
     document.getElementById('admin'+t+'Tab').classList.toggle('hidden', t!==name);
     document.getElementById('tab'+t).classList.toggle('active', t===name);
   });
@@ -1400,6 +1439,156 @@ function switchAdminTab(name) {
   if (name==='History')    renderHistoryTab();
   if (name==='Reschedule') renderRescheduleTab();
   if (name==='QBank')      renderQBankTab();
+  if (name==='Supp')       renderSuppTab();
+}
+
+// ===== SUPPLEMENTARY SCHEDULE TAB =====
+function renderSuppTab() {
+  const el  = document.getElementById('adminSuppTab');
+  const ss  = getSS();
+  const mc  = getMC();
+  const pastMonths = Object.keys(mc).sort().reverse();
+
+  const listHTML = Object.entries(ss).sort((a,b)=>b[1].createdAt?.localeCompare(a[1].createdAt||'')||0).map(([id,s]) => {
+    const users = getUsersDB();
+    const eligible = Object.entries(users)
+      .filter(([,u]) => u.role!=='admin' && u.role!=='mod')
+      .filter(([un]) => { const sub = getSubmission(un, s.targetMonth); return !sub || !sub.submittedAt; })
+      .length;
+    const now = Date.now();
+    const stBDCS  = s.startDateBDCS   ? (now < new Date(s.startDateBDCS).getTime()  ? 'upcoming' : now <= new Date(s.deadlineBDCS).getTime()   ? 'active' : 'expired') : 'none';
+    const stOth   = s.startDateOthers ? (now < new Date(s.startDateOthers).getTime()? 'upcoming' : now <= new Date(s.deadlineOthers).getTime()  ? 'active' : 'expired') : 'none';
+    const anyActive   = stBDCS==='active'   || stOth==='active';
+    const anyUpcoming = stBDCS==='upcoming' || stOth==='upcoming';
+    const stColor = anyActive ? 'var(--success)' : anyUpcoming ? '#6496ff' : 'var(--text-muted)';
+    const stLbl   = anyActive ? '🟢 Active' : anyUpcoming ? '⏳ Upcoming' : '⌛ Expired';
+    return `<div class="supp-card" style="position:relative;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;color:var(--text-primary);font-size:0.96rem;">${s.note || 'Supplementary Test'}</div>
+          <div style="font-size:0.8rem;color:${stColor};margin-top:3px;font-weight:600;">${stLbl}</div>
+          <div style="font-size:0.79rem;color:#b87cff;margin-top:6px;">Results for: <strong>${fmtMonth(s.targetMonth)}</strong></div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:4px;">
+            🏢 BD/CS: ${fmtDT(s.startDateBDCS)} → ${fmtDT(s.deadlineBDCS)}<br>
+            🏛️ Others: ${fmtDT(s.startDateOthers)} → ${fmtDT(s.deadlineOthers)}
+          </div>
+          <div style="font-size:0.77rem;color:var(--text-muted);margin-top:6px;">
+            👤 ${eligible} user${eligible!==1?'s':''} haven't submitted for ${fmtMonth(s.targetMonth)}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button onclick="editSuppConfig('${id}')" style="padding:6px 12px;background:rgba(100,150,255,0.12);border:1px solid rgba(100,150,255,0.3);border-radius:8px;color:#6496ff;font-size:0.8rem;cursor:pointer;">✏️ Edit</button>
+          <button onclick="deleteSuppConfig('${id}')" style="padding:6px 12px;background:rgba(255,61,113,0.1);border:1px solid rgba(255,61,113,0.3);border-radius:8px;color:var(--danger);font-size:0.8rem;cursor:pointer;">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="empty-state">No supplementary schedules created yet.</div>`;
+
+  el.innerHTML = `
+    <div class="config-card">
+      <h4>📝 Create Supplementary Test</h4>
+      <input type="hidden" id="suppEditId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Results count for month <span style="color:var(--danger)">*</span></label>
+          <select id="suppTargetMonth" style="padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.88rem;width:100%;">
+            <option value="">— Select month —</option>
+            ${pastMonths.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Note / Schedule name</label>
+          <input type="text" id="suppNote" placeholder="e.g. July Supplementary Test">
+        </div>
+      </div>
+      <div style="background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.18);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#6496ff;margin-bottom:10px;">🏢 BD &amp; CS</div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group" style="margin-bottom:0"><label>Opens from</label><input type="datetime-local" id="suppStartBDCS"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Deadline</label><input type="datetime-local" id="suppDeadlineBDCS"></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,215,0,0.04);border:1px solid rgba(255,215,0,0.14);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);margin-bottom:10px;">🏛️ Other Departments</div>
+        <div class="form-row" style="margin-bottom:0">
+          <div class="form-group" style="margin-bottom:0"><label>Opens from</label><input type="datetime-local" id="suppStartOthers"></div>
+          <div class="form-group" style="margin-bottom:0"><label>Deadline</label><input type="datetime-local" id="suppDeadlineOthers"></div>
+        </div>
+      </div>
+      <div class="error-msg" id="suppErr"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn btn-primary" onclick="saveSuppConfig()" style="background:linear-gradient(135deg,#b87cff,#7c4dff);">💾 Save Schedule</button>
+        <button id="suppCancelBtn" class="btn" onclick="cancelSuppEdit()" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);">✕ Cancel</button>
+      </div>
+    </div>
+    <div class="section-title">Supplementary Schedules</div>
+    ${listHTML}`;
+}
+
+function saveSuppConfig() {
+  const id          = document.getElementById('suppEditId').value.trim();
+  const targetMonth = document.getElementById('suppTargetMonth').value;
+  const note        = document.getElementById('suppNote').value.trim();
+  const startBDCS   = document.getElementById('suppStartBDCS').value;
+  const dlBDCS      = document.getElementById('suppDeadlineBDCS').value;
+  const startOth    = document.getElementById('suppStartOthers').value;
+  const dlOth       = document.getElementById('suppDeadlineOthers').value;
+  const errEl       = document.getElementById('suppErr');
+
+  if (!targetMonth) { errEl.textContent = 'Please select the target month.'; return; }
+  if (!startBDCS && !startOth) { errEl.textContent = 'Please configure dates for at least one group.'; return; }
+  if (startBDCS && !dlBDCS)   { errEl.textContent = 'Please enter a deadline for BD/CS.'; return; }
+  if (startOth  && !dlOth)    { errEl.textContent = 'Please enter a deadline for Others.'; return; }
+  errEl.textContent = '';
+
+  const ss   = getSS();
+  const entry = {
+    id: id || ('supp_' + Date.now()),
+    targetMonth,
+    note:             note || `Supplementary — ${fmtMonth(targetMonth)}`,
+    startDateBDCS:    startBDCS   ? new Date(startBDCS).toISOString()   : '',
+    deadlineBDCS:     dlBDCS      ? new Date(dlBDCS).toISOString()      : '',
+    startDateOthers:  startOth    ? new Date(startOth).toISOString()    : '',
+    deadlineOthers:   dlOth       ? new Date(dlOth).toISOString()       : '',
+    createdAt:        ss[id]?.createdAt || new Date().toISOString()
+  };
+  ss[entry.id] = entry;
+  saveSS(ss);
+  renderSuppTab();
+}
+
+function deleteSuppConfig(id) {
+  if (!confirm('Delete this supplementary schedule?')) return;
+  const ss = getSS();
+  delete ss[id];
+  saveSS(ss);
+  renderSuppTab();
+}
+
+function editSuppConfig(id) {
+  const s = getSS()[id];
+  if (!s) return;
+  document.getElementById('suppEditId').value     = id;
+  document.getElementById('suppTargetMonth').value = s.targetMonth;
+  document.getElementById('suppNote').value        = s.note || '';
+  document.getElementById('suppStartBDCS').value   = toLocalDTInput(s.startDateBDCS);
+  document.getElementById('suppDeadlineBDCS').value= toLocalDTInput(s.deadlineBDCS);
+  document.getElementById('suppStartOthers').value = toLocalDTInput(s.startDateOthers);
+  document.getElementById('suppDeadlineOthers').value = toLocalDTInput(s.deadlineOthers);
+  document.getElementById('suppCancelBtn').style.display = '';
+  document.querySelector('#adminSuppTab .config-card').scrollIntoView({behavior:'smooth'});
+}
+
+function cancelSuppEdit() {
+  document.getElementById('suppEditId').value     = '';
+  document.getElementById('suppTargetMonth').value= '';
+  document.getElementById('suppNote').value       = '';
+  document.getElementById('suppStartBDCS').value  = '';
+  document.getElementById('suppDeadlineBDCS').value='';
+  document.getElementById('suppStartOthers').value= '';
+  document.getElementById('suppDeadlineOthers').value='';
+  document.getElementById('suppCancelBtn').style.display = 'none';
+  document.getElementById('suppErr').textContent = '';
 }
 
 // ===== SETUP TAB =====
@@ -1609,10 +1798,11 @@ function renderScoresTables() {
     return sc.score >= passOthers ? 'pass' : 'fail';
   }
 
-  function buildRowsBDCS(list) {
+  function buildRowsBDCS(list, isSupp=false) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
       <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
+      ${isSupp?'<th>Supp Schedule</th>':''}
       <th>Start</th><th>Submit</th><th>Duration</th>
       <th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
@@ -1644,6 +1834,7 @@ function renderScoresTables() {
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
           <td>${typeBadge}</td>
           <td>${subBadge}</td>
+          ${isSupp?`<td style="font-size:0.75rem;color:#b87cff;max-width:160px">${sub?.suppNote||'—'}</td>`:''}
           <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
           <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
           <td style="font-size:0.75rem;font-weight:600;color:var(--text-primary);white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
@@ -1663,10 +1854,11 @@ function renderScoresTables() {
     </tbody></table></div>`;
   }
 
-  function buildRowsOthers(list) {
+  function buildRowsOthers(list, isSupp=false) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
       <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
+      ${isSupp?'<th>Supp Schedule</th>':''}
       <th>Start</th><th>Submit</th><th>Duration</th>
       <th>Score (0–100)</th><th>Pass / Fail</th><th></th>
     </tr></thead><tbody>
@@ -1700,6 +1892,7 @@ function renderScoresTables() {
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
           <td>${typeBadge}</td>
           <td>${subBadge}</td>
+          ${isSupp?`<td style="font-size:0.75rem;color:#b87cff;max-width:160px">${sub?.suppNote||'—'}</td>`:''}
           <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.startedAt)}</td>
           <td style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap">${fmtTime(sub?.submittedAt)}</td>
           <td style="font-size:0.75rem;font-weight:600;color:var(--text-primary);white-space:nowrap">${fmtDur(sub?.startedAt,sub?.submittedAt)}</td>
@@ -1715,8 +1908,48 @@ function renderScoresTables() {
     </tbody></table></div>`;
   }
 
-  const passedBdcs   = bdcs.filter(([un])=>pfBDCS(scores[un])==='pass').length;
-  const passedOthers = others.filter(([un])=>pfOthers(scores[un])==='pass').length;
+  // Split each group into regular vs supplementary submissions
+  const bdcsRegular   = bdcs.filter(([un]) => !getSubmission(un, month)?.suppId);
+  const bdcsSupp      = bdcs.filter(([un]) => !!getSubmission(un, month)?.suppId);
+  const othersRegular = others.filter(([un]) => !getSubmission(un, month)?.suppId);
+  const othersSupp    = others.filter(([un]) => !!getSubmission(un, month)?.suppId);
+
+  const passedBdcsReg    = bdcsRegular.filter(([un])=>pfBDCS(scores[un])==='pass').length;
+  const passedBdcsSupp   = bdcsSupp.filter(([un])=>pfBDCS(scores[un])==='pass').length;
+  const passedOthersReg  = othersRegular.filter(([un])=>pfOthers(scores[un])==='pass').length;
+  const passedOthersSupp = othersSupp.filter(([un])=>pfOthers(scores[un])==='pass').length;
+
+  const suppSectionBDCS = bdcsSupp.length ? `
+    <div class="score-section" style="border-color:rgba(160,100,255,0.3);background:rgba(160,100,255,0.03);margin-top:12px;">
+      <div class="score-section-hdr" style="border-bottom-color:rgba(160,100,255,0.2);">
+        <div class="score-section-hdr-left">
+          <span class="score-section-icon">📝</span>
+          <div>
+            <div class="score-section-title" style="color:#b87cff;">Supplementary — BD/CS <span class="supp-badge">SUPP</span></div>
+            <div class="score-section-sub">${bdcsSupp.length} trainee${bdcsSupp.length!==1?'s':''} · ${passedBdcsSupp} passed · Pass: ${passBDCS}/300 · Max Liet wrong: ${lietMax}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <button class="btn-xs ok" onclick="openBulkEssayModal('${month}')" title="Bulk grade essay questions">📋 Bulk Grade Essays</button>
+          <button class="btn-xs ok" style="background:var(--success);border-color:var(--success);color:#fff;font-weight:700;" onclick="saveAllBDCS('${month}')">💾 Save All</button>
+        </div>
+      </div>
+      ${buildRowsBDCS(bdcsSupp, true)}
+    </div>` : '';
+
+  const suppSectionOthers = othersSupp.length ? `
+    <div class="score-section" style="border-color:rgba(160,100,255,0.3);background:rgba(160,100,255,0.03);margin-top:12px;">
+      <div class="score-section-hdr" style="border-bottom-color:rgba(160,100,255,0.2);">
+        <div class="score-section-hdr-left">
+          <span class="score-section-icon">📝</span>
+          <div>
+            <div class="score-section-title" style="color:#b87cff;">Supplementary — Other Departments <span class="supp-badge">SUPP</span></div>
+            <div class="score-section-sub">${othersSupp.length} trainee${othersSupp.length!==1?'s':''} · ${passedOthersSupp} passed · Pass: ${passOthers}/100</div>
+          </div>
+        </div>
+      </div>
+      ${buildRowsOthers(othersSupp, true)}
+    </div>` : '';
 
   document.getElementById('scoresTables').innerHTML=`
     <div class="score-section score-section-bdcs">
@@ -1725,7 +1958,7 @@ function renderScoresTables() {
           <span class="score-section-icon">🏢</span>
           <div>
             <div class="score-section-title">Business Development (BD) &amp; Customer Services (CS)</div>
-            <div class="score-section-sub">${bdcs.length} trainee${bdcs.length!==1?'s':''} · ${passedBdcs} passed · Pass: ${passBDCS}/300 · Max Liet wrong: ${lietMax}</div>
+            <div class="score-section-sub">${bdcsRegular.length} trainee${bdcsRegular.length!==1?'s':''} · ${passedBdcsReg} passed · Pass: ${passBDCS}/300 · Max Liet wrong: ${lietMax}</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -1735,8 +1968,9 @@ function renderScoresTables() {
           <button class="export-btn xl" onclick="exportGroup('${month}','bdcs')">📥 Export Excel</button>
         </div>
       </div>
-      ${buildRowsBDCS(bdcs)}
+      ${buildRowsBDCS(bdcsRegular)}
     </div>
+    ${suppSectionBDCS}
 
     <div class="score-section score-section-others">
       <div class="score-section-hdr">
@@ -1744,7 +1978,7 @@ function renderScoresTables() {
           <span class="score-section-icon">🏛️</span>
           <div>
             <div class="score-section-title">Other Departments</div>
-            <div class="score-section-sub">${others.length} trainee${others.length!==1?'s':''} · ${passedOthers} passed · Pass: ${passOthers}/100</div>
+            <div class="score-section-sub">${othersRegular.length} trainee${othersRegular.length!==1?'s':''} · ${passedOthersReg} passed · Pass: ${passOthers}/100</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -1752,8 +1986,9 @@ function renderScoresTables() {
           <button class="export-btn xl" onclick="exportGroup('${month}','others')">📥 Export Excel</button>
         </div>
       </div>
-      ${buildRowsOthers(others)}
-    </div>`;
+      ${buildRowsOthers(othersRegular)}
+    </div>
+    ${suppSectionOthers}`;
 }
 
 function liveUpdatePFBDCS(un, passBDCS, lietMax) {
@@ -2027,7 +2262,7 @@ function openEssayModal(un, month) {
       </div>
       <div style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;line-height:1.5;">${q?.text||'<em>(question not found in bank)</em>'}</div>
       ${q?.rubric ? `<div style="font-size:0.75rem;color:var(--text-muted);background:rgba(100,150,255,0.05);border-radius:6px;padding:8px 10px;margin-bottom:6px;">📋 Answer Guide: ${q.rubric}</div>` : ''}
-      ${(q?.keywords||[]).length ? `<div style="font-size:0.72rem;background:rgba(255,180,0,0.05);border:1px solid rgba(255,180,0,0.2);border-radius:6px;padding:7px 10px;margin-bottom:6px;color:var(--text-secondary);">🔑 Keywords (admin): ${(q.keywords).map(k=>`<span style="background:rgba(100,150,255,0.12);border-radius:3px;padding:1px 7px;margin:2px;display:inline-block;">${k}</span>`).join('')} — cần ${q.keywordsRequired}/${q.keywords.length}</div>` : ''}
+      ${(q?.keywords||[]).length ? `<div style="font-size:0.72rem;background:rgba(255,180,0,0.05);border:1px solid rgba(255,180,0,0.2);border-radius:6px;padding:7px 10px;margin-bottom:6px;color:var(--text-secondary);">🔑 Keywords (admin): ${(q.keywords).map(k=>`<span style="background:rgba(100,150,255,0.12);border-radius:3px;padding:1px 7px;margin:2px;display:inline-block;">${k}</span>`).join('')} — need ${q.keywordsRequired}/${q.keywords.length}</div>` : ''}
       <div id="kw_hint_${qid}" style="display:none;font-size:0.73rem;line-height:1.8;margin-bottom:6px;padding:6px 10px;background:rgba(100,200,100,0.05);border-radius:6px;border:1px solid rgba(100,200,100,0.15);"></div>
       <div style="background:var(--bg-secondary);border-radius:8px;padding:12px 14px;font-size:0.88rem;color:var(--text-primary);white-space:pre-wrap;line-height:1.6;margin-bottom:10px;">${ans || '<em style="color:var(--text-muted)">No answer provided</em>'}</div>
       <div class="essay-score-row">
@@ -2247,7 +2482,7 @@ function editGenQ(idx) {
       <textarea id="eq_rubric_${idx}" rows="3" style="${s}resize:vertical;">${q.rubric||''}</textarea>
     </div>
     <div style="margin-bottom:8px;">
-      <label style="font-size:0.75rem;color:var(--text-muted);">🔑 Keywords — Chấm điểm tự động <span style="font-weight:400;font-style:italic;">(chỉ admin thấy, không hiển thị cho user)</span></label>
+      <label style="font-size:0.75rem;color:var(--text-muted);">🔑 Keywords — Auto-grading <span style="font-weight:400;font-style:italic;">(admin only, not shown to users)</span></label>
       <input id="eq_kw_${idx}" style="${s}" placeholder="e.g. stop loss, risk/reward, position size" value="${(q.keywords||[]).join(', ')}">
     </div>
     <div style="margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -2643,7 +2878,10 @@ function deleteSubmission(un, month) {
 // ===== RESCHEDULE TAB =====
 function updateRsBadge() {
   let n=0;
-  Object.keys(getUsersDB()).forEach(u=>{ Object.values(getRS(u)).forEach(r=>{ if(r.status==='pending') n++; }); });
+  Object.keys(getUsersDB()).forEach(u=>{
+    Object.values(getRS(u)).forEach(r=>{ if(r.status==='pending') n++; });
+    Object.values(getSuppRS(u)).forEach(r=>{ if(r.status==='pending') n++; });
+  });
   const b=document.getElementById('rsBadge');
   if (b) { b.textContent=n; b.classList.toggle('hidden',n===0); }
 }
@@ -2688,7 +2926,7 @@ function renderRescheduleTab() {
   // Warning banner
   const warningBanner = missingDeadline.length
     ? `<div style="margin-bottom:12px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
-        ⚠️ <strong>${missingDeadline.length} request</strong> approved nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi.
+        ⚠️ <strong>${missingDeadline.length} request${missingDeadline.length!==1?'s':''}</strong> approved but <strong>no deadline set</strong> — users cannot enter the test. Click <strong>"⚠️ Set Deadline"</strong> to open their test window.
        </div>`
     : '';
 
@@ -2748,7 +2986,43 @@ function renderRescheduleTab() {
       : `<div class="empty-state">No requests match this filter.</div>`;
   }
 
-  el.innerHTML = warningBanner + filterBar + cardsHTML;
+  // --- Supplementary extension requests section ---
+  const _ss = getSS();
+  const suppRsAll = [];
+  Object.entries(users).forEach(([un, ud]) => {
+    Object.entries(getSuppRS(un)).forEach(([suppId, req]) => {
+      const supp = _ss[suppId];
+      if (supp) suppRsAll.push({ un, ud, suppId, req, supp });
+    });
+  });
+
+  let suppSectionHTML = '';
+  if (suppRsAll.length) {
+    const pendingSuppTotal = suppRsAll.filter(r => r.req.status === 'pending').length;
+    const missingSuppDL    = suppRsAll.filter(r => r.req.status === 'approved' && !r.req.rsDeadline);
+    suppRsAll.sort((a,b) => {
+      const aWarn = a.req.status==='approved'&&!a.req.rsDeadline ? -1 : 0;
+      const bWarn = b.req.status==='approved'&&!b.req.rsDeadline ? -1 : 0;
+      if (aWarn !== bWarn) return aWarn - bWarn;
+      return ({'pending':0,'approved':1,'rejected':2}[a.req.status]??9) - ({'pending':0,'approved':1,'rejected':2}[b.req.status]??9);
+    });
+    const suppWarning = missingSuppDL.length
+      ? `<div style="margin-bottom:10px;padding:8px 14px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.83rem;color:var(--danger);">
+          ⚠️ <strong>${missingSuppDL.length}</strong> supplementary extension${missingSuppDL.length!==1?'s':''} approved but <strong>no deadline set</strong> — click <strong>"⚠️ Set Deadline"</strong> to open their window.
+         </div>` : '';
+    suppSectionHTML = `
+      <div style="margin-top:32px;padding-top:20px;border-top:2px solid rgba(160,100,255,0.2);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:0.95rem;font-weight:800;color:#b87cff;">📝 Supplementary Extension Requests</span>
+          ${pendingSuppTotal?`<span style="background:rgba(255,168,0,0.18);color:var(--warning);border:1px solid rgba(255,168,0,0.35);padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:700;">${pendingSuppTotal} pending</span>`:''}
+          <span style="font-size:0.8rem;color:var(--text-muted);">${suppRsAll.length} total</span>
+        </div>
+        ${suppWarning}
+        ${suppRsAll.map(r => buildSuppRsCard(r)).join('')}
+      </div>`;
+  }
+
+  el.innerHTML = warningBanner + filterBar + cardsHTML + suppSectionHTML;
 }
 
 function buildRsCard({un,ud,m,req}, stB) {
@@ -2775,12 +3049,12 @@ function buildRsCard({un,ud,m,req}, stB) {
         ${req.status==='approved'?`
           <button class="btn-xs app" onclick="approveRs('${un}','${m}')"
             style="background:rgba(0,214,143,0.12);border-color:var(--success);"
-            title="${req.rsDeadline?'Chỉnh sửa deadline đã approve':'⚠️ Deadline chưa được đặt — cần set ngay để mở test cho user'}">
+            title="${req.rsDeadline?'Edit approved deadline':'⚠️ Deadline not set — set it now to open the test window for this user'}">
             ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
           </button>`:''}
         <button class="btn-xs" onclick="resetRs('${un}','${m}')"
           style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
-          title="Xoá request này — user có thể gửi lại request mới">↩ Reset</button>
+          title="Remove request — user can submit a new one">↩ Reset</button>
       </div>
     </div>`;
 }
@@ -2808,7 +3082,7 @@ function approveRs(un, m) {
       <label>Test Deadline *</label>
       <input type="datetime-local" id="rsApproveDeadline"
         style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
-      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Gợi ý: thêm 2–4 giờ sau giờ bắt đầu để trainee có đủ thời gian làm bài.</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Tip: add 2–4 hours after the start time to give the trainee enough time.</div>
     </div>
     <div class="error-msg" id="rsApproveErr"></div>
     <div class="modal-footer">
@@ -2855,7 +3129,7 @@ function rejectRs(un,m) {
 function resetRs(un, m) {
   const ud = getUsersDB()[un];
   const name = ud?.fullName || un;
-  if (!confirm(`Xoá request reschedule tháng ${fmtMonth(m)} của "${name}"?\n\nSau khi reset, user có thể gửi lại request mới cho tháng này.`)) return;
+  if (!confirm(`Remove ${fmtMonth(m)} reschedule request for "${name}"?\n\nAfter reset, the user can submit a new request for this month.`)) return;
   const rs = getRS(un);
   delete rs[m];
   // If no more months left, remove the whole key; otherwise save the trimmed object
@@ -2868,6 +3142,112 @@ function resetRs(un, m) {
   renderRescheduleTab();
 }
 
+// ===== SUPP RESCHEDULE — ADMIN =====
+function buildSuppRsCard({un, ud, suppId, req, supp}) {
+  const stB = req.status==='approved'
+    ? `<span class="pf-badge pass">✓ Approved</span>`
+    : req.status==='rejected'
+    ? `<span class="pf-badge fail">✗ Rejected</span>`
+    : `<span class="pf-badge none">⏳ Pending</span>`;
+  return `
+    <div class="rsched-item" style="${req.status==='approved'&&!req.rsDeadline?'border-color:rgba(255,61,113,0.4);':''}">
+      <div class="rsched-hdr">
+        <div>
+          <span style="font-weight:700;color:var(--text-primary)">${un}</span>
+          ${ud.fullName?`<span style="color:var(--text-muted);font-size:0.82rem"> — ${ud.fullName}</span>`:''}
+          <span style="color:#b87cff;font-size:0.82rem;margin-left:8px;">${supp.note||'Supplementary'} <span class="supp-badge" style="font-size:0.65rem;padding:2px 6px;">SUPP</span></span>
+          <span style="color:var(--text-muted);font-size:0.78rem;margin-left:6px;">→ ${fmtMonth(supp.targetMonth)}</span>
+        </div>
+        ${stB}
+      </div>
+      <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
+        Requested: <strong>${fmtDT(req.requestedAt)}</strong>
+        ${req.reason?`<br>Reason: ${req.reason}`:''}
+        ${req.rsDeadline?`<br>Extension window: until <strong>${fmtDT(req.rsDeadline)}</strong>`:''}
+        ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${req.status==='pending'?`
+          <button class="btn-xs app" onclick="approveSuppRs('${un}','${suppId}')">✓ Approve</button>
+          <button class="btn-xs rej" onclick="rejectSuppRs('${un}','${suppId}')">✗ Reject</button>`:''}
+        ${req.status==='approved'?`
+          <button class="btn-xs app" onclick="approveSuppRs('${un}','${suppId}')"
+            style="background:rgba(0,214,143,0.12);border-color:var(--success);"
+            title="${req.rsDeadline?'Edit approved deadline':'⚠️ Deadline not set — set it now'}">
+            ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
+          </button>`:''}
+        <button class="btn-xs" onclick="resetSuppRs('${un}','${suppId}')"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
+          title="Remove request — user can submit a new one">↩ Reset</button>
+      </div>
+    </div>`;
+}
+
+function approveSuppRs(un, suppId) {
+  const rs = getSuppRS(un); if (!rs[suppId]) return;
+  const req  = rs[suppId];
+  const supp = getSS()[suppId] || {};
+  document.getElementById('approveSuppRsModal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'approveSuppRsModal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:420px;">
+    <h3 style="margin-bottom:8px;">✓ Approve Extension</h3>
+    <div style="font-size:0.84rem;color:var(--text-muted);margin-bottom:16px;">
+      <strong>${un}</strong> — ${supp.note||'Supplementary'} → ${fmtMonth(supp.targetMonth)}<br>
+      Requested: <strong>${fmtDT(req.requestedAt)}</strong>
+      ${req.reason?`<br>Reason: ${req.reason}`:''}
+    </div>
+    <div class="form-group">
+      <label>Personal Deadline * <span style="font-weight:400;color:var(--text-muted)">(your local timezone)</span></label>
+      <input type="datetime-local" id="suppRsApproveDeadline"
+        value="${req.rsDeadline?toLocalDTInput(req.rsDeadline):''}"
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Tip: add 2–4 hours to give the trainee enough time.</div>
+    </div>
+    <div class="error-msg" id="suppRsApproveErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('approveSuppRsModal').remove()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmApproveSuppRs('${un}','${suppId}')">✓ Confirm Approve</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function confirmApproveSuppRs(un, suppId) {
+  const deadline = document.getElementById('suppRsApproveDeadline').value;
+  const err = document.getElementById('suppRsApproveErr');
+  if (!deadline) { err.textContent = 'Please set a deadline.'; return; }
+  const rs = getSuppRS(un); if (!rs[suppId]) return;
+  rs[suppId].status      = 'approved';
+  rs[suppId].rsDeadline  = new Date(deadline).toISOString();
+  rs[suppId].processedAt = new Date().toISOString();
+  saveSuppRS(un, rs);
+  document.getElementById('approveSuppRsModal').remove();
+  updateRsBadge(); renderRescheduleTab();
+}
+
+function rejectSuppRs(un, suppId) {
+  const note = prompt('Rejection note (optional):') || '';
+  const rs = getSuppRS(un); if (!rs[suppId]) return;
+  rs[suppId].status      = 'rejected';
+  rs[suppId].processedAt = new Date().toISOString();
+  if (note.trim()) rs[suppId].rejectReason = note.trim();
+  saveSuppRS(un, rs); updateRsBadge(); renderRescheduleTab();
+}
+
+function resetSuppRs(un, suppId) {
+  const ud   = getUsersDB()[un];
+  const name = ud?.fullName || un;
+  const supp = getSS()[suppId];
+  if (!confirm(`Remove extension request for "${name}" (${supp?.note||'Supplementary'})?\n\nThe user can submit a new request after this.`)) return;
+  const rs = getSuppRS(un);
+  delete rs[suppId];
+  if (Object.keys(rs).length === 0) { dbRemove(`wmt_supp_reschedule_${un}`); } else { saveSuppRS(un, rs); }
+  updateRsBadge(); renderRescheduleTab();
+}
+
 // ===== TRAINEE VIEW =====
 let _cdTimer=null;
 
@@ -2878,8 +3258,135 @@ function renderTraineeView() {
     return;
   }
   renderCurrentTestCard();
+  renderSuppCard();
   renderTraineeReschedule();
   renderTraineeHistory();
+}
+
+function renderSuppCard() {
+  const el = document.getElementById('suppTestCard');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const myUser   = ALL_USERS[CUR_USER] || {};
+  const myBDCS   = isBDCS(myUser);
+  const now      = Date.now();
+  const ss       = getSS();
+  const mySuppRS = getSuppRS(CUR_USER);
+  const mc       = getMC();
+
+  // Show cards for every supp schedule configured for this group where user hasn't submitted
+  const entries = Object.entries(ss).filter(([, s]) => {
+    const start = myBDCS ? s.startDateBDCS : s.startDateOthers;
+    if (!start) return false; // not configured for this group
+    const sub = getSubmission(CUR_USER, s.targetMonth);
+    return !sub?.submittedAt;
+  });
+
+  if (!entries.length) return;
+
+  const cards = entries.map(([id, s]) => {
+    const start    = myBDCS ? s.startDateBDCS : s.startDateOthers;
+    const end      = myBDCS ? s.deadlineBDCS  : s.deadlineOthers;
+    const cfg      = mc[s.targetMonth] || {};
+    const maxSc    = myBDCS ? 300 : 100;
+    const passScore= myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 70);
+    const myGroup  = myBDCS ? 'bdcs' : 'others';
+    const qbank    = getGenTest(myGroup, s.targetMonth) || getQBank(myGroup);
+    const hasTest  = !!(qbank?.questions?.length);
+    const myRs     = mySuppRS[id];
+
+    // Determine window state (extension window overrides schedule window)
+    let windowState;
+    if (myRs?.status === 'approved' && myRs.rsDeadline) {
+      windowState = now <= new Date(myRs.rsDeadline).getTime() ? 'ext-active' : 'ext-expired';
+    } else if (now < new Date(start).getTime()) {
+      windowState = 'upcoming';
+    } else if (now <= new Date(end).getTime()) {
+      windowState = 'active';
+    } else {
+      windowState = 'expired';
+    }
+
+    const statusLabel = { upcoming:'⏳ Opening Soon', active:'🟢 Open Now', 'ext-active':'🟢 Extension Active', 'ext-expired':'⌛ Extension Ended', expired:'⌛ Window Closed' }[windowState];
+    const effectiveEnd = (myRs?.status === 'approved' && myRs.rsDeadline) ? myRs.rsDeadline : end;
+
+    let actionHTML;
+    if (windowState === 'active' || windowState === 'ext-active') {
+      actionHTML = hasTest
+        ? `<a class="test-link-btn" href="taketest.html?supp=${id}" style="text-decoration:none;background:linear-gradient(135deg,#b87cff,#7c4dff);">📝 Take Supplementary Test →</a>`
+        : `<span class="test-link-btn locked">🔒 No test generated yet</span>`;
+    } else if (windowState === 'upcoming') {
+      actionHTML = `<span class="test-link-btn locked">⏳ Not open yet — ${fmtDT(start)}</span>`;
+    } else {
+      // expired or ext-expired — show extension request UI
+      actionHTML = buildSuppRsBlock(id, s, myRs);
+    }
+
+    return `<div class="supp-hero">
+      <div class="supp-status">${statusLabel}</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:6px;">
+        ${s.note || 'Supplementary Test'} <span class="supp-badge">SUPP</span>
+      </div>
+      <div style="font-size:0.82rem;color:#b87cff;margin-bottom:14px;">Results for: <strong>${fmtMonth(s.targetMonth)}</strong></div>
+      <div class="supp-row">
+        <div class="supp-item">
+          <div style="font-size:0.95rem;">🕐</div>
+          <div><div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;">Opens</div><div style="font-size:0.85rem;">${fmtDT(start)}</div></div>
+        </div>
+        <div class="supp-item">
+          <div style="font-size:0.95rem;">⏰</div>
+          <div><div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;">Deadline</div><div style="font-size:0.85rem;">${fmtDT(effectiveEnd)}</div></div>
+        </div>
+        <div class="supp-item">
+          <div style="font-size:0.95rem;">🎯</div>
+          <div><div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;">Pass Score</div><div style="font-size:0.85rem;">${passScore}/${maxSc}</div></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;">${actionHTML}</div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div style="margin-bottom:4px;font-size:0.78rem;font-weight:700;color:#b87cff;text-transform:uppercase;letter-spacing:0.07em;">📝 Supplementary Tests</div>${cards}`;
+}
+
+function buildSuppRsBlock(suppId, s, myRs) {
+  let prefixNote = '';
+  if (myRs?.status === 'pending') {
+    return `<div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,168,0,0.08);border:1px solid rgba(255,168,0,0.3);border-radius:8px;color:var(--warning);">
+      ⏳ <strong>Extension requested</strong> — awaiting admin approval.
+    </div>`;
+  }
+  if (myRs?.status === 'approved' && myRs.rsDeadline && Date.now() > new Date(myRs.rsDeadline).getTime()) {
+    prefixNote = `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:6px;margin-bottom:10px;color:var(--warning);">
+      ⌛ Previous extension ended (${fmtDT(myRs.rsDeadline)}). You may request a new extension.
+    </div>`;
+  } else if (myRs?.status === 'rejected') {
+    prefixNote = `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:10px;color:var(--danger);">
+      ✗ Extension rejected${myRs.rejectReason ? ' — ' + myRs.rejectReason : ''}. You may request again.
+    </div>`;
+  } else {
+    prefixNote = `<div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px;">
+      ⌛ The supplementary window has ended. Request an extension and admin will open a personal window for you.
+    </div>`;
+  }
+  return prefixNote + `<div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="font-size:0.8rem;color:var(--text-muted);">Reason <span style="opacity:0.7;">(optional)</span></div>
+    <input type="text" id="suppRsReason_${suppId}" placeholder="e.g. Work conflict, personal appointment"
+      style="padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.85rem;width:100%;box-sizing:border-box;">
+    <button class="btn btn-primary" onclick="submitSuppReschedule('${suppId}','${s.targetMonth}')"
+      style="background:linear-gradient(135deg,#b87cff,#7c4dff);border-color:#7c4dff;">
+      📩 Request Extension
+    </button>
+  </div>`;
+}
+
+function submitSuppReschedule(suppId, targetMonth) {
+  const reason = document.getElementById(`suppRsReason_${suppId}`)?.value.trim() || '';
+  const d = getSuppRS(CUR_USER);
+  d[suppId] = { suppId, targetMonth, requestedAt: new Date().toISOString(), reason, status: 'pending', rsDeadline: null, processedAt: null };
+  saveSuppRS(CUR_USER, d);
+  renderSuppCard();
 }
 
 function renderNewEmployeeLocked() {
@@ -3122,7 +3629,7 @@ function renderTraineeReschedule() {
   if (!cfg) {
     el.innerHTML=`<div class="reschedule-card">
       <h4>🔄 Request Test Reschedule</h4>
-      <p style="color:var(--text-muted);font-size:0.84rem;">Chưa có bài test nào được xếp lịch. Tính năng reschedule sẽ khả dụng khi admin tạo lịch test.</p>
+      <p style="color:var(--text-muted);font-size:0.84rem;">No tests have been scheduled yet. The reschedule feature will be available once Admin creates a test schedule.</p>
     </div>`;
     return;
   }
@@ -3155,9 +3662,9 @@ function renderTraineeReschedule() {
       // Fall through to show form — but prepend the note via a wrapper
       const testStatus = getStatus(cfg);
       const statusNote = testStatus==='expired'
-        ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ Cửa sổ thi tháng <strong>${fmtMonth(m)}</strong> đã kết thúc. Bạn vẫn có thể gửi yêu cầu reschedule — admin sẽ xem xét và mở lại thời gian thi riêng cho bạn.</div>`
+        ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ The test window for <strong>${fmtMonth(m)}</strong> has ended. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
         : testStatus==='upcoming'
-        ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Bài test <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn vẫn có thể gửi yêu cầu dời lịch sớm nếu cần.</div>`
+        ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ The <strong>${fmtMonth(m)}</strong> test hasn't started yet. You can still submit an early reschedule request if needed.</div>`
         : '';
       el.innerHTML=`
         <div class="reschedule-card">
@@ -3191,9 +3698,9 @@ function renderTraineeReschedule() {
 
   const testStatus = getStatus(cfg);
   const statusNote = testStatus === 'expired'
-    ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ Cửa sổ thi tháng <strong>${fmtMonth(m)}</strong> đã kết thúc. Bạn vẫn có thể gửi yêu cầu reschedule — admin sẽ xem xét và mở lại thời gian thi riêng cho bạn.</div>`
+    ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ The test window for <strong>${fmtMonth(m)}</strong> has ended. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
     : testStatus === 'upcoming'
-    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Bài test <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn vẫn có thể gửi yêu cầu dời lịch sớm nếu cần.</div>`
+    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ The <strong>${fmtMonth(m)}</strong> test hasn't started yet. You can still submit an early reschedule request if needed.</div>`
     : '';
 
   el.innerHTML=`
@@ -3237,8 +3744,9 @@ function renderTraineeHistory() {
   let fc=0;
   const rows=months.map(m=>{
     const sc=scores[m]?.[CUR_USER], cfg=cfgs[m], rs=getRS(CUR_USER)[m];
+    const sub=getSubmission(CUR_USER,m);
     if (sc&&!sc.passed) fc++;
-    return {m,sc,cfg,rs,fc};
+    return {m,sc,cfg,rs,fc,sub};
   });
   if (!rows.some(r=>r.sc)) {
     el.innerHTML=`<div style="color:var(--text-muted);padding:20px 0;font-size:0.9rem;">No test results yet. Results will appear here after each monthly test.</div>`;
@@ -3248,7 +3756,7 @@ function renderTraineeHistory() {
   el.innerHTML=`<div class="hist-wrap"><table>
     <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th><th>🎥 Recording</th></tr></thead>
     <tbody>
-      ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc})=>{
+      ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc,sub})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
         const rsTxt=rs?(rs.status==='approved'?`✓ ${fmtDT(rs.rsStart)}`:rs.status==='rejected'?'✗ Rejected':'⏳ Pending'):'—';
         const startD=userIsBDCSH?cfg?.startDateBDCS:cfg?.startDateOthers;
@@ -3257,8 +3765,9 @@ function renderTraineeHistory() {
         const driveTd = cfg?.driveLink
           ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Submit</a></td>`
           : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
+        const suppBadge = sub?.suppId ? `<span class="supp-badge" style="font-size:0.65rem;padding:2px 6px;margin-left:5px;">SUPP</span>` : '';
         return `<tr>
-          <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}</td>
+          <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}${suppBadge}</td>
           <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
           <td style="font-size:1.1rem;font-weight:800;color:${sc?'var(--text-primary)':'var(--text-muted)'}">${sc?sc.score:'—'}</td>
           ${lietTd}

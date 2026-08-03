@@ -39,6 +39,7 @@ function _fbPath(key) {
   if (key === 'wmt_exam_qbank')          return 'exam_qbank';
   if (key === 'wmt_monthly_config')      return 'monthly_config';
   if (key === 'wmt_monthly_scores')      return 'monthly_scores';
+  if (key === 'wmt_supp_schedules')      return 'supp_schedules';
   if (key === 'wmt_proposals')           return 'proposals';
   if (key === 'wmt_interviews_list')     return 'interviews_list';
   if (key === 'wmt_qbank_bdcs')          return 'qbank/bdcs';
@@ -71,6 +72,10 @@ function _fbPath(key) {
   // Monthly reschedule: wmt_monthly_reschedule_{user}
   const rsMatch = key.match(/^wmt_monthly_reschedule_(.+)$/);
   if (rsMatch) return `reschedule/${rsMatch[1]}`;
+
+  // Supplementary reschedule: wmt_supp_reschedule_{user}
+  const suppRsMatch = key.match(/^wmt_supp_reschedule_(.+)$/);
+  if (suppRsMatch) return `supp_reschedule/${suppRsMatch[1]}`;
 
   // Fallback: store under misc/
   return `misc/${key.replace(/^wmt_/, '')}`;
@@ -114,6 +119,7 @@ window.syncFromFirebase = async function() {
       { fb: 'exam_qbank',       ls: 'wmt_exam_qbank' },
       { fb: 'monthly_config',   ls: 'wmt_monthly_config' },
       { fb: 'monthly_scores',   ls: 'wmt_monthly_scores' },
+      { fb: 'supp_schedules',   ls: 'wmt_supp_schedules' },
       { fb: 'proposals',        ls: 'wmt_proposals' },
       { fb: 'interviews_list',  ls: 'wmt_interviews_list' },
       { fb: 'qbank/bdcs',       ls: 'wmt_qbank_bdcs' },
@@ -149,7 +155,8 @@ window.syncFromFirebase = async function() {
         // exam/interview/reschedule: admin can delete these, so clear when missing
         perUserPaths.push({ fb: `exam/${u}`,       ls: `wmt_exam_${u}`,       clearable: true  });
         perUserPaths.push({ fb: `interview/${u}`,  ls: `wmt_interview_${u}`,  clearable: true  });
-        perUserPaths.push({ fb: `reschedule/${u}`, ls: `wmt_monthly_reschedule_${u}`, clearable: true });
+        perUserPaths.push({ fb: `reschedule/${u}`,      ls: `wmt_monthly_reschedule_${u}`, clearable: true });
+        perUserPaths.push({ fb: `supp_reschedule/${u}`, ls: `wmt_supp_reschedule_${u}`,    clearable: true });
       });
 
       await Promise.all(perUserPaths.map(async ({ fb, ls, clearable }) => {

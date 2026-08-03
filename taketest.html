@@ -132,6 +132,8 @@ function getGenTest(g, m)    { return JSON.parse(localStorage.getItem(`wmt_gente
 function getSubmission(u,m){ return JSON.parse(localStorage.getItem('wmt_sub_'+u+'_'+m)||'null'); }
 function saveSubmission(u,m,d){ dbWrite('wmt_sub_'+u+'_'+m, JSON.stringify(d)); }
 function getRS(u)           { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u)||'{}'); }
+function getSS()     { return JSON.parse(localStorage.getItem('wmt_supp_schedules')||'{}'); }
+function getSuppRS(u){ return JSON.parse(localStorage.getItem(`wmt_supp_reschedule_${u}`)||'{}'); }
 
 // isBDCS accepts a user object OR a department string.
 // User object: checks testGroup override first, then falls back to department.
@@ -170,9 +172,12 @@ let _currentCfg   = null;
 let _qbank        = null;
 let _startedAt    = null;
 let _effectiveDeadline = null;
+let _suppSchedule = null;   // set when entering via ?supp=
 
-// Parse ?month= from URL
-const urlMonth = new URLSearchParams(location.search).get('month');
+// Parse URL params
+const _urlParams = new URLSearchParams(location.search);
+const urlMonth = _urlParams.get('month');
+const urlSupp  = _urlParams.get('supp');
 
 document.addEventListener('DOMContentLoaded', async function() {
   if (window.FDB && CUR_USER) {
@@ -197,20 +202,31 @@ document.addEventListener('DOMContentLoaded', async function() {
           if (s.exists()) Object.entries(s.val()).forEach(([m,d]) =>
             localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
         }).catch(()=>{}),
-        FDB.ref(urlMonth
-          ? `gentest/${MY_GROUP}/${urlMonth}`
-          : `gentest/${MY_GROUP}`
-        ).once('value').then(s => {
-          if (!s.exists()) return;
-          if (urlMonth) {
-            localStorage.setItem(`wmt_gentest_${MY_GROUP}_${urlMonth}`, JSON.stringify(s.val()));
-          } else {
-            Object.entries(s.val()).forEach(([m, d]) =>
-              localStorage.setItem(`wmt_gentest_${MY_GROUP}_${m}`, JSON.stringify(d)));
-          }
-        }).catch(()=>{}),
+        // For supp: fetch gentest for targetMonth; for regular: fetch by urlMonth or all
+        (() => {
+          const suppData = urlSupp ? getSS()[urlSupp] : null;
+          const fetchMonth = suppData ? suppData.targetMonth : urlMonth;
+          return FDB.ref(fetchMonth
+            ? `gentest/${MY_GROUP}/${fetchMonth}`
+            : `gentest/${MY_GROUP}`
+          ).once('value').then(s => {
+            if (!s.exists()) return;
+            if (fetchMonth) {
+              localStorage.setItem(`wmt_gentest_${MY_GROUP}_${fetchMonth}`, JSON.stringify(s.val()));
+            } else {
+              Object.entries(s.val()).forEach(([m, d]) =>
+                localStorage.setItem(`wmt_gentest_${MY_GROUP}_${m}`, JSON.stringify(d)));
+            }
+          });
+        })().catch(()=>{}),
         FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
           if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+        }).catch(()=>{}),
+        FDB.ref('supp_schedules').once('value').then(s => {
+          if (s.exists()) localStorage.setItem('wmt_supp_schedules', JSON.stringify(s.val()));
+        }).catch(()=>{}),
+        FDB.ref(`supp_reschedule/${CUR_USER}`).once('value').then(s => {
+          if (s.exists()) localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
         }).catch(()=>{}),
       ]);
     } catch(e) { console.warn('[taketest] sync:', e.message); }
@@ -223,23 +239,34 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   // Find test
   const cfgs = getMC();
-  _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
 
-  // Fallback: if no active window, check if user has a submission for a recent month
-  if (!_currentMonth) {
-    const sorted = Object.keys(cfgs).sort().reverse();
-    for (const m of sorted) {
-      const s = getSubmission(CUR_USER, m);
-      if (s && s.submittedAt) { _currentMonth = m; break; }
+  // Supplementary test path
+  if (urlSupp) {
+    _suppSchedule = getSS()[urlSupp] || null;
+    if (!_suppSchedule) {
+      renderError('Supplementary schedule not found. <a href="monthlytest.html" style="color:var(--gold)">Go back</a>');
+      return;
     }
-  }
+    _currentMonth = _suppSchedule.targetMonth;
+    _currentCfg   = cfgs[_currentMonth] || null;
+  } else {
+    _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
 
-  if (!_currentMonth) {
-    renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
-    return;
-  }
+    // Fallback: if no active window, check if user has a submission for a recent month
+    if (!_currentMonth) {
+      const sorted = Object.keys(cfgs).sort().reverse();
+      for (const m of sorted) {
+        const s = getSubmission(CUR_USER, m);
+        if (s && s.submittedAt) { _currentMonth = m; break; }
+      }
+    }
 
-  _currentCfg = cfgs[_currentMonth];
+    if (!_currentMonth) {
+      renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
+      return;
+    }
+    _currentCfg = cfgs[_currentMonth];
+  }
 
   // Load qbank + submission early — can show review even if config failed to load
   _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
@@ -247,11 +274,18 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (sub && sub.submittedAt) {
     // Resolve deadline from config for correct-answer gating (best-effort)
     if (_currentCfg) {
-      const myRS  = getRS(CUR_USER);
-      const myRsM = myRS[_currentMonth];
-      _effectiveDeadline = (myRsM?.status === 'approved' && myRsM.rsDeadline)
-        ? myRsM.rsDeadline
-        : (IS_BDCS ? _currentCfg.deadlineBDCS : _currentCfg.deadlineOthers);
+      if (_suppSchedule) {
+        const mySuppRs = getSuppRS(CUR_USER)[urlSupp];
+        _effectiveDeadline = (mySuppRs?.status === 'approved' && mySuppRs.rsDeadline)
+          ? mySuppRs.rsDeadline
+          : (IS_BDCS ? _suppSchedule.deadlineBDCS : _suppSchedule.deadlineOthers);
+      } else {
+        const myRS  = getRS(CUR_USER);
+        const myRsM = myRS[_currentMonth];
+        _effectiveDeadline = (myRsM?.status === 'approved' && myRsM.rsDeadline)
+          ? myRsM.rsDeadline
+          : (IS_BDCS ? _currentCfg.deadlineBDCS : _currentCfg.deadlineOthers);
+      }
     }
     // Backfill questionSnapshot for old submissions that don't have it yet
     if (!sub.questionSnapshot && _qbank && _qbank.questions) {
@@ -276,34 +310,50 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  // Determine effective test window: personal approved reschedule takes priority
-  const myRS   = getRS(CUR_USER);
-  const myRsM  = myRS[_currentMonth];
-  const hasApprovedRS = myRsM?.status === 'approved' && myRsM.rsDeadline;
-
+  // Determine effective test window
+  // Priority: supp schedule > personal reschedule > global config
   let startD, endD;
-  if (hasApprovedRS) {
-    startD = myRsM.rsStart || new Date(`${myRsM.newDate}T${myRsM.newTime||'09:00'}`).toISOString();
-    endD   = myRsM.rsDeadline;
+  if (_suppSchedule) {
+    startD = IS_BDCS ? _suppSchedule.startDateBDCS   : _suppSchedule.startDateOthers;
+    endD   = IS_BDCS ? _suppSchedule.deadlineBDCS    : _suppSchedule.deadlineOthers;
+    // Approved personal extension overrides the schedule deadline
+    const mySuppRs = getSuppRS(CUR_USER)[urlSupp];
+    if (mySuppRs?.status === 'approved' && mySuppRs.rsDeadline) {
+      endD = mySuppRs.rsDeadline;
+    }
   } else {
-    startD = IS_BDCS ? _currentCfg.startDateBDCS : _currentCfg.startDateOthers;
-    endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
+    const myRS  = getRS(CUR_USER);
+    const myRsM = myRS[_currentMonth];
+    const hasApprovedRS = myRsM?.status === 'approved' && myRsM.rsDeadline;
+    if (hasApprovedRS) {
+      startD = myRsM.rsStart || new Date(`${myRsM.newDate}T${myRsM.newTime||'09:00'}`).toISOString();
+      endD   = myRsM.rsDeadline;
+    } else {
+      startD = IS_BDCS ? _currentCfg.startDateBDCS : _currentCfg.startDateOthers;
+      endD   = IS_BDCS ? _currentCfg.deadlineBDCS  : _currentCfg.deadlineOthers;
+    }
   }
 
   _effectiveDeadline = endD;
   const now = Date.now();
 
   if (!startD || !endD) {
-    renderError('No test has been configured for your department.');
+    renderError(_suppSchedule
+      ? 'Supplementary test not configured for your group.'
+      : 'No test has been configured for your department.');
     return;
   }
 
   if (now < new Date(startD).getTime()) {
-    renderError(`Test has not started yet. Opens at: <strong>${fmtDT(startD)}</strong>`);
+    renderError(_suppSchedule
+      ? `Supplementary test not open yet. Opens at: <strong>${fmtDT(startD)}</strong>`
+      : `Test has not started yet. Opens at: <strong>${fmtDT(startD)}</strong>`);
     return;
   }
   if (now > new Date(endD).getTime()) {
-    renderError('The test period has ended.');
+    renderError(_suppSchedule
+      ? 'The supplementary test period has ended.'
+      : 'The test period has ended.');
     return;
   }
 
@@ -312,7 +362,21 @@ document.addEventListener('DOMContentLoaded', async function() {
     return;
   }
 
-  document.getElementById('pageTitle').textContent = _currentCfg.title || 'Monthly Test';
+  if (_suppSchedule) {
+    document.getElementById('pageTitle').textContent = _suppSchedule.note || 'Supplementary Test';
+    // Insert a supplementary banner below the top bar
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(160,100,255,0.1);border-bottom:1px solid rgba(160,100,255,0.25);padding:10px 24px;display:flex;align-items:center;gap:10px;font-size:0.85rem;';
+    banner.innerHTML = `<span style="font-size:1.1rem;">📝</span>
+      <span style="color:#b87cff;font-weight:600;">Supplementary Test</span>
+      <span style="color:var(--text-muted);">—</span>
+      <span style="color:var(--text-secondary);">Results count for <strong style="color:#b87cff;">${new Date(_suppSchedule.targetMonth+'-01').toLocaleString('en-GB',{month:'long',year:'numeric'})}</strong></span>
+      <span style="margin-left:auto;font-size:0.78rem;color:var(--text-muted);">Deadline: ${fmtDT(endD)}</span>`;
+    const topBar = document.querySelector('.top-bar');
+    if (topBar) topBar.insertAdjacentElement('afterend', banner);
+  } else {
+    document.getElementById('pageTitle').textContent = _currentCfg?.title || 'Monthly Test';
+  }
   renderTest(new Date(endD).getTime());
   startGentestListener();
 });
@@ -629,7 +693,8 @@ async function doSubmit(auto) {
     mcqResults,
     questionSnapshot,
     essayPending:     hasEssay,
-    provisionalPassed
+    provisionalPassed,
+    ..._suppSchedule ? { suppId: _suppSchedule.id, suppNote: _suppSchedule.note } : {}
   };
   saveSubmission(CUR_USER, _currentMonth, submission);
 
