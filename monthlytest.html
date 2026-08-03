@@ -1427,6 +1427,40 @@ window.addEventListener('load', async function() {
     renderTraineeView();
   }
   initNotifications();
+
+  // Real-time Firebase listeners — keep supp data live without full page reload
+  if (window.FDB && CUR_USER) {
+    // supp_schedules: propagate eligible-user list and date changes to all open pages
+    FDB.ref('supp_schedules').on('value', snap => {
+      localStorage.setItem('wmt_supp_schedules', JSON.stringify(snap.val() || {}));
+      if (!IS_ADMIN && !IS_MOD) renderSuppCard();
+    });
+
+    if (IS_ADMIN) {
+      // Admin: watch all users' supp reschedule requests so badge and tab stay current
+      FDB.ref('supp_reschedule').on('value', snap => {
+        if (snap.exists()) {
+          Object.entries(snap.val()).forEach(([un, d]) => {
+            localStorage.setItem(`wmt_supp_reschedule_${un}`, JSON.stringify(d));
+          });
+        }
+        updateRsBadge();
+        if (!document.getElementById('adminRescheduleTab')?.classList.contains('hidden')) {
+          renderRescheduleTab();
+        }
+      });
+      // Also keep monthly_scores live so Scores tab reflects new supp submissions
+      FDB.ref('monthly_scores').on('value', snap => {
+        if (snap.exists()) localStorage.setItem('wmt_monthly_scores', JSON.stringify(snap.val()));
+      });
+    } else if (!IS_MOD) {
+      // Trainee: watch own supp reschedule so admin approval shows immediately
+      FDB.ref(`supp_reschedule/${CUR_USER}`).on('value', snap => {
+        localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(snap.val() || {}));
+        renderSuppCard();
+      });
+    }
+  }
 });
 
 // ===== ADMIN TABS =====
@@ -1453,6 +1487,7 @@ function renderSuppTab() {
     const users = getUsersDB();
     const eligible = Object.entries(users)
       .filter(([,u]) => u.role!=='admin' && u.role!=='mod')
+      .filter(([un]) => !s.eligibleUsers?.length || s.eligibleUsers.includes(un))
       .filter(([un]) => { const sub = getSubmission(un, s.targetMonth); return !sub || !sub.submittedAt; })
       .length;
     const now = Date.now();
@@ -1473,7 +1508,9 @@ function renderSuppTab() {
             🏛️ Others: ${fmtDT(s.startDateOthers)} → ${fmtDT(s.deadlineOthers)}
           </div>
           <div style="font-size:0.77rem;color:var(--text-muted);margin-top:6px;">
-            👤 ${eligible} user${eligible!==1?'s':''} haven't submitted for ${fmtMonth(s.targetMonth)}
+            ${s.eligibleUsers?.length
+              ? `👥 <strong>${s.eligibleUsers.length} selected</strong> · ${eligible} haven't submitted for ${fmtMonth(s.targetMonth)}`
+              : `👤 ${eligible} user${eligible!==1?'s':''} haven't submitted for ${fmtMonth(s.targetMonth)}`}
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-shrink:0;">
@@ -1491,7 +1528,7 @@ function renderSuppTab() {
       <div class="form-row">
         <div class="form-group">
           <label>Results count for month <span style="color:var(--danger)">*</span></label>
-          <select id="suppTargetMonth" style="padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.88rem;width:100%;">
+          <select id="suppTargetMonth" onchange="refreshSuppUserList()" style="padding:10px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.88rem;width:100%;">
             <option value="">— Select month —</option>
             ${pastMonths.map(m=>`<option value="${m}">${fmtMonth(m)}</option>`).join('')}
           </select>
@@ -1513,6 +1550,25 @@ function renderSuppTab() {
         <div class="form-row" style="margin-bottom:0">
           <div class="form-group" style="margin-bottom:0"><label>Opens from</label><input type="datetime-local" id="suppStartOthers"></div>
           <div class="form-group" style="margin-bottom:0"><label>Deadline</label><input type="datetime-local" id="suppDeadlineOthers"></div>
+        </div>
+      </div>
+      <div style="background:rgba(160,100,255,0.04);border:1px solid rgba(160,100,255,0.18);border-radius:10px;padding:14px 16px;margin-bottom:14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:#b87cff;margin-bottom:10px;">👥 Eligible Users</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;margin-bottom:8px;">
+          <input type="checkbox" id="suppRestrictUsers" onchange="toggleSuppUserList()">
+          <span>Restrict to specific users</span>
+          <span style="color:var(--text-muted);font-size:0.78rem;">(unchecked = open to all users who haven't submitted)</span>
+        </label>
+        <div id="suppUserListWrap" style="display:none;">
+          <input type="text" id="suppUserSearch" placeholder="🔍 Search users..." oninput="filterSuppUserList()"
+            style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.83rem;width:100%;box-sizing:border-box;margin-bottom:8px;">
+          <div id="suppUserList" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:2px;">
+            <div style="color:var(--text-muted);font-size:0.83rem;padding:8px;">Select a target month first.</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+            <span style="font-size:0.78rem;color:var(--text-muted);" id="suppUserCountLbl">0 users selected</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Greyed out = already submitted</span>
+          </div>
         </div>
       </div>
       <div class="error-msg" id="suppErr"></div>
@@ -1541,6 +1597,11 @@ function saveSuppConfig() {
   if (startOth  && !dlOth)    { errEl.textContent = 'Please enter a deadline for Others.'; return; }
   errEl.textContent = '';
 
+  const restrictCb    = document.getElementById('suppRestrictUsers');
+  const selectedUsers = restrictCb?.checked
+    ? [...document.querySelectorAll('#suppUserList input[type=checkbox]:checked')].map(el => el.value)
+    : null;
+
   const ss   = getSS();
   const entry = {
     id: id || ('supp_' + Date.now()),
@@ -1550,7 +1611,8 @@ function saveSuppConfig() {
     deadlineBDCS:     dlBDCS      ? new Date(dlBDCS).toISOString()      : '',
     startDateOthers:  startOth    ? new Date(startOth).toISOString()    : '',
     deadlineOthers:   dlOth       ? new Date(dlOth).toISOString()       : '',
-    createdAt:        ss[id]?.createdAt || new Date().toISOString()
+    createdAt:        ss[id]?.createdAt || new Date().toISOString(),
+    eligibleUsers:    selectedUsers?.length ? selectedUsers : null
   };
   ss[entry.id] = entry;
   saveSS(ss);
@@ -1575,6 +1637,19 @@ function editSuppConfig(id) {
   document.getElementById('suppDeadlineBDCS').value= toLocalDTInput(s.deadlineBDCS);
   document.getElementById('suppStartOthers').value = toLocalDTInput(s.startDateOthers);
   document.getElementById('suppDeadlineOthers').value = toLocalDTInput(s.deadlineOthers);
+  const restrictCb = document.getElementById('suppRestrictUsers');
+  if (restrictCb) {
+    restrictCb.checked = !!(s.eligibleUsers?.length);
+    document.getElementById('suppUserListWrap').style.display = restrictCb.checked ? '' : 'none';
+    if (restrictCb.checked) {
+      refreshSuppUserList();
+      // Override defaults — check exactly the saved users
+      document.querySelectorAll('#suppUserList input[type=checkbox]').forEach(cb => {
+        cb.checked = s.eligibleUsers.includes(cb.value);
+      });
+      updateSuppUserCount();
+    }
+  }
   document.getElementById('suppCancelBtn').style.display = '';
   document.querySelector('#adminSuppTab .config-card').scrollIntoView({behavior:'smooth'});
 }
@@ -1589,6 +1664,8 @@ function cancelSuppEdit() {
   document.getElementById('suppDeadlineOthers').value='';
   document.getElementById('suppCancelBtn').style.display = 'none';
   document.getElementById('suppErr').textContent = '';
+  const _rcb = document.getElementById('suppRestrictUsers');
+  if (_rcb) { _rcb.checked = false; document.getElementById('suppUserListWrap').style.display = 'none'; }
 }
 
 // ===== SETUP TAB =====
@@ -3263,6 +3340,65 @@ function renderTraineeView() {
   renderTraineeHistory();
 }
 
+function toggleSuppUserList() {
+  const cb   = document.getElementById('suppRestrictUsers');
+  const wrap = document.getElementById('suppUserListWrap');
+  if (!wrap) return;
+  wrap.style.display = cb?.checked ? '' : 'none';
+  if (cb?.checked) refreshSuppUserList();
+}
+
+function refreshSuppUserList() {
+  const listEl = document.getElementById('suppUserList');
+  const month  = document.getElementById('suppTargetMonth')?.value;
+  if (!listEl) return;
+  if (!month) {
+    listEl.innerHTML = `<div style="color:var(--text-muted);font-size:0.83rem;padding:8px;">Select a target month first.</div>`;
+    updateSuppUserCount(); return;
+  }
+  const users    = getUsersDB();
+  const allUsers = Object.entries(users)
+    .filter(([,u]) => u.role !== 'admin' && u.role !== 'mod')
+    .sort(([,a],[,b]) => (a.fullName||'').localeCompare(b.fullName||''));
+  if (!allUsers.length) {
+    listEl.innerHTML = `<div style="color:var(--text-muted);font-size:0.83rem;padding:8px;">No users found.</div>`;
+    updateSuppUserCount(); return;
+  }
+  listEl.innerHTML = allUsers.map(([un, ud]) => {
+    const sub       = getSubmission(un, month);
+    const submitted = !!(sub?.submittedAt);
+    const haystack  = [un, ud.fullName||'', ud.workName||'', ud.department||''].join(' ').toLowerCase();
+    return `<label data-search="${haystack}" style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:0.83rem;${submitted?'opacity:0.45':''}">
+      <input type="checkbox" value="${un}" ${submitted?'':'checked'} onchange="updateSuppUserCount()">
+      <div style="flex:1;min-width:0;">
+        <span style="font-weight:600;">${ud.fullName||un}</span>
+        <span style="color:var(--text-muted);font-size:0.78rem;margin-left:6px;">${un}</span>
+        ${ud.department?`<span style="color:var(--text-muted);font-size:0.75rem;"> · ${ud.department}</span>`:''}
+      </div>
+      <span style="font-size:0.72rem;font-weight:700;${submitted?'color:var(--success)':'color:var(--text-muted)'};">${submitted?'✓ Done':'Pending'}</span>
+    </label>`;
+  }).join('');
+  filterSuppUserList();
+  updateSuppUserCount();
+}
+
+function filterSuppUserList() {
+  const q      = (document.getElementById('suppUserSearch')?.value || '').toLowerCase().trim();
+  const listEl = document.getElementById('suppUserList');
+  if (!listEl) return;
+  listEl.querySelectorAll('label[data-search]').forEach(row => {
+    row.style.display = !q || row.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+
+function updateSuppUserCount() {
+  const listEl  = document.getElementById('suppUserList');
+  const countEl = document.getElementById('suppUserCountLbl');
+  if (!countEl || !listEl) return;
+  const n = listEl.querySelectorAll('input[type=checkbox]:checked').length;
+  countEl.textContent = `${n} user${n!==1?'s':''} selected`;
+}
+
 function renderSuppCard() {
   const el = document.getElementById('suppTestCard');
   if (!el) return;
@@ -3279,6 +3415,7 @@ function renderSuppCard() {
   const entries = Object.entries(ss).filter(([, s]) => {
     const start = myBDCS ? s.startDateBDCS : s.startDateOthers;
     if (!start) return false; // not configured for this group
+    if (s.eligibleUsers?.length && !s.eligibleUsers.includes(CUR_USER)) return false;
     const sub = getSubmission(CUR_USER, s.targetMonth);
     return !sub?.submittedAt;
   });
