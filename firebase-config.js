@@ -77,6 +77,10 @@ function _fbPath(key) {
   const suppRsMatch = key.match(/^wmt_supp_reschedule_(.+)$/);
   if (suppRsMatch) return `supp_reschedule/${suppRsMatch[1]}`;
 
+  // Per-user evaluation: wmt_eval_{user}
+  const evalMatch = key.match(/^wmt_eval_(.+)$/);
+  if (evalMatch) return `evaluations/${evalMatch[1]}`;
+
   // Fallback: store under misc/
   return `misc/${key.replace(/^wmt_/, '')}`;
 }
@@ -157,6 +161,7 @@ window.syncFromFirebase = async function() {
         perUserPaths.push({ fb: `interview/${u}`,  ls: `wmt_interview_${u}`,  clearable: true  });
         perUserPaths.push({ fb: `reschedule/${u}`,      ls: `wmt_monthly_reschedule_${u}`, clearable: true });
         perUserPaths.push({ fb: `supp_reschedule/${u}`, ls: `wmt_supp_reschedule_${u}`,    clearable: true });
+        perUserPaths.push({ fb: `evaluations/${u}`,     ls: `wmt_eval_${u}`,               clearable: false });
       });
 
       await Promise.all(perUserPaths.map(async ({ fb, ls, clearable }) => {

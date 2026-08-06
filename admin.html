@@ -366,6 +366,7 @@
         <button class="page-tab"        id="tabQuiz"        onclick="switchTab('quiz')">📝 Quiz</button>
         <button class="page-tab"        id="tabProposals"   onclick="switchTab('proposals')">💡 Proposals <span class="tab-badge hidden" id="proposalsBadge">0</span></button>
         <button class="page-tab"        id="tabReschedule"  onclick="switchTab('reschedule')">🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span></button>
+        <button class="page-tab"        id="tabEvaluations" onclick="switchTab('evaluations')">📊 Evaluations</button>
         <button class="page-tab"        id="tabSettings"    onclick="switchTab('settings')">⚙️ Settings</button>
       </div>
 
@@ -391,8 +392,8 @@
             <option value="">All Teams</option>
           </select>
           <button class="filter-clear" onclick="clearUserFilters()">✕ Clear</button>
-          <button class="filter-clear" onclick="fixAllDepartments()" title="Gộp các tên department bị lặp/sai chính tả thành tên chuẩn và đồng bộ Firebase" style="border-color:#a78bfa;color:#a78bfa;">🏷️ Fix Depts</button>
-          <button class="filter-clear" onclick="migrateLeaderNames()" title="Chuẩn hoá tất cả leaderName trong database về đúng username của leader" style="border-color:#f59e0b;color:#f59e0b;">🔧 Fix Leader Names</button>
+          <button class="filter-clear" onclick="fixAllDepartments()" title="Merge duplicate / misspelled department names into the canonical name and sync to Firebase" style="border-color:#a78bfa;color:#a78bfa;">🏷️ Fix Depts</button>
+          <button class="filter-clear" onclick="migrateLeaderNames()" title="Normalise all leaderName values in the database to the correct leader username" style="border-color:#f59e0b;color:#f59e0b;">🔧 Fix Leader Names</button>
           <span id="filterCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
         </div>
         <div class="users-table-wrap">
@@ -461,6 +462,11 @@
           Monthly Test reschedule requests from trainees. Approve or reject each request below.
         </p>
         <div id="adminRescheduleTab"></div>
+      </div>
+
+      <!-- ===== EVALUATIONS TAB ===== -->
+      <div id="evaluationsTab" class="hidden">
+        <div id="evaluationsContent"></div>
       </div>
 
       <!-- ===== SETTINGS TAB ===== -->
@@ -810,20 +816,144 @@ function saveInterviewData(username, data) {
 
 // ===== TAB SWITCH =====
 async function switchTab(tab) {
-  ['users','interviews','quiz','proposals','reschedule','settings'].forEach(t => {
+  ['users','interviews','quiz','proposals','reschedule','evaluations','settings'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
   });
   if (tab === 'quiz') {
-    // Show loading state then re-sync so admin always sees fresh data
     document.getElementById('quizTableBody').innerHTML =
       '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Loading data…</td></tr>';
     await syncFromFirebase();
     renderQuizTab();
   }
-  if (tab === 'proposals') renderProposalsTab();
-  if (tab === 'reschedule') { await syncFromFirebase(); renderRescheduleTab(); }
-  if (tab === 'settings') renderSettingsTab();
+  if (tab === 'proposals')    renderProposalsTab();
+  if (tab === 'reschedule')   { await syncFromFirebase(); renderRescheduleTab(); }
+  if (tab === 'evaluations')  { await syncFromFirebase(); renderEvaluationsTab(); }
+  if (tab === 'settings')     renderSettingsTab();
+}
+
+// ===== EVALUATIONS TAB =====
+function renderEvaluationsTab() {
+  const users = getUsersDB();
+  const el    = document.getElementById('evaluationsContent');
+
+  const STAR_FIELDS = [
+    { key: 'contentClarity',       label: 'Content Clarity' },
+    { key: 'contentUsefulness',    label: 'Content Usefulness' },
+    { key: 'contentStructure',     label: 'Content Structure' },
+    { key: 'trainerKnowledge',     label: 'Trainer Knowledge' },
+    { key: 'trainerCommunication', label: 'Trainer Communication' },
+    { key: 'trainerSupport',       label: 'Trainer Support' },
+    { key: 'overallSatisfaction',  label: 'Overall Satisfaction' },
+  ];
+
+  // Collect all submitted evaluations
+  const evals = [];
+  Object.keys(users).forEach(u => {
+    const ev = JSON.parse(localStorage.getItem('wmt_eval_' + u) || 'null');
+    if (ev?.submittedAt) evals.push({ u, ud: users[u], ev });
+  });
+
+  // Summary averages
+  const avgOf = key => {
+    const vals = evals.map(e => e.ev[key] || 0).filter(v => v > 0);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  };
+  const overallAvg = evals.length
+    ? (STAR_FIELDS.map(f => parseFloat(avgOf(f.key))||0).reduce((a,b)=>a+b,0) / STAR_FIELDS.length).toFixed(1)
+    : '—';
+  const recommendYes = evals.filter(e => e.ev.recommend === 'yes').length;
+
+  function stars(val) {
+    const n = Math.round(val || 0);
+    return '★'.repeat(n) + '☆'.repeat(5-n);
+  }
+
+  // Summary strip
+  const summaryHTML = evals.length === 0 ? '' : `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:var(--gold)">${overallAvg}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Overall Avg</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:#6496ff">${evals.length}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Responses</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:var(--success)">${recommendYes}/${evals.length}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Would Recommend</div>
+      </div>
+      ${STAR_FIELDS.map(f => `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;flex:1;min-width:150px;">
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">${f.label}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;font-weight:700;color:var(--gold)">${avgOf(f.key)}</span>
+            <span style="color:#FFD700;font-size:0.85rem;letter-spacing:1px;">${stars(parseFloat(avgOf(f.key)))}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+
+  if (evals.length === 0) {
+    el.innerHTML = `
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+        Submitted training evaluations from trainees appear here once their interview is completed.
+      </p>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:48px 32px;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+        <div style="color:var(--text-muted);font-size:0.9rem;">No evaluations submitted yet.</div>
+      </div>`;
+    return;
+  }
+
+  const rowsHTML = evals.sort((a,b) => new Date(b.ev.submittedAt)-new Date(a.ev.submittedAt)).map(({u, ud, ev}) => {
+    const diffLabel = { too_easy:'Too Easy', just_right:'Just Right', too_hard:'Too Hard' }[ev.difficulty] || '—';
+    return `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+          <div>
+            <span style="font-weight:700;color:var(--text-primary);">${ud.fullName || u}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">@${u}</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);margin-left:8px;">${ud.department || ''}${ud.position ? ' · '+ud.position : ''}</span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">${new Date(ev.submittedAt).toLocaleString('en-GB')}</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          ${STAR_FIELDS.map(f => `
+            <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+              <span style="color:var(--text-muted);">${f.label}: </span>
+              <span style="color:#FFD700;">${stars(ev[f.key])}</span>
+              <span style="color:var(--gold);font-weight:700;margin-left:4px;">${ev[f.key]||'—'}</span>
+            </div>`).join('')}
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+            <span style="color:var(--text-muted);">Difficulty: </span>
+            <span style="color:var(--text-primary);font-weight:600;">${diffLabel}</span>
+          </div>
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+            <span style="color:var(--text-muted);">Recommend: </span>
+            <span style="color:${ev.recommend==='yes'?'var(--success)':'var(--danger)'};font-weight:600;">${ev.recommend==='yes'?'✓ Yes':'✗ No'}</span>
+          </div>
+        </div>
+        ${(ev.bestPart||ev.improvements) ? `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${ev.bestPart ? `<div style="flex:1;min-width:200px;background:rgba(0,214,143,0.05);border:1px solid rgba(0,214,143,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.72rem;color:var(--success);font-weight:600;margin-bottom:4px;">✓ Most Valuable</div>
+            <div style="font-size:0.83rem;color:var(--text-secondary);">${ev.bestPart}</div>
+          </div>` : ''}
+          ${ev.improvements ? `<div style="flex:1;min-width:200px;background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.72rem;color:#6496ff;font-weight:600;margin-bottom:4px;">💡 Suggested Improvements</div>
+            <div style="font-size:0.83rem;color:var(--text-secondary);">${ev.improvements}</div>
+          </div>` : ''}
+        </div>` : ''}
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">
+      Submitted training evaluations from trainees (available after interview is marked completed).
+    </p>
+    ${summaryHTML}
+    ${rowsHTML}`;
 }
 
 function renderSettingsTab() {
@@ -1273,12 +1403,12 @@ function toggleAdminRole(uname) {
   const users = getUsersDB();
   if (!users[uname]) return;
   // Cannot change your own admin role
-  if (uname === CUR_ADMIN) { alert('Bạn không thể thay đổi quyền Admin của chính mình.'); return; }
+  if (uname === CUR_ADMIN) { alert('You cannot change your own Admin role.'); return; }
   // Cannot change the base system admin account
-  if (uname === 'admin') { alert('Không thể thay đổi quyền của tài khoản admin gốc.'); return; }
+  if (uname === 'admin') { alert('Cannot change the role of the root admin account.'); return; }
   const isAdmin = users[uname].role === 'admin';
-  const action = isAdmin ? 'Thu hồi quyền Admin' : 'Cấp quyền Admin';
-  if (!confirm(`${action} cho tài khoản "${uname}"?\n\n${isAdmin ? 'Tài khoản này sẽ trở thành trainee và mất quyền truy cập admin.' : 'Tài khoản này sẽ có đầy đủ quyền admin.'}`)) return;
+  const action = isAdmin ? 'Revoke Admin' : 'Grant Admin';
+  if (!confirm(`${action} for account "${uname}"?\n\n${isAdmin ? 'This account will become a trainee and lose admin access.' : 'This account will have full admin privileges.'}`)) return;
   const newRole = isAdmin ? 'trainee' : 'admin';
   users[uname].role = newRole;
   localStorage.setItem('wmt_users_db', JSON.stringify(users));
@@ -1301,15 +1431,15 @@ async function migrateLeaderNames() {
   }
 
   if (updates.length === 0) {
-    alert('✅ Tất cả leaderName đã chuẩn — không cần cập nhật.');
+    alert('✅ All leaderName values are already correct — no updates needed.');
     return;
   }
 
   const preview = updates.slice(0, 10).map(({uname, oldVal, newVal}) =>
     `• ${uname}: "${oldVal}" → "${newVal}"`).join('\n')
-    + (updates.length > 10 ? `\n… và ${updates.length - 10} user khác` : '');
+    + (updates.length > 10 ? `\n… and ${updates.length - 10} more users` : '');
 
-  if (!confirm(`Sẽ cập nhật leaderName cho ${updates.length} tài khoản:\n\n${preview}\n\nTiếp tục?`)) return;
+  if (!confirm(`Will update leaderName for ${updates.length} account${updates.length!==1?'s':''}:\n\n${preview}\n\nContinue?`)) return;
 
   // Apply to localStorage
   for (const { uname, newVal } of updates) users[uname].leaderName = newVal;
@@ -1322,12 +1452,12 @@ async function migrateLeaderNames() {
     );
     try {
       await Promise.all(promises);
-      alert(`✅ Đã chuẩn hoá leaderName cho ${updates.length} tài khoản và lưu lên Firebase.`);
+      alert(`✅ Normalised leaderName for ${updates.length} account${updates.length!==1?'s':''} and saved to Firebase.`);
     } catch (e) {
-      alert(`⚠️ LocalStorage đã cập nhật nhưng Firebase gặp lỗi:\n${e.message}`);
+      alert(`⚠️ localStorage updated but Firebase write failed:\n${e.message}`);
     }
   } else {
-    alert(`✅ Đã chuẩn hoá leaderName cho ${updates.length} tài khoản (chỉ localStorage — Firebase chưa kết nối).`);
+    alert(`✅ Normalised leaderName for ${updates.length} account${updates.length!==1?'s':''} (localStorage only — Firebase not connected).`);
   }
 
   renderAdminPanel();
@@ -1568,7 +1698,7 @@ function deleteUser(uname) {
   const _du = getUsersDB();
   // Protect all admin accounts — revoke admin role first
   if (_du[uname] && _du[uname].role === 'admin') {
-    alert(`Không thể xóa tài khoản admin "${uname}".\nHãy thu hồi quyền Admin trước, sau đó mới xóa.`);
+    alert(`Cannot delete admin account "${uname}".\nPlease revoke Admin role first, then delete.`);
     return;
   }
   if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
@@ -2039,7 +2169,7 @@ function renderRescheduleTab() {
   const missingDeadline = reqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
   const warningBanner = missingDeadline.length
     ? `<div style="margin-bottom:14px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
-        ⚠️ <strong>${missingDeadline.length} request</strong> đã approve nhưng <strong>chưa có deadline</strong> — user không thể vào thi. Bấm <strong>"⚠️ Set Deadline"</strong> để mở cửa sổ thi.
+        ⚠️ <strong>${missingDeadline.length} request${missingDeadline.length!==1?'s':''}</strong> approved but <strong>no deadline set</strong> — users cannot enter the test. Click <strong>"⚠️ Set Deadline"</strong> to open their test window.
        </div>`
     : '';
 
@@ -2067,12 +2197,12 @@ function renderRescheduleTab() {
         ${req.status==='approved'?`
           <button class="btn-xs app" onclick="approveRs('${un}','${m}')"
             style="background:rgba(0,214,143,0.12);border-color:var(--success);"
-            title="${req.rsDeadline?'Chỉnh sửa deadline':'⚠️ Deadline chưa được đặt — cần set ngay'}">
+            title="${req.rsDeadline?'Edit approved deadline':'⚠️ Deadline not set — set it now to open the test window'}">
             ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
           </button>`:''}
         <button class="btn-xs" onclick="resetRs('${un}','${m}')"
           style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
-          title="Xoá request — user có thể gửi lại">↩ Reset</button>
+          title="Remove request — user can submit a new one">↩ Reset</button>
       </div>
     </div>`).join('');
 }
@@ -2089,7 +2219,7 @@ function approveRs(un, m) {
     <h3 style="margin-bottom:8px;">✓ Approve Reschedule</h3>
     <div style="font-size:0.84rem;color:var(--text-muted);margin-bottom:16px;">
       <strong>${un}</strong>${(getUsersDB()[un]?.fullName?' — '+getUsersDB()[un].fullName:'')}<br>
-      Tháng: <strong>${fmtMonth(m)}</strong> &nbsp;·&nbsp; Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong>
+      Month: <strong>${fmtMonth(m)}</strong> &nbsp;·&nbsp; Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong>
     </div>
     <div class="form-group">
       <label>Test Opens At</label>
@@ -2100,7 +2230,7 @@ function approveRs(un, m) {
       <label>Test Deadline *</label>
       <input type="datetime-local" id="rsApproveDeadline"
         style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
-      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Gợi ý: thêm 2–4 giờ sau giờ bắt đầu.</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Tip: add 2–4 hours after the start time.</div>
     </div>
     <div class="error-msg" id="rsApproveErr"></div>
     <div class="modal-footer">
@@ -2146,7 +2276,7 @@ function rejectRs(un,m) {
 
 function resetRs(un, m) {
   const ud=getUsersDB()[un];
-  if(!confirm(`Xoá request reschedule tháng ${fmtMonth(m)} của "${ud?.fullName||un}"?\n\nUser có thể gửi lại request mới.`)) return;
+  if(!confirm(`Remove ${fmtMonth(m)} reschedule request for "${ud?.fullName||un}"?\n\nThe user can submit a new request after this.`)) return;
   const rs=getRS(un);
   delete rs[m];
   if(Object.keys(rs).length===0) dbRemove('wmt_monthly_reschedule_'+un);

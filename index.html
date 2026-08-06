@@ -414,6 +414,19 @@
           <a href="interview.html" class="btn btn-primary" id="ivCardBtn">Book Interview →</a>
         </div>
       </div>
+
+      <!-- Evaluation card — shown after interview completed -->
+      <div id="evalCard" style="display:none">
+        <div class="section-title">Training Evaluation</div>
+        <div class="exam-ready-card" id="evalCardInner" style="background:linear-gradient(135deg,rgba(100,150,255,0.1),rgba(100,150,255,0.02));border-color:rgba(100,150,255,0.3);">
+          <div class="exam-ready-text">
+            <h4 id="evalCardTitle" style="color:#6496ff;">📋 Complete Your Evaluation</h4>
+            <p id="evalCardDesc">Your interview is complete! Please fill in the training evaluation to finalise your onboarding.</p>
+            <div class="locked-msg" id="evalCardSub" style="color:#FFA500;"></div>
+          </div>
+          <a href="evaluation.html" class="btn btn-primary" id="evalCardBtn" style="background:linear-gradient(135deg,#6496ff,#4a6fdb);">Start Evaluation →</a>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -893,6 +906,25 @@ function initDashboard(user) {
         subEl.textContent   = iv.status === 'confirmed' && iv.meetingLink ? '🔗 Meeting link ready' : '';
         btnEl.textContent   = meta.btn;
       }
+    }
+  }
+
+  // Evaluation card — show when interview completed
+  const iv = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
+  const evalData = JSON.parse(localStorage.getItem('wmt_eval_' + user) || 'null');
+  if (examData.passed && !isExisted && iv?.status === 'completed') {
+    document.getElementById('evalCard').style.display = 'block';
+    if (evalData?.submittedAt) {
+      document.getElementById('evalCardTitle').textContent  = '✅ Evaluation Completed';
+      document.getElementById('evalCardDesc').textContent   = 'Thank you for your feedback! Your onboarding is now fully complete.';
+      document.getElementById('evalCardSub').textContent    = '';
+      document.getElementById('evalCardBtn').textContent    = 'View Evaluation →';
+      document.getElementById('evalCardInner').style.background   = 'linear-gradient(135deg,rgba(0,214,143,0.08),rgba(0,214,143,0.02))';
+      document.getElementById('evalCardInner').style.borderColor  = 'rgba(0,214,143,0.25)';
+      document.getElementById('evalCardTitle').style.color        = 'var(--success)';
+      document.getElementById('evalCardBtn').style.background     = 'linear-gradient(135deg,#00d68f,#00a868)';
+    } else {
+      document.getElementById('evalCardSub').textContent = '⚠️ Required — must be completed to finalise onboarding';
     }
   }
 

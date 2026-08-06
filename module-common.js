@@ -491,6 +491,15 @@ function getSidebarHTML(activeModule) {
         <span class="nav-icon">🎤</span> Interview
         <span class="nav-badge" style="background:rgba(0,214,143,0.15);color:var(--success)">${ivStatus}</span>
       </a>` : ''}
+      ${(!isMod && examPassed && iv?.status === 'completed') ? (() => {
+        const ev = JSON.parse(localStorage.getItem('wmt_eval_' + user) || 'null');
+        const evBadge = ev?.submittedAt
+          ? `<span class="nav-badge" style="background:rgba(0,214,143,0.15);color:var(--success)">✅</span>`
+          : `<span class="nav-badge" style="background:rgba(255,165,0,0.18);color:#FFA500;">!</span>`;
+        return `<a href="evaluation.html" class="nav-item ${activeModule === 'evaluation' ? 'active' : ''}" ${!ev?.submittedAt ? 'style="border-left:2px solid #FFA500;"' : ''}>
+          <span class="nav-icon">📋</span> Evaluation ${evBadge}
+        </a>`;
+      })() : ''}
       ${(isAdmin || isLeader) ? `
       <a href="leader.html" class="nav-item ${activeModule === 'leader' ? 'active' : ''}">
         <span class="nav-icon">👥</span> Member Management
