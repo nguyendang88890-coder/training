@@ -375,7 +375,10 @@
         <div class="section-title">Overview</div>
         <div class="admin-stats" id="adminStats"></div>
 
-        <div class="section-title">Registered Users</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div class="section-title" style="margin-bottom:0;">Registered Users</div>
+          <button class="btn btn-primary" onclick="openCreateAccountModal()" style="padding:9px 18px;font-size:0.85rem;">➕ Create Account</button>
+        </div>
         <div class="filter-bar" id="filterBar">
           <input type="text" id="filterSearch" placeholder="🔍 Username, email, working name, leader…" oninput="applyUserFilters()">
           <select id="filterDept" onchange="applyUserFilters()">
@@ -501,6 +504,93 @@
         </div>
       </div>
 
+    </div>
+  </div>
+</div>
+
+<!-- Create Account Modal -->
+<div class="modal-overlay" id="createAccountModal">
+  <div class="modal-box" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin-bottom:18px;">➕ Create New Account</h3>
+
+    <!-- Success view (hidden until created) -->
+    <div id="createAccountSuccess" style="display:none;text-align:center;padding:8px 0 16px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🎉</div>
+      <div style="font-weight:700;color:var(--success);font-size:1.1rem;margin-bottom:6px;">Account Created!</div>
+      <div style="color:var(--text-muted);font-size:0.84rem;margin-bottom:20px;">Share these credentials with the user.</div>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:left;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">USERNAME</span>
+          <button onclick="copyText('caResultUsername')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.8rem;padding:2px 8px;">📋 Copy</button>
+        </div>
+        <div id="caResultUsername" style="font-size:1.05rem;font-weight:700;color:var(--text-primary);font-family:monospace;margin-bottom:14px;word-break:break-all;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">PASSWORD</span>
+          <button onclick="copyText('caResultPassword')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.8rem;padding:2px 8px;">📋 Copy</button>
+        </div>
+        <div id="caResultPassword" style="font-size:1.05rem;font-weight:700;color:var(--gold);font-family:monospace;word-break:break-all;"></div>
+      </div>
+      <button onclick="copyBoth()" class="btn btn-primary" style="width:100%;margin-bottom:10px;">📋 Copy Both Credentials</button>
+      <button onclick="closeCreateModal(true)" class="btn btn-secondary" style="width:100%;">Done</button>
+    </div>
+
+    <!-- Form view -->
+    <div id="createAccountForm">
+      <!-- Quick Fill from Card -->
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.04em;">⚡ QUICK FILL FROM SLACK CARD</div>
+        <textarea id="caCardPaste" rows="4" placeholder="Paste Slack card text here…&#10;&#10;Họ tên: Nguyen Van A&#10;Work Email: a.nguyen@example.com&#10;Department: Business Development&#10;Position: Sales Trainee"
+          style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);font-size:0.82rem;resize:vertical;font-family:inherit;"></textarea>
+        <button onclick="parseSlackCard()" class="btn btn-secondary" style="margin-top:8px;font-size:0.82rem;padding:6px 16px;">Parse &amp; Fill Fields</button>
+        <div id="caParseMsg" style="font-size:0.78rem;margin-top:6px;display:none;"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Username *</label>
+          <input type="text" id="caUsername" placeholder="e.g. john_doe" autocomplete="off" maxlength="20"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">3–20 chars: letters, numbers, _ only</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Full Name</label>
+          <input type="text" id="caFullName" placeholder="e.g. Nguyen Van A"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Work Name</label>
+          <input type="text" id="caWorkName" placeholder="e.g. Alex (display name)"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Email</label>
+          <input type="email" id="caEmail" placeholder="e.g. john@example.com"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Department</label>
+          <input type="text" id="caDepartment" placeholder="e.g. Business Development"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Position</label>
+          <input type="text" id="caPosition" placeholder="e.g. Sales Trainee"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+          <label>Leader</label>
+          <select id="caLeader" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+            <option value="">— No Leader —</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="caError" style="color:var(--danger);font-size:0.83rem;margin-top:14px;display:none;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-primary" onclick="adminCreateAccount()" style="flex:1;">Create Account</button>
+        <button class="btn btn-secondary" onclick="closeCreateModal()" style="flex:1;">Cancel</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1265,7 +1355,7 @@ function renderUsersTableBody() {
     const ivColor = iv ? (ivColors[iv.status] || ivColors.pending) : 'var(--text-muted)';
     const ivCell  = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <span style="color:${ivColor};font-size:0.8rem;font-weight:600;">${ivText}</span>
-      <button class="btn-xs edi" onclick="openSetIvStatus('${uname}')" title="Change interview status" style="padding:2px 8px;font-size:0.7rem;">🎤 Set</button>
+      <button class="btn-xs edit" onclick="openSetIvStatus('${uname}')" title="Change interview status" style="padding:2px 8px;font-size:0.7rem;">🎤 Set</button>
     </div>`;
 
     const joined = udata.createdAt
@@ -1325,7 +1415,7 @@ function renderUsersTableBody() {
       <td>${ivCell}</td>
       <td>
         <div class="action-btns">
-          <button class="btn-xs edit"   onclick="openEditUser('${uname}')">✎ Edit</button>
+          <button class="btn-xs editt"   onclick="openEditUser('${uname}')">✎ Edit</button>
           <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
           <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${udata.role==='admin'?'disabled title="Revoke admin role first before deleting"':''}>✕ Delete</button>
         </div>
@@ -1902,8 +1992,8 @@ function openExamReset(uname) {
       value: 'restore_attempt1',
       icon: '↺',
       color: 'var(--warning)',
-      label: 'Restore — 1 attempt remaining',
-      sub: 'Clear attempt 2 result; user retains 1 attempt (attempt 2). Attempt 1 data is preserved.'
+      label: 'Restore — 2 fresh attempts (full reset)',
+      sub: 'Clear all exam data. User starts over with 2 fresh attempts.'
     });
     opts.push({
       value: 'full_reset',
@@ -2332,6 +2422,200 @@ document.addEventListener('keydown', function(e) {
     if (document.getElementById('confirmModal').classList.contains('show'))  saveConfirmInterview();
   }
 });
+
+// ===== CREATE ACCOUNT =====
+function generatePassword() {
+  const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower  = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const syms   = '@#$!';
+  const all    = upper + lower + digits + syms;
+  let pw = upper[Math.floor(Math.random()*upper.length)]
+         + lower[Math.floor(Math.random()*lower.length)]
+         + digits[Math.floor(Math.random()*digits.length)]
+         + syms[Math.floor(Math.random()*syms.length)];
+  for (let i = 0; i < 6; i++) pw += all[Math.floor(Math.random()*all.length)];
+  return pw.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+function parseSlackCard() {
+  const raw = (document.getElementById('caCardPaste').value || '').trim();
+  const msgEl = document.getElementById('caParseMsg');
+  if (!raw) {
+    msgEl.style.color = 'var(--danger)'; msgEl.textContent = 'Please paste card text first.'; msgEl.style.display = '';
+    return;
+  }
+
+  // Normalise: remove bold/italic markdown, split into lines
+  const lines = raw.split('\n').map(l => l.replace(/\*+/g, '').trim()).filter(Boolean);
+
+  // Build a label→value map (handles "Label: Value" and "Label:Value")
+  const map = {};
+  for (const line of lines) {
+    const colon = line.indexOf(':');
+    if (colon < 1) continue;
+    const label = line.slice(0, colon).trim().toLowerCase();
+    const value = line.slice(colon + 1).trim();
+    if (value) map[label] = value;
+  }
+
+  const filled = [];
+
+  // Full name
+  const name = map['họ tên'] || map['ho ten'] || map['full name'] || map['name'] || '';
+  if (name) { document.getElementById('caFullName').value = name; filled.push('Full Name'); }
+
+  // Work Email → also auto-derive username
+  const email = map['work email'] || map['email'] || '';
+  if (email) {
+    document.getElementById('caEmail').value = email; filled.push('Email');
+    const prefix = email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+    if (prefix.length >= 3) {
+      document.getElementById('caUsername').value = prefix.slice(0, 20); filled.push('Username');
+    }
+  }
+
+  // Department
+  const dept = map['department'] || map['phòng ban'] || map['phong ban'] || '';
+  if (dept) { document.getElementById('caDepartment').value = dept; filled.push('Department'); }
+
+  // Position
+  const pos = map['position'] || map['chức vụ'] || map['chuc vu'] || map['title'] || '';
+  if (pos) { document.getElementById('caPosition').value = pos; filled.push('Position'); }
+
+  // Work Name (future card field)
+  const workName = map['work name'] || map['tên hiển thị'] || '';
+  if (workName) { document.getElementById('caWorkName').value = workName; filled.push('Work Name'); }
+
+  // Leader (future card field) — match against dropdown options
+  const leaderRaw = map['leader'] || map['trưởng nhóm'] || '';
+  if (leaderRaw) {
+    const leaderSel = document.getElementById('caLeader');
+    const lowerRaw = leaderRaw.toLowerCase();
+    let matched = false;
+    for (const opt of leaderSel.options) {
+      if (opt.value && opt.textContent.toLowerCase().includes(lowerRaw)) {
+        leaderSel.value = opt.value; filled.push('Leader'); matched = true; break;
+      }
+    }
+    if (!matched) filled.push(`Leader (no match for "${leaderRaw}" — select manually)`);
+  }
+
+  if (filled.length) {
+    msgEl.style.color = 'var(--success)';
+    msgEl.textContent = '✓ Filled: ' + filled.join(', ') + '. Review and adjust as needed.';
+  } else {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = 'No recognised fields found. Check the card format.';
+  }
+  msgEl.style.display = '';
+}
+
+function openCreateAccountModal() {
+  // Reset form
+  document.getElementById('createAccountForm').style.display   = '';
+  document.getElementById('createAccountSuccess').style.display = 'none';
+  ['caUsername','caFullName','caWorkName','caEmail','caDepartment','caPosition']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const cardPaste = document.getElementById('caCardPaste');
+  if (cardPaste) cardPaste.value = '';
+  const parseMsg = document.getElementById('caParseMsg');
+  if (parseMsg) { parseMsg.style.display = 'none'; parseMsg.textContent = ''; }
+  document.getElementById('caError').style.display = 'none';
+
+  // Populate leader dropdown
+  const users = getUsersDB();
+  const leaderSel = document.getElementById('caLeader');
+  leaderSel.innerHTML = '<option value="">— No Leader —</option>';
+  Object.entries(users)
+    .filter(([, ud]) => ud.isLeader || ud.role === 'admin')
+    .sort(([, a], [, b]) => (a.workName || a.fullName || '').localeCompare(b.workName || b.fullName || ''))
+    .forEach(([uname, ud]) => {
+      const label = ud.workName || ud.fullName || uname;
+      const opt = document.createElement('option');
+      opt.value = uname;
+      opt.textContent = `${label} (@${uname})`;
+      leaderSel.appendChild(opt);
+    });
+
+  document.getElementById('createAccountModal').classList.add('show');
+}
+
+function closeCreateModal(refresh) {
+  document.getElementById('createAccountModal').classList.remove('show');
+  if (refresh) { renderAdminPanel(); populateFilterDropdowns(); }
+}
+
+function adminCreateAccount() {
+  const u       = (document.getElementById('caUsername').value || '').trim().toLowerCase();
+  const errEl   = document.getElementById('caError');
+  errEl.style.display = 'none';
+
+  if (!/^[a-z0-9_]{3,20}$/.test(u)) {
+    errEl.textContent = 'Username must be 3–20 characters: letters, numbers, underscores only.'; errEl.style.display=''; return;
+  }
+  const users = getUsersDB();
+  if (users[u]) {
+    errEl.textContent = `Username "${u}" is already taken.`; errEl.style.display=''; return;
+  }
+
+  const password = generatePassword();
+  const newUser = {
+    password,
+    role:         'trainee',
+    fullName:     (document.getElementById('caFullName').value  || '').trim(),
+    workName:     (document.getElementById('caWorkName').value  || '').trim(),
+    email:        (document.getElementById('caEmail').value     || '').trim(),
+    department:   (document.getElementById('caDepartment').value|| '').trim(),
+    position:     (document.getElementById('caPosition').value  || '').trim(),
+    employeeType: 'new',
+    leaderName:   (() => {
+      const sel = document.getElementById('caLeader');
+      if (!sel.value) return '';
+      const opt = sel.options[sel.selectedIndex];
+      // Store display name (workName/fullName) to stay consistent with manual entry
+      return opt ? (opt.textContent.split(' (@')[0].trim()) : sel.value;
+    })(),
+    isLeader:     false,
+    testGroup:    'auto',
+    createdAt:    new Date().toISOString(),
+    createdBy:    localStorage.getItem('wmt_user') || 'admin',
+  };
+
+  users[u] = newUser;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) {
+    window.FDB.ref('users/' + u).set(newUser)
+      .catch(e => console.warn('[WMT] create account Firebase error:', e.message));
+  }
+
+  // Show success with credentials
+  document.getElementById('caResultUsername').textContent = u;
+  document.getElementById('caResultPassword').textContent = password;
+  document.getElementById('createAccountForm').style.display    = 'none';
+  document.getElementById('createAccountSuccess').style.display = '';
+}
+
+function copyText(elementId) {
+  const text = document.getElementById(elementId)?.textContent || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`button[onclick="copyText('${elementId}')"]`);
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+  }).catch(() => {
+    const el = document.getElementById(elementId);
+    if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
+  });
+}
+
+function copyBoth() {
+  const u = document.getElementById('caResultUsername')?.textContent || '';
+  const p = document.getElementById('caResultPassword')?.textContent || '';
+  const text = `Username: ${u}\nPassword: ${p}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('button[onclick="copyBoth()"]');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+  });
+}
 
 </script>
 </body>

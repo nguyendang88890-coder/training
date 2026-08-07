@@ -389,7 +389,6 @@ class ModuleQuiz {
       if (btn) btn.style.display = 'none';
       if (chk) chk.style.display = 'flex';
     }
-    if (chk) chk.style.display = 'flex';
 
     updateSidebarProgress();
     document.getElementById('quizContainer').innerHTML = this.buildReviewHTML();
