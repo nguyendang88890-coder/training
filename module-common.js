@@ -419,7 +419,8 @@ function getSidebarHTML(activeModule) {
     { id: 4, icon: '💳', title: 'Payment Methods',     file: 'module4.html' },
     { id: 5, icon: '💰', title: 'Financial Products',  file: 'module5.html' },
     { id: 6, icon: '🤝', title: 'Introducing Partner', file: 'module6.html' },
-    { id: 7, icon: '⚖️', title: 'Compliance & Risk',   file: 'module7.html' }
+    { id: 7, icon: '⚖️', title: 'Compliance & Risk',   file: 'module7.html' },
+    { id: 8, icon: '⭐', title: 'Review Policy',        file: 'module8.html' }
   ];
   const user    = localStorage.getItem('wmt_user') || 'Trainee';
   const users   = getUsersDB();

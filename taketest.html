@@ -179,8 +179,121 @@ const _urlParams = new URLSearchParams(location.search);
 const urlMonth = _urlParams.get('month');
 const urlSupp  = _urlParams.get('supp');
 
+// Helper: resolve effective deadline from config/reschedule state (synchronous, localStorage only)
+function _resolveDeadline() {
+  if (!_currentCfg) return;
+  if (_suppSchedule) {
+    const mySuppRs = getSuppRS(CUR_USER)[urlSupp];
+    _effectiveDeadline = (mySuppRs?.status === 'approved' && mySuppRs.rsDeadline)
+      ? mySuppRs.rsDeadline
+      : (IS_BDCS ? _suppSchedule.deadlineBDCS : _suppSchedule.deadlineOthers);
+  } else {
+    const myRsM = getRS(CUR_USER)[_currentMonth];
+    _effectiveDeadline = (myRsM?.status === 'approved' && myRsM.rsDeadline)
+      ? myRsM.rsDeadline
+      : (IS_BDCS ? _currentCfg.deadlineBDCS : _currentCfg.deadlineOthers);
+  }
+}
+
+// Helper: set all state vars from localStorage for a given month (no Firebase)
+function _resolveMonthState() {
+  const cfgs = getMC();
+  if (urlSupp) {
+    _suppSchedule = getSS()[urlSupp] || null;
+    if (!_suppSchedule) return false;
+    _currentMonth = _suppSchedule.targetMonth;
+    _currentCfg   = cfgs[_currentMonth] || null;
+  } else {
+    _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
+    if (!_currentMonth) {
+      const sorted = Object.keys(cfgs).sort().reverse();
+      for (const m of sorted) {
+        if (getSubmission(CUR_USER, m)?.submittedAt) { _currentMonth = m; break; }
+      }
+    }
+    if (!_currentMonth) return false;
+    _currentCfg = cfgs[_currentMonth];
+  }
+  return true;
+}
+
+// Helper: backfill questionSnapshot from live qbank into an existing submission
+function _backfillSnapshot(sub) {
+  if (sub.questionSnapshot || !_qbank?.questions) return;
+  const snapshot = {};
+  _qbank.questions.forEach(q => {
+    snapshot[q.id] = {
+      text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
+      ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
+      ...(q.rubric         ? { rubric: q.rubric }                  : {})
+    };
+  });
+  sub.questionSnapshot = snapshot;
+  saveSubmission(CUR_USER, _currentMonth, sub);
+}
+
 document.addEventListener('DOMContentLoaded', async function() {
-  if (window.FDB && CUR_USER) {
+  if (!CUR_USER) { location.href = 'index.html'; return; }
+  if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
+
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
+
+  // === FAST PATH: if submission already in localStorage, show result immediately ===
+  if (_resolveMonthState()) {
+    _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
+    const fastSub = getSubmission(CUR_USER, _currentMonth);
+    if (fastSub?.submittedAt) {
+      _resolveDeadline();
+      _backfillSnapshot(fastSub);
+      renderResult(fastSub, _currentCfg || {});
+
+      // Background Firebase sync — picks up essay grading, answer reveals, gentest edits
+      if (window.FDB) {
+        Promise.all([
+          FDB.ref(`users/${CUR_USER}`).once('value').then(s => {
+            if (!s.exists()) return;
+            const db = getUsersDB();
+            db[CUR_USER] = { ...db[CUR_USER], ...s.val() };
+            localStorage.setItem('wmt_users_db', JSON.stringify(db));
+            USER_DATA = db[CUR_USER]; IS_BDCS = isBDCS(USER_DATA); MY_GROUP = IS_BDCS ? 'bdcs' : 'others';
+          }).catch(() => {}),
+          FDB.ref('monthly_config').once('value').then(s => {
+            if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
+          }).catch(() => {}),
+          FDB.ref(`submissions/${CUR_USER}`).once('value').then(s => {
+            if (s.exists()) Object.entries(s.val()).forEach(([m, d]) =>
+              localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
+          }).catch(() => {}),
+          FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value').then(s => {
+            if (s.exists()) localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(s.val()));
+          }).catch(() => {}),
+          FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
+            if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+          }).catch(() => {}),
+          FDB.ref('supp_schedules').once('value').then(s => {
+            if (s.exists()) localStorage.setItem('wmt_supp_schedules', JSON.stringify(s.val()));
+          }).catch(() => {}),
+          FDB.ref(`supp_reschedule/${CUR_USER}`).once('value').then(s => {
+            if (s.exists()) localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+          }).catch(() => {}),
+        ]).then(() => {
+          // Re-render with fresh data (catches grading updates, answer reveals)
+          const freshSub = getSubmission(CUR_USER, _currentMonth);
+          if (!freshSub?.submittedAt) return;
+          const freshQbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
+          if (freshQbank) _qbank = freshQbank;
+          _resolveDeadline();
+          _backfillSnapshot(freshSub);
+          renderResult(freshSub, getMC()[_currentMonth] || _currentCfg || {});
+        }).catch(() => {});
+      }
+      return;
+    }
+  }
+  // === END FAST PATH ===
+
+  // === SLOW PATH: user has not submitted — need full sync before showing test ===
+  if (window.FDB) {
     try {
       // Step 1: sync user profile first so testGroup is up-to-date before fetching gentest
       await FDB.ref(`users/${CUR_USER}`).once('value').then(s => {
@@ -231,75 +344,19 @@ document.addEventListener('DOMContentLoaded', async function() {
       ]);
     } catch(e) { console.warn('[taketest] sync:', e.message); }
   }
-  if (!CUR_USER) { location.href = 'index.html'; return; }
-  if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
 
-  // Build sidebar
-  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
-
-  // Find test
-  const cfgs = getMC();
-
-  // Supplementary test path
-  if (urlSupp) {
-    _suppSchedule = getSS()[urlSupp] || null;
-    if (!_suppSchedule) {
-      renderError('Supplementary schedule not found. <a href="monthlytest.html" style="color:var(--gold)">Go back</a>');
-      return;
-    }
-    _currentMonth = _suppSchedule.targetMonth;
-    _currentCfg   = cfgs[_currentMonth] || null;
-  } else {
-    _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
-
-    // Fallback: if no active window, check if user has a submission for a recent month
-    if (!_currentMonth) {
-      const sorted = Object.keys(cfgs).sort().reverse();
-      for (const m of sorted) {
-        const s = getSubmission(CUR_USER, m);
-        if (s && s.submittedAt) { _currentMonth = m; break; }
-      }
-    }
-
-    if (!_currentMonth) {
-      renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
-      return;
-    }
-    _currentCfg = cfgs[_currentMonth];
+  // Re-resolve state with fresh data from sync
+  if (!_resolveMonthState()) {
+    renderError('No active test found. Back to <a href="monthlytest.html" style="color:var(--gold)">Monthly Test</a>.');
+    return;
   }
 
-  // Load qbank + submission early — can show review even if config failed to load
+  // Load qbank + check submission (may now exist after sync)
   _qbank = getGenTest(MY_GROUP, _currentMonth) || getQBank(MY_GROUP);
   const sub = getSubmission(CUR_USER, _currentMonth);
   if (sub && sub.submittedAt) {
-    // Resolve deadline from config for correct-answer gating (best-effort)
-    if (_currentCfg) {
-      if (_suppSchedule) {
-        const mySuppRs = getSuppRS(CUR_USER)[urlSupp];
-        _effectiveDeadline = (mySuppRs?.status === 'approved' && mySuppRs.rsDeadline)
-          ? mySuppRs.rsDeadline
-          : (IS_BDCS ? _suppSchedule.deadlineBDCS : _suppSchedule.deadlineOthers);
-      } else {
-        const myRS  = getRS(CUR_USER);
-        const myRsM = myRS[_currentMonth];
-        _effectiveDeadline = (myRsM?.status === 'approved' && myRsM.rsDeadline)
-          ? myRsM.rsDeadline
-          : (IS_BDCS ? _currentCfg.deadlineBDCS : _currentCfg.deadlineOthers);
-      }
-    }
-    // Backfill questionSnapshot for old submissions that don't have it yet
-    if (!sub.questionSnapshot && _qbank && _qbank.questions) {
-      const snapshot = {};
-      _qbank.questions.forEach(q => {
-        snapshot[q.id] = {
-          text: q.text, type: q.type, isLiet: !!q.isLiet, points: q.points,
-          ...(q.type === 'MCQ' ? { opts: q.opts, correct: q.correct } : {}),
-          ...(q.rubric         ? { rubric: q.rubric }                  : {})
-        };
-      });
-      sub.questionSnapshot = snapshot;
-      saveSubmission(CUR_USER, _currentMonth, sub);
-    }
+    _resolveDeadline();
+    _backfillSnapshot(sub);
     renderResult(sub, _currentCfg || {});
     return;
   }

@@ -2127,7 +2127,7 @@ function saveOneOthers(un, month, passOthers) {
 
 // ===== AI ESSAY GRADING =====
 let _essayCtx = null;
-let _essayTemplate = null;
+let _essayTemplate = JSON.parse(localStorage.getItem('wmt_essay_template') || 'null');
 
 function preScoreByKeywords(answer, keywords, required, maxPoints) {
   if (!keywords || !keywords.length || !required) return null;
@@ -2169,6 +2169,7 @@ function saveEssayTemplate() {
   }
   if (!Object.keys(scores).length) { alert('Enter at least one score before saving as template.'); return; }
   _essayTemplate = { month: ctx.month, scores };
+  localStorage.setItem('wmt_essay_template', JSON.stringify(_essayTemplate));
   const btn = document.getElementById('essTemplateSaveBtn');
   if (btn) { btn.textContent = '✅ Saved!'; setTimeout(() => { btn.textContent = '📋 Save as Template'; }, 2000); }
 }

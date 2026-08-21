@@ -186,7 +186,7 @@ window.syncFromFirebase = async function() {
           const snap = await window.FDB.ref(`quiz/${u}`).once('value');
           // Always clear all 7 slots for this user first, then repopulate from Firebase.
           // This ensures that if admin deleted a quiz entry it is also removed from localStorage.
-          for (let m = 1; m <= 7; m++) {
+          for (let m = 1; m <= 8; m++) {
             localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
           }
           if (snap.exists()) {
