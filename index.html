@@ -717,7 +717,8 @@ const MODULES = [
   { id: 4, title: 'Payment Methods',        icon: '💳', file: 'module4.html' },
   { id: 5, title: 'Financial Products',     icon: '💰', file: 'module5.html' },
   { id: 6, title: 'Introducing Partner',    icon: '🤝', file: 'module6.html' },
-  { id: 7, title: 'Compliance & Risk',      icon: '⚖️', file: 'module7.html' }
+  { id: 7, title: 'Compliance & Risk',      icon: '⚖️', file: 'module7.html' },
+  { id: 8, title: 'Review Policy',          icon: '⭐', file: 'module8.html', reference: true }
 ];
 
 // ===== DASHBOARD =====
@@ -767,8 +768,10 @@ function initDashboard(user) {
     const completed = progress[key + '_done'];
     const score = progress[key + '_score'];
 
-    if (completed) completedCount++;
-    if (score !== undefined) { totalScore += score; scoredModules++; }
+    if (!m.reference) {
+      if (completed) completedCount++;
+      if (score !== undefined) { totalScore += score; scoredModules++; }
+    }
 
     const badge   = document.getElementById(`badge-m${m.id}`);
     const navItem = document.getElementById(`nav-m${m.id}`);
@@ -779,21 +782,31 @@ function initDashboard(user) {
       if (navItem) navItem.classList.add('completed');
     }
 
-    const status      = completed ? 'completed' : (score !== undefined ? 'inprogress' : 'pending');
-    const statusLabel = completed ? '✓ Completed' : (score !== undefined ? '● In Progress' : '○ Not Started');
+    let status, statusLabel;
+    if (m.reference) {
+      status = completed ? 'completed' : 'pending';
+      statusLabel = completed ? '✓ Read' : '○ Reference';
+    } else {
+      status = completed ? 'completed' : (score !== undefined ? 'inprogress' : 'pending');
+      statusLabel = completed ? '✓ Completed' : (score !== undefined ? '● In Progress' : '○ Not Started');
+    }
+
+    const refBadge = m.reference
+      ? `<span style="font-size:0.6rem;font-weight:700;background:rgba(100,150,255,0.15);color:#6496ff;border:1px solid rgba(100,150,255,0.3);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">REFERENCE</span>`
+      : '';
 
     grid.innerHTML += `
       <a href="${m.file}" class="module-card ${completed ? 'completed' : ''}">
         <div class="module-card-header">
           <div class="module-number">${completed ? '✓' : m.id}</div>
           <div>
-            <div class="module-title">${m.title}</div>
+            <div class="module-title">${m.title}${refBadge}</div>
             <div class="module-meta">
               <span class="status-badge ${status}">${statusLabel}</span>
             </div>
           </div>
         </div>
-        ${score !== undefined ? `<div class="quiz-score">Quiz Score: ${score}%</div>` : ''}
+        ${!m.reference && score !== undefined ? `<div class="quiz-score">Quiz Score: ${score}%</div>` : ''}
       </a>`;
   });
 

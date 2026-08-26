@@ -493,6 +493,22 @@ function getSubmission(un, month) {
 }
 function saveSubmission(un, month, data) { dbWrite('wmt_sub_'+un+'_'+month, JSON.stringify(data)); }
 
+function submitRecordingIssue(month) {
+  const noteEl = document.getElementById('recIssueNote_' + month);
+  const msgEl  = document.getElementById('recIssueMsg_'  + month);
+  const note = (noteEl?.value || '').trim();
+  if (!note) {
+    if (msgEl) { msgEl.style.color = 'var(--danger)'; msgEl.textContent = 'Please describe the issue first.'; msgEl.style.display = ''; }
+    return;
+  }
+  const sub = getSubmission(CUR_USER, month) || {};
+  sub.recordingIssue = { note, reportedAt: new Date().toISOString() };
+  saveSubmission(CUR_USER, month, sub);
+  if (msgEl) { msgEl.style.color = 'var(--success)'; msgEl.textContent = '✓ Issue reported. Admin will follow up.'; msgEl.style.display = ''; }
+  // Re-render the test card so the toggle updates to "reported" state
+  setTimeout(() => renderCurrentTestCard && renderCurrentTestCard(), 600);
+}
+
 function renderQBankTab() {
   const el = document.getElementById('adminQBankTab');
   el.innerHTML = `
@@ -1896,6 +1912,7 @@ function renderScoresTables() {
           : `<span style="font-size:0.7rem;font-weight:700;padding:2px 7px;border-radius:6px;background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
         const subBadge = sub
           ? `<span style="font-size:0.72rem;font-weight:700;color:var(--success)">✅ Submitted</span>
+             ${sub.recordingIssue?`<br><span style="font-size:0.7rem;font-weight:700;color:#FFA500;">⚠️ Tech Issue</span>`:''}
              ${sub.essayPending?`<br><button class="btn-xs edi" style="margin-top:4px;font-size:0.7rem" onclick="openEssayModal('${un}','${month}')">📝 Essay</button>`:''}
              ${suggestScore!==null?`<br><span style="font-size:0.7rem;color:var(--text-muted)">MCQ: ${sub.mcqScore}pts</span>`:''}`
           : `<span style="font-size:0.72rem;color:var(--text-muted)">Not Submitted</span>`;
@@ -3700,6 +3717,36 @@ function renderCurrentTestCard() {
   }
 
   const driveLink = cfg.driveLink || '';
+  const recIssue = existingSub?.recordingIssue;
+
+  // Issue report section — shown when user has submitted but couldn't record
+  const issueToggle = existingSub?.submittedAt ? (recIssue
+    ? `<div style="margin-top:8px;font-size:0.79rem;color:var(--warning);display:flex;align-items:flex-start;gap:6px;">
+        <span>⚠️</span>
+        <span>Technical issue reported — admin will review.<br>
+          <em style="color:var(--text-muted);">"${recIssue.note.slice(0,80)}${recIssue.note.length > 80 ? '…' : ''}"</em>
+        </span>
+      </div>`
+    : `<div style="margin-top:8px;">
+        <button onclick="document.getElementById('recIssueForm_${m}').style.display=''"
+          style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.79rem;padding:0;text-decoration:underline;">
+          ❗ Can't submit recording? Report a technical issue
+        </button>
+        <div id="recIssueForm_${m}" style="display:none;margin-top:8px;padding:10px;background:rgba(255,165,0,0.05);border:1px solid rgba(255,165,0,0.2);border-radius:8px;">
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:6px;">Describe the issue briefly (e.g. OBS crashed, screen capture failed):</div>
+          <textarea id="recIssueNote_${m}" rows="3" placeholder="e.g. OBS crashed after test submission, recording file corrupted…"
+            style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text-primary);font-size:0.8rem;resize:vertical;font-family:inherit;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap;">
+            <button onclick="submitRecordingIssue('${m}')"
+              style="padding:5px 14px;background:rgba(255,165,0,0.15);border:1px solid rgba(255,165,0,0.35);color:#FFA500;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;">Submit Report</button>
+            <button onclick="document.getElementById('recIssueForm_${m}').style.display='none'"
+              style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:0.79rem;">Cancel</button>
+            <div id="recIssueMsg_${m}" style="display:none;font-size:0.78rem;"></div>
+          </div>
+        </div>
+      </div>`)
+    : '';
+
   const obsHTML = (st === 'active' || st === 'upcoming') ? `
     <div class="obs-callout">
       <div class="obs-callout-icon">🎥</div>
@@ -3713,12 +3760,16 @@ function renderCurrentTestCard() {
         ${driveLink
           ? `<a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener">📤 Submit Recording (Google Drive) →</a>`
           : `<div style="margin-top:10px;font-size:0.8rem;color:var(--text-muted);font-style:italic;">⏳ Admin has not provided a submission link. Please contact Admin.</div>`}
+        ${issueToggle}
       </div>
-    </div>` : (driveLink && st === 'expired') ? `
-    <div style="margin-top:16px;padding:12px 18px;background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    </div>` : (st === 'expired') ? `
+    <div style="margin-top:16px;padding:12px 18px;background:rgba(255,61,113,0.05);border:1px solid rgba(255,61,113,0.2);border-radius:10px;flex-wrap:wrap;${driveLink ? 'display:flex;align-items:center;gap:12px;' : 'display:block;'}">
       <span style="font-size:1.2rem;">🎥</span>
-      <div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">If you have not submitted your OBS recording file, please upload it now.</div>
-      <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Submit Recording →</a>
+      ${driveLink
+        ? `<div style="flex:1;font-size:0.83rem;color:var(--text-secondary);">If you have not submitted your OBS recording file, please upload it now.</div>
+           <a class="obs-submit-btn" href="${driveLink}" target="_blank" rel="noopener" style="margin-top:0;padding:8px 18px;font-size:0.82rem;">📤 Submit Recording →</a>`
+        : `<span style="font-size:0.83rem;color:var(--text-secondary);">Recording submission period ended.</span>`}
+      ${issueToggle}
     </div>` : '';
 
   const rsInfoHTML = hasApprovedRS
@@ -3900,9 +3951,11 @@ function renderTraineeHistory() {
         const startD=userIsBDCSH?cfg?.startDateBDCS:cfg?.startDateOthers;
         const endD  =userIsBDCSH?cfg?.deadlineBDCS :cfg?.deadlineOthers;
         const lietTd=userIsBDCSH?`<td style="text-align:center;color:${sc?.liet>0?'var(--danger)':'var(--text-muted)'}">${sc?.liet??'—'}</td>`:'';
-        const driveTd = cfg?.driveLink
-          ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Submit</a></td>`
-          : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
+        const driveTd = sub?.recordingIssue
+          ? `<td><span style="font-size:0.78rem;font-weight:700;color:#FFA500;">⚠️ Issue reported</span><br><span style="font-size:0.7rem;color:var(--text-muted)">Admin will review</span></td>`
+          : cfg?.driveLink
+            ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Submit</a></td>`
+            : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
         const suppBadge = sub?.suppId ? `<span class="supp-badge" style="font-size:0.65rem;padding:2px 6px;margin-left:5px;">SUPP</span>` : '';
         return `<tr>
           <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}${suppBadge}</td>

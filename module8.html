@@ -261,33 +261,20 @@
         <p>This policy is owned by the <strong>Office of the CEO</strong> and is reviewed at least <strong>annually</strong>, and immediately after any material incident, platform warning, or violation. Where a platform's rules are stricter, WeMasterTrade may impose additional controls pending formal review.</p>
       </div>
 
-      <!-- Mark Complete -->
+      <!-- Mark as Read (reference module — no quiz required) -->
       <div class="mark-complete-bar">
         <div class="mark-complete-text">
-          <h4>Ready to move on?</h4>
-          <p>Mark this module complete after reading all content and taking the quiz below.</p>
+          <h4>Done reading?</h4>
+          <p>This is a <strong>reference module</strong> — no quiz required. Mark it as read when you're done.</p>
         </div>
-        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(8)">✓ Mark as Complete</button>
-        <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+        <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleRead()">✓ Mark as Read</button>
+        <div class="completed-check hidden" id="completedCheck">✅ Policy Read!</div>
       </div>
 
-      <!-- Mini Quiz -->
-      <div class="quiz-section">
-        <div class="quiz-header">
-          <h3>📝 Module 8 Quiz</h3>
-          <span class="quiz-counter" id="quizCounterTop">6 Questions</span>
-        </div>
-        <div class="quiz-progress-dots" id="quizDots"></div>
-        <div id="quizContainer"></div>
-        <div id="quizNavBottom"></div>
-        <div class="quiz-result" id="quizResult">
-          <div class="result-score" id="quizScore"></div>
-          <p id="quizResultMsg"></p>
-          <div style="margin-top:16px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-            <a href="index.html" class="btn btn-secondary">← Dashboard</a>
-            <a href="exam.html" class="btn btn-primary">Take Final Exam →</a>
-          </div>
-        </div>
+      <!-- Navigation -->
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:24px 0 8px;">
+        <a href="index.html" class="btn btn-secondary">← Dashboard</a>
+        <a href="exam.html" class="btn btn-primary">Take Final Exam →</a>
       </div>
 
     </div>
@@ -301,74 +288,27 @@
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(8);
 updateSidebarProgress();
-checkCompleted(8);
 
-const questions = [
-  {
-    q: "According to the Review Policy, when may an employee submit a review of WeMasterTrade?",
-    opts: [
-      "Only if they are also a genuine client",
-      "Only with CS/BD leadership approval",
-      "Never — employees may never submit a review",
-      "Only to test or troubleshoot the platform"
-    ],
-    _c: "Mg==",
-    explain: "Employees and contractors must NEVER submit, modify, or rate a client review of WeMasterTrade — even if they are also a genuine client, and even to test or troubleshoot the platform."
-  },
-  {
-    q: "Which of the following is a PERMITTED incentive for requesting a client review?",
-    opts: [
-      "Priority withdrawal processing",
-      "A personal thank-you after a voluntary review",
-      "A discount on their next purchase",
-      "Bonus trading credits"
-    ],
-    _c: "MQ==",
-    explain: "A simple thank-you after a voluntary review is fine — provided no benefit is offered. All other incentives (discounts, credits, priority service, bonuses) are strictly prohibited."
-  },
-  {
-    q: "What is the maximum number of review requests one employee may send per week?",
-    opts: ["5–10 clients", "No limit, as long as they are genuine clients", "2–3 clients", "1 client"],
-    _c: "Mg==",
-    explain: "Contact no more than 2–3 clients per week per requester. All requests must also be recorded in the Review Request Log. Mass campaigns across departments are prohibited."
-  },
-  {
-    q: "A client just had their withdrawal successfully processed. A support agent asks: 'Would you mind leaving us a review?' Is this permitted?",
-    opts: [
-      "Yes — the interaction was positive so it's fine",
-      "Yes — as long as no rating is suggested",
-      "No — support-triggered requests are prohibited",
-      "Yes — as long as it is logged in the Review Request Log"
-    ],
-    _c: "Mg==",
-    explain: "Support staff must not routinely ask for a review just because a ticket was resolved, a payout processed, or a client had a positive interaction. This is explicitly prohibited under Section 8.2.8."
-  },
-  {
-    q: "Who is authorized to request client reviews on behalf of WeMasterTrade?",
-    opts: [
-      "Any employee, provided they log the request",
-      "Only employees expressly authorized by CS/BD leadership",
-      "Any employee who has completed Module 8 training",
-      "All senior employees regardless of department"
-    ],
-    _c: "MQ==",
-    explain: "Only employees expressly authorized by CS/BD leadership may request client reviews. WMT must maintain a current list of authorized requesters. No one may independently start a review campaign."
-  },
-  {
-    q: "What is the consequence for any employee found to have violated this Review Policy?",
-    opts: [
-      "A written warning for the first offense",
-      "Suspension without pay pending investigation",
-      "Demotion and additional mandatory training",
-      "Immediate termination, regardless of intent or seniority"
-    ],
-    _c: "Mw==",
-    explain: "The policy is explicit: any employee or contractor found to have violated this policy after it takes effect will be terminated immediately — without exception, regardless of intent, seniority, or role."
+// Reference module — mark as read without quiz requirement
+(function checkRead() {
+  const p = getProgress();
+  if (p['module8_done']) {
+    const btn = document.getElementById('markCompleteBtn');
+    const chk = document.getElementById('completedCheck');
+    if (btn) btn.style.display = 'none';
+    if (chk) chk.style.display = 'flex';
   }
-];
+})();
 
-const quiz = new ModuleQuiz(8, questions);
-quiz.render();
+function markModuleRead() {
+  const p = getProgress();
+  p['module8_done'] = true;
+  dbWrite('wmt_progress_' + (localStorage.getItem('wmt_user') || ''), JSON.stringify(p));
+  const btn = document.getElementById('markCompleteBtn');
+  const chk = document.getElementById('completedCheck');
+  if (btn) btn.style.display = 'none';
+  if (chk) chk.style.display = 'flex';
+}
 </script>
 </body>
 </html>

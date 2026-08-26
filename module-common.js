@@ -189,7 +189,7 @@ function toggleSidebar() {
 
 function updateSidebarProgress() {
   const p = getProgress();
-  for (let i = 1; i <= 7; i++) {
+  for (let i = 1; i <= 8; i++) {
     const badge = document.getElementById(`badge-m${i}`);
     const navItem = document.getElementById(`nav-m${i}`);
     if (badge && p[`module${i}_done`]) {
