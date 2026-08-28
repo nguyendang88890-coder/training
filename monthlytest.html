@@ -1924,7 +1924,9 @@ function renderScoresTables() {
         };
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
-          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div>
+              ${ud.department?`<div style="font-size:0.73rem;color:var(--text-muted)">${ud.department}</div>`:''}
+              ${ud.email?`<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.75;">${ud.email}</div>`:''}</td>
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
           <td>${typeBadge}</td>
           <td>${subBadge}</td>
@@ -1982,7 +1984,9 @@ function renderScoresTables() {
         };
         return `<tr>
           <td style="color:var(--text-muted);font-size:0.78rem;width:28px">${idx+1}</td>
-          <td><div style="font-weight:500">${ud.fullName||un}</div><div style="font-size:0.73rem;color:var(--text-muted)">${ud.department||''}</div></td>
+          <td><div style="font-weight:500">${ud.fullName||un}</div>
+              ${ud.department?`<div style="font-size:0.73rem;color:var(--text-muted)">${ud.department}</div>`:''}
+              ${ud.email?`<div style="font-size:0.7rem;color:var(--text-muted);opacity:0.75;">${ud.email}</div>`:''}</td>
           <td style="font-weight:600;color:var(--text-primary)">${un}</td>
           <td>${typeBadge}</td>
           <td>${subBadge}</td>
