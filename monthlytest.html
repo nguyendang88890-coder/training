@@ -1926,21 +1926,26 @@ function renderScoresTables() {
   const scores = getMS()[month]||{};
   let trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
 
-  // Auto-persist Others MCQ scores from submission data when no score exists yet.
-  // This handles the case where the user's own Firebase write to monthly_scores failed
+  // Auto-persist MCQ scores from submission data when no score exists yet.
+  // Covers both Others (always MCQ-only) and BDCS when there are no essay questions
+  // (essayPending === false means the full score is already in mcqScore).
+  // Handles the case where the user's own Firebase write to monthly_scores failed
   // (e.g. security rules only allow admin writes). Runs silently in the background.
   const passOthersAuto = cfg?.passOthers ?? 70;
+  const passBDCSAuto   = cfg?.passBDCS   ?? 250;
+  const lietMaxAuto    = cfg?.lietMax    ?? 10;
   const autoEntries = {};
-  Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && !isBDCS(u)).forEach(([un]) => {
+  Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin').forEach(([un, ud]) => {
     if (scores[un]) return; // already has a score entry — skip
     const sub = getSubmission(un, month);
     if (!sub?.submittedAt || sub.mcqScore == null) return;
-    autoEntries[un] = {
-      score: sub.mcqScore,
-      passed: sub.mcqScore >= passOthersAuto,
-      gradedAt: sub.submittedAt,
-      autoGraded: true
-    };
+    const userIsBDCS = isBDCS(ud);
+    // BDCS: only auto-save when no essay is pending (pure MCQ test or already graded)
+    if (userIsBDCS && sub.essayPending) return;
+    const liet = sub.lietWrong ?? 0;
+    autoEntries[un] = userIsBDCS
+      ? { score: sub.mcqScore, liet, passed: sub.mcqScore >= passBDCSAuto && liet <= lietMaxAuto, gradedAt: sub.submittedAt, autoGraded: true }
+      : { score: sub.mcqScore, passed: sub.mcqScore >= passOthersAuto, gradedAt: sub.submittedAt, autoGraded: true };
   });
   if (Object.keys(autoEntries).length) {
     saveMonthScores(month, autoEntries);
