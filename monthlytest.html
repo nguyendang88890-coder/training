@@ -335,6 +335,44 @@ function getMC()      { return JSON.parse(localStorage.getItem(MC_KEY) || '{}');
 function saveMC(d)    { dbWrite(MC_KEY, JSON.stringify(d)); }
 function getMS()      { return JSON.parse(localStorage.getItem(MS_KEY) || '{}'); }
 function saveMS(d)    { dbWrite(MS_KEY, JSON.stringify(d)); }
+
+// Targeted write — updates ONLY one user's score entry, never overwrites other users.
+// Use this everywhere instead of saveMS() to avoid race-condition overwrites.
+function saveScoreEntry(month, un, entry) {
+  const all = getMS();
+  if (!all[month]) all[month] = {};
+  all[month][un] = entry;
+  localStorage.setItem(MS_KEY, JSON.stringify(all));
+  if (window.FDB) {
+    window.FDB.ref(`monthly_scores/${month}/${un}`).set(entry)
+      .catch(err => console.warn('[Firebase] saveScoreEntry failed:', err.message));
+  }
+}
+
+// Targeted delete — removes ONLY one user's score entry.
+function deleteScoreEntry(month, un) {
+  const all = getMS();
+  if (all[month]?.[un]) {
+    delete all[month][un];
+    localStorage.setItem(MS_KEY, JSON.stringify(all));
+  }
+  if (window.FDB) {
+    window.FDB.ref(`monthly_scores/${month}/${un}`).remove()
+      .catch(err => console.warn('[Firebase] deleteScoreEntry failed:', err.message));
+  }
+}
+
+// Targeted bulk write — updates ONLY the entries provided within a month, never touches other months.
+function saveMonthScores(month, entries) {
+  const all = getMS();
+  if (!all[month]) all[month] = {};
+  Object.assign(all[month], entries);
+  localStorage.setItem(MS_KEY, JSON.stringify(all));
+  if (window.FDB) {
+    window.FDB.ref(`monthly_scores/${month}`).update(entries)
+      .catch(err => console.warn('[Firebase] saveMonthScores failed:', err.message));
+  }
+}
 function getRS(u)     { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
 function saveRS(u,d)  { dbWrite('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
 const SUPP_KEY = 'wmt_supp_schedules';
@@ -2114,28 +2152,26 @@ function saveOneBDCS(un, month, passBDCS, lietMax) {
   const v    = parseFloat(document.getElementById(`sc_bdcs_${un}`).value);
   const liet = parseInt(document.getElementById(`liet_${un}`).value) || 0;
   if (isNaN(v)||v<0||v>300) { alert('Score must be 0–300.'); return; }
-  const all=getMS(); if (!all[month]) all[month]={};
-  all[month][un]={ score:v, liet, passed: v>=passBDCS && liet<=lietMax, gradedAt:new Date().toISOString() };
-  saveMS(all); renderScoresTables();
+  saveScoreEntry(month, un, { score:v, liet, passed: v>=passBDCS && liet<=lietMax, gradedAt:new Date().toISOString() });
+  renderScoresTables();
 }
 
 function saveAllBDCS(month) {
   const cfg = getMC()[month] || {};
   const passBDCS = cfg.passBDCS ?? 250;
   const lietMax  = cfg.lietMax  ?? 10;
-  const all = getMS();
-  if (!all[month]) all[month] = {};
+  const entries = {};
   let saved = 0, skipped = 0;
   document.querySelectorAll('[id^="sc_bdcs_"]').forEach(inp => {
     const un = inp.id.replace('sc_bdcs_', '');
     const v = parseFloat(inp.value);
     if (isNaN(v) || v < 0 || v > 300) { skipped++; return; }
     const liet = parseInt(document.getElementById(`liet_${un}`)?.value) || 0;
-    all[month][un] = { score: v, liet, passed: v >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
+    entries[un] = { score: v, liet, passed: v >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
     saved++;
   });
   if (!saved) { alert('No valid scores to save. Fill in score fields first.'); return; }
-  saveMS(all);
+  saveMonthScores(month, entries);
   renderScoresTables();
   if (skipped) alert(`Saved ${saved} score${saved !== 1 ? 's' : ''}. Skipped ${skipped} row${skipped !== 1 ? 's' : ''} with blank/invalid scores.`);
 }
@@ -2143,9 +2179,8 @@ function saveAllBDCS(month) {
 function saveOneOthers(un, month, passOthers) {
   const v = parseFloat(document.getElementById(`sc_others_${un}`).value);
   if (isNaN(v)||v<0||v>100) { alert('Score must be 0–100.'); return; }
-  const all=getMS(); if (!all[month]) all[month]={};
-  all[month][un]={ score:v, passed: v>=passOthers, gradedAt:new Date().toISOString() };
-  saveMS(all); renderScoresTables();
+  saveScoreEntry(month, un, { score:v, passed: v>=passOthers, gradedAt:new Date().toISOString() });
+  renderScoresTables();
 }
 
 // ===== AI ESSAY GRADING =====
@@ -2202,8 +2237,8 @@ function applyTemplateToAll(month) {
   const cfg = getMC()[month] || {};
   const passBDCS = cfg.passBDCS ?? 250;
   const lietMax  = cfg.lietMax  ?? 10;
-  const ms = getMS();
-  if (!ms[month]) ms[month] = {};
+  const curScores = getMS()[month] || {};
+  const entries = {};
   let count = 0;
   Object.entries(getUsersDB()).forEach(([un, ud]) => {
     if (!isBDCS(ud)) return;
@@ -2215,12 +2250,12 @@ function applyTemplateToAll(month) {
     sub.essayPending = false;
     saveSubmission(un, month, sub);
     const total = (sub.mcqScore || 0) + essayTotal;
-    const liet = ms[month]?.[un]?.liet ?? sub.lietWrong ?? 0;
-    ms[month][un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
+    const liet = curScores[un]?.liet ?? sub.lietWrong ?? 0;
+    entries[un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
     count++;
   });
   if (!count) { alert('No pending submissions found to apply template to.'); return; }
-  saveMS(ms);
+  saveMonthScores(month, entries);
   document.getElementById('bulkEssayModal')?.remove();
   renderScoresTables();
   alert(`Template applied and saved for ${count} submission${count !== 1 ? 's' : ''}.`);
@@ -2233,8 +2268,8 @@ function bulkApplyKeywords(month) {
   const passBDCS = cfg.passBDCS ?? 250;
   const lietMax  = cfg.lietMax  ?? 10;
   const qs = (gt?.questions || qb?.questions || []).filter(q => q.type === 'Essay');
-  const ms = getMS();
-  if (!ms[month]) ms[month] = {};
+  const curScores = getMS()[month] || {};
+  const entries = {};
   let applied = 0;
   Object.entries(getUsersDB()).forEach(([un, ud]) => {
     if (!isBDCS(ud)) return;
@@ -2251,12 +2286,12 @@ function bulkApplyKeywords(month) {
     sub.essayScores = essayScores; sub.essayTotal = essayTotal; sub.essayPending = false;
     saveSubmission(un, month, sub);
     const total = (sub.mcqScore || 0) + essayTotal;
-    const liet = ms[month]?.[un]?.liet ?? sub.lietWrong ?? 0;
-    ms[month][un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
+    const liet = curScores[un]?.liet ?? sub.lietWrong ?? 0;
+    entries[un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
     applied++;
   });
   if (!applied) { alert('No pending submissions with configured keywords found.'); return; }
-  saveMS(ms);
+  saveMonthScores(month, entries);
   document.getElementById('bulkEssayModal')?.remove();
   renderScoresTables();
   alert(`Keyword scores applied and saved for ${applied} submission${applied !== 1 ? 's' : ''}. Review individually with 📝 Grade.`);
@@ -2506,12 +2541,9 @@ function applyEssayScores() {
     saveSubmission(ctx.un, ctx.month, sub);
   }
 
-  // Save directly to monthly_scores
-  const ms = getMS();
-  if (!ms[ctx.month]) ms[ctx.month] = {};
-  const liet = ms[ctx.month]?.[ctx.un]?.liet ?? sub?.lietWrong ?? 0;
-  ms[ctx.month][ctx.un] = { score: total, liet, passed: total >= passBDCS && liet <= lietMax, gradedAt: new Date().toISOString() };
-  saveMS(ms);
+  // Save directly to monthly_scores (targeted write, no overwrite risk)
+  const existingLiet = getMS()[ctx.month]?.[ctx.un]?.liet ?? sub?.lietWrong ?? 0;
+  saveScoreEntry(ctx.month, ctx.un, { score: total, liet: existingLiet, passed: total >= passBDCS && existingLiet <= lietMax, gradedAt: new Date().toISOString() });
 
   document.getElementById('essayModal')?.remove();
   _essayCtx = null;
@@ -2965,12 +2997,8 @@ function deleteSubmission(un, month) {
   // Remove from Firebase
   if (window.FDB) FDB.ref(`submissions/${un}/${month}`).remove().catch(() => {});
 
-  // Remove score from monthly_scores
-  const ms = getMS();
-  if (ms[month]?.[un]) {
-    delete ms[month][un];
-    saveMS(ms);
-  }
+  // Remove score from monthly_scores (targeted delete, no overwrite risk)
+  deleteScoreEntry(month, un);
 
   renderHistTable();
   renderScoresTables();

@@ -756,17 +756,25 @@ async function doSubmit(auto) {
   saveSubmission(CUR_USER, _currentMonth, submission);
 
   // Auto-populate MCQ score in monthly scores (Others only, BD/CS waits for essay)
+  // Uses a targeted Firebase path write to avoid overwriting other users' scores.
   if (!IS_BDCS) {
     const passOthers = mc.passOthers ?? 70;
-    const allScores = getMS();
-    if (!allScores[_currentMonth]) allScores[_currentMonth] = {};
-    allScores[_currentMonth][CUR_USER] = {
-      score:   mcqScore,
-      passed:  mcqScore >= passOthers,
-      gradedAt: new Date().toISOString(),
+    const scoreEntry = {
+      score:      mcqScore,
+      passed:     mcqScore >= passOthers,
+      gradedAt:   new Date().toISOString(),
       autoGraded: true
     };
-    saveMS(allScores);
+    // Update localStorage (full object)
+    const allScores = getMS();
+    if (!allScores[_currentMonth]) allScores[_currentMonth] = {};
+    allScores[_currentMonth][CUR_USER] = scoreEntry;
+    localStorage.setItem('wmt_monthly_scores', JSON.stringify(allScores));
+    // Write only this user's entry to Firebase — no risk of overwriting others
+    if (window.FDB) {
+      window.FDB.ref(`monthly_scores/${_currentMonth}/${CUR_USER}`).set(scoreEntry)
+        .catch(err => console.warn('[Firebase] score write failed:', err.message));
+    }
   }
 
   renderResult(submission, mc);
