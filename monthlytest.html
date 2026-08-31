@@ -1505,9 +1505,27 @@ window.addEventListener('load', async function() {
           renderRescheduleTab();
         }
       });
-      // Also keep monthly_scores live so Scores tab reflects new supp submissions
+      // Keep monthly_scores live; also re-render Scores tab if it's visible so new
+      // submissions appear without needing to switch tabs.
       FDB.ref('monthly_scores').on('value', snap => {
         if (snap.exists()) localStorage.setItem('wmt_monthly_scores', JSON.stringify(snap.val()));
+        if (!document.getElementById('adminScoresTab')?.classList.contains('hidden')) {
+          renderScoresTables();
+        }
+      });
+
+      // Keep submissions live so new test submissions appear in Scores tab without hard refresh.
+      FDB.ref('submissions').on('value', snap => {
+        if (!snap.exists()) return;
+        const allSubs = snap.val();
+        Object.entries(allSubs).forEach(([un, months]) => {
+          Object.entries(months || {}).forEach(([m, sub]) => {
+            localStorage.setItem(`wmt_sub_${un}_${m}`, JSON.stringify(sub));
+          });
+        });
+        if (!document.getElementById('adminScoresTab')?.classList.contains('hidden')) {
+          renderScoresTables();
+        }
       });
     } else if (!IS_MOD) {
       // Trainee: watch own supp reschedule so admin approval shows immediately
@@ -1907,6 +1925,27 @@ function renderScoresTables() {
   const cfg    = getMC()[month];
   const scores = getMS()[month]||{};
   let trainees = Object.entries(getUsersDB()).filter(([,u])=>u.role!=='admin');
+
+  // Auto-persist Others MCQ scores from submission data when no score exists yet.
+  // This handles the case where the user's own Firebase write to monthly_scores failed
+  // (e.g. security rules only allow admin writes). Runs silently in the background.
+  const passOthersAuto = cfg?.passOthers ?? 70;
+  const autoEntries = {};
+  Object.entries(getUsersDB()).filter(([,u]) => u.role !== 'admin' && !isBDCS(u)).forEach(([un]) => {
+    if (scores[un]) return; // already has a score entry — skip
+    const sub = getSubmission(un, month);
+    if (!sub?.submittedAt || sub.mcqScore == null) return;
+    autoEntries[un] = {
+      score: sub.mcqScore,
+      passed: sub.mcqScore >= passOthersAuto,
+      gradedAt: sub.submittedAt,
+      autoGraded: true
+    };
+  });
+  if (Object.keys(autoEntries).length) {
+    saveMonthScores(month, autoEntries);
+    Object.assign(scores, autoEntries);
+  }
 
   if (search) {
     trainees = trainees.filter(([uname, ud]) => {
