@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HubSpot Training | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">HubSpot Training</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+      <div class="module-header">
+        <div class="module-header-num" style="background:linear-gradient(135deg,#ff7a59,#ff5c35);">🎓</div>
+        <div class="module-header-info">
+          <h2>HubSpot Training</h2>
+          <p>Watch the training videos below to get familiar with HubSpot CRM tools and workflows</p>
+        </div>
+      </div>
+
+      <!-- Access gate — shown only to non-BD/CS users via JS -->
+      <div id="accessDenied" class="content-section hidden">
+        <div class="callout" style="border-color:var(--warning);background:rgba(245,158,11,0.07);">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>This module is for BD &amp; CS teams only</strong>
+            <p>HubSpot Training is only required for Business Development and Customer Service department members.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content — shown for BD/CS -->
+      <div id="hubspotContent">
+
+        <div class="content-section">
+          <div class="callout info">
+            <span class="callout-icon">ℹ️</span>
+            <div class="callout-content">
+              <strong>Watch all videos before marking complete</strong>
+              <p>This module has no quiz. After watching all clips, click <strong>Mark as Complete</strong> at the bottom of the page.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video clips -->
+        <div class="content-section">
+          <h3>📹 Training Videos</h3>
+
+          <div id="videoList" style="display:flex;flex-direction:column;gap:24px;margin-top:16px;">
+
+            <div class="video-item" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+              <div style="background:var(--surface-2);padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;">
+                🎬 HubSpot Training
+              </div>
+              <div style="padding:16px;">
+                <video
+                  controls
+                  style="width:100%;border-radius:6px;background:#000;display:block;"
+                  preload="metadata">
+                  <source src="Hubspot.mp4" type="video/mp4">
+                  Your browser does not support HTML5 video.
+                </video>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Mark Complete -->
+        <div class="mark-complete-bar">
+          <div class="mark-complete-text">
+            <h4>Finished watching all videos?</h4>
+            <p>Click the button to mark this module as complete.</p>
+          </div>
+          <button class="btn btn-success" id="markCompleteBtn" onclick="markHubspotComplete()">✓ Mark as Complete</button>
+          <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
+        </div>
+
+      </div><!-- /#hubspotContent -->
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="module-common.js"></script>
+<script>
+document.getElementById('sidebar').innerHTML = getSidebarHTML('hubspot');
+updateSidebarProgress();
+
+// Department gate
+(function() {
+  const user  = localStorage.getItem('wmt_user') || '';
+  const users = getUsersDB();
+  const dept  = (users[user]?.department || '').toLowerCase();
+  const isBDCS = dept.includes('business development') || dept.includes('customer service')
+               || dept === 'bd' || dept === 'cs';
+
+  if (!isBDCS) {
+    document.getElementById('accessDenied').classList.remove('hidden');
+    document.getElementById('hubspotContent').classList.add('hidden');
+    return;
+  }
+
+  // Check if already completed
+  const p = getProgress();
+  if (p['moduleHS_done']) {
+    document.getElementById('markCompleteBtn').style.display = 'none';
+    document.getElementById('completedCheck').classList.remove('hidden');
+    document.getElementById('completedCheck').style.display = 'flex';
+  }
+})();
+
+function markHubspotComplete() {
+  const p = getProgress();
+  p['moduleHS_done'] = true;
+  saveProgress(p);
+  document.getElementById('markCompleteBtn').style.display = 'none';
+  const chk = document.getElementById('completedCheck');
+  chk.classList.remove('hidden');
+  chk.style.display = 'flex';
+  updateSidebarProgress();
+}
+</script>
+</body>
+</html>

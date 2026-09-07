@@ -199,6 +199,15 @@ function updateSidebarProgress() {
       if (navItem) navItem.classList.add('completed');
     }
   }
+  // HubSpot module
+  const hsBadge = document.getElementById('badge-mHS');
+  const hsNav   = document.getElementById('nav-mHS');
+  if (hsBadge && p['moduleHS_done']) {
+    hsBadge.textContent = '✓';
+    hsBadge.style.background = 'rgba(0,214,143,0.15)';
+    hsBadge.style.color = 'var(--success)';
+    if (hsNav) hsNav.classList.add('completed');
+  }
 }
 
 // ===== ANSWER DECODER =====
@@ -449,6 +458,10 @@ function getSidebarHTML(activeModule) {
     userRoleDisplay = parts.length ? parts.join(' · ') : (isOld ? 'Existed Employee' : 'Trainee');
   }
 
+  const dept    = (udata.department || '').toLowerCase();
+  const isBDCS  = dept.includes('business development') || dept.includes('customer service')
+                || dept === 'bd' || dept === 'cs';
+
   const examData  = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
   const examPassed = examData.passed || false;
   const iv        = JSON.parse(localStorage.getItem('wmt_interview_' + user) || 'null');
@@ -475,6 +488,11 @@ function getSidebarHTML(activeModule) {
           <span class="nav-icon">${m.icon}</span> <span>${m.title}</span>
           <span class="nav-badge" id="badge-m${m.id}">M${m.id}</span>
         </a>`).join('')}
+      ${isBDCS ? `
+        <a href="hubspot.html" class="nav-item ${activeModule === 'hubspot' ? 'active' : ''}" id="nav-mHS">
+          <span class="nav-icon">🎓</span> <span>HubSpot Training</span>
+          <span class="nav-badge" id="badge-mHS" style="background:rgba(255,122,89,0.15);color:#ff7a59;">HS</span>
+        </a>` : ''}
       <div class="nav-section-title">Assessment</div>
       <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
         <span class="nav-icon">📝</span> Final Exam <span class="nav-badge">EXAM</span>

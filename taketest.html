@@ -261,8 +261,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
           }).catch(() => {}),
           FDB.ref(`submissions/${CUR_USER}`).once('value').then(s => {
-            if (s.exists()) Object.entries(s.val()).forEach(([m, d]) =>
+            const fbData = s.exists() ? s.val() : {};
+            Object.entries(fbData).forEach(([m, d]) =>
               localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
+            // If Firebase is missing this month's submission, re-push from localStorage
+            if (!fbData[_currentMonth]) {
+              const localSub = getSubmission(CUR_USER, _currentMonth);
+              if (localSub?.submittedAt) {
+                FDB.ref(`submissions/${CUR_USER}/${_currentMonth}`).set(localSub)
+                  .catch(() => {});
+              }
+            }
           }).catch(() => {}),
           FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value').then(s => {
             if (s.exists()) localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(s.val()));
