@@ -535,6 +535,10 @@ function getSidebarHTML(activeModule) {
       </a>` : ''}
       ${isMod ? `
       <div class="nav-section-title">Moderator</div>
+      <a href="admin.html" class="nav-item ${activeModule === 'admin' ? 'active' : ''}">
+        <span class="nav-icon">📊</span> Evaluations
+        <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">MOD</span>
+      </a>
       <a href="exam.html" class="nav-item ${activeModule === 'exam' ? 'active' : ''}">
         <span class="nav-icon">📝</span> Final Exam <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">VIEW</span>
       </a>

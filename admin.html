@@ -445,17 +445,46 @@
       <!-- ===== INTERVIEWS TAB ===== -->
       <div id="interviewsTab" class="hidden">
         <div class="section-title">Interview Requests</div>
-        <div class="users-table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Username</th><th>Full Name</th><th>Email</th>
-                <th>Preferred Slot</th><th>Timezone</th>
-                <th>Status</th><th>Meeting</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="interviewsTableBody"></tbody>
-          </table>
+
+        <!-- Toolbar: view toggle + month nav -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div style="display:flex;gap:6px;">
+            <button id="ivViewTable" class="btn btn-primary" style="padding:6px 14px;font-size:0.82rem;" onclick="setIvView('table')">☰ Table</button>
+            <button id="ivViewCal"   class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;" onclick="setIvView('calendar')">📅 Calendar</button>
+          </div>
+          <div id="ivCalNav" style="display:none;align-items:center;gap:10px;">
+            <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.82rem;" onclick="shiftIvMonth(-1)">‹</button>
+            <span id="ivCalMonthLabel" style="font-weight:600;min-width:120px;text-align:center;"></span>
+            <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.82rem;" onclick="shiftIvMonth(1)">›</button>
+          </div>
+        </div>
+
+        <!-- Table view -->
+        <div id="ivTableView">
+          <div class="users-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th><th>Full Name</th><th>Email</th>
+                  <th>Preferred Slot</th><th>Timezone</th>
+                  <th>Status</th><th>Meeting</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="interviewsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Calendar view -->
+        <div id="ivCalView" style="display:none;">
+          <!-- Legend -->
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:0.78rem;">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>Pending</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00d68f;margin-right:4px;"></span>Confirmed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6496ff;margin-right:4px;"></span>Completed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>Cancelled</span>
+          </div>
+          <div id="ivCalGrid"></div>
         </div>
       </div>
 
@@ -772,23 +801,64 @@
 // are recognised on their first visit without needing an extra navigation.
 const CUR_ADMIN = localStorage.getItem('wmt_user') || '';
 
+// true if current user is mod (not full admin)
+let CUR_IS_MOD = false;
+
 window.addEventListener('load', async function() {
   await syncFromFirebase();
 
   // Re-check role from freshly-synced data
   const _guardUsers = getUsersDB();
-  if (!CUR_ADMIN || !_guardUsers[CUR_ADMIN] || _guardUsers[CUR_ADMIN].role !== 'admin') {
+  const _curRole = _guardUsers[CUR_ADMIN]?.role;
+  if (!CUR_ADMIN || !_guardUsers[CUR_ADMIN] || (_curRole !== 'admin' && _curRole !== 'mod')) {
     window.location.href = 'index.html';
     return;
   }
 
+  CUR_IS_MOD = (_curRole === 'mod');
+
   document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
   updateSidebarProgress();
-  renderAdminPanel();
-  renderInterviewsTable();
-  updateRsBadge();
-  await runAutoUpgrade();
+
+  if (CUR_IS_MOD) {
+    // Moderators: show Evaluations tab only
+    applyModPermissions();
+    await syncFromFirebase();
+    renderEvaluationsTab();
+  } else {
+    renderAdminPanel();
+    renderInterviewsTable();
+    updateRsBadge();
+    await runAutoUpgrade();
+  }
 });
+
+function applyModPermissions() {
+  // Hide tabs not available to moderators
+  const hiddenTabs = ['tabUsers','tabInterviews','tabQuiz','tabProposals','tabReschedule','tabSettings'];
+  hiddenTabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // Hide corresponding tab content except evaluations
+  ['users','interviews','quiz','proposals','reschedule','settings'].forEach(t => {
+    const el = document.getElementById(t + 'Tab');
+    if (el) el.classList.add('hidden');
+  });
+  // Activate evaluations tab
+  document.getElementById('evaluationsTab').classList.remove('hidden');
+  const tabEl = document.getElementById('tabEvaluations');
+  if (tabEl) tabEl.classList.add('active');
+
+  // Add a mod notice banner
+  const header = document.querySelector('.page-header-row') || document.querySelector('.page-tabs');
+  if (header) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(100,150,255,0.1);border:1px solid rgba(100,150,255,0.3);border-radius:8px;padding:8px 14px;font-size:0.82rem;color:#6496ff;margin-bottom:12px;';
+    banner.textContent = '🛡️ Moderator view — Evaluations only';
+    header.parentNode.insertBefore(banner, header);
+  }
+}
 
 // ===== AUTO-UPGRADE: New → Existed after 2 calendar months =====
 function _isUpgradeEligible(udata) {
@@ -906,6 +976,7 @@ function saveInterviewData(username, data) {
 
 // ===== TAB SWITCH =====
 async function switchTab(tab) {
+  if (CUR_IS_MOD && tab !== 'evaluations') return; // moderators: evaluations only
   ['users','interviews','quiz','proposals','reschedule','evaluations','settings'].forEach(t => {
     document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
@@ -1867,6 +1938,97 @@ function renderInterviewsTable() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ── Interview Calendar ──────────────────────────────────────────────────────
+let _ivView = 'table';
+let _ivCalYear  = new Date().getFullYear();
+let _ivCalMonth = new Date().getMonth(); // 0-indexed
+
+const IV_STATUS_COLOR = { pending:'#f59e0b', confirmed:'#00d68f', completed:'#6496ff', cancelled:'#ef4444', failed:'#ef4444' };
+
+function setIvView(v) {
+  _ivView = v;
+  document.getElementById('ivTableView').style.display = v === 'table' ? '' : 'none';
+  document.getElementById('ivCalView').style.display   = v === 'calendar' ? '' : 'none';
+  document.getElementById('ivCalNav').style.display    = v === 'calendar' ? 'flex' : 'none';
+  document.getElementById('ivViewTable').className = 'btn ' + (v === 'table'    ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('ivViewCal').className   = 'btn ' + (v === 'calendar' ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('ivViewTable').style.padding = '6px 14px';
+  document.getElementById('ivViewTable').style.fontSize = '0.82rem';
+  document.getElementById('ivViewCal').style.padding = '6px 14px';
+  document.getElementById('ivViewCal').style.fontSize = '0.82rem';
+  if (v === 'calendar') renderInterviewCalendar();
+}
+
+function shiftIvMonth(delta) {
+  _ivCalMonth += delta;
+  if (_ivCalMonth > 11) { _ivCalMonth = 0;  _ivCalYear++; }
+  if (_ivCalMonth < 0)  { _ivCalMonth = 11; _ivCalYear--; }
+  renderInterviewCalendar();
+}
+
+function renderInterviewCalendar() {
+  const year = _ivCalYear, month = _ivCalMonth;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('ivCalMonthLabel').textContent = `${MONTHS[month]} ${year}`;
+
+  // Collect all interviews and group by preferredDate
+  const users = getUsersDB();
+  const byDate = {};
+  Object.keys(users).forEach(uname => {
+    const iv = getInterviewData(uname);
+    if (!iv || !iv.preferredDate) return;
+    if (!byDate[iv.preferredDate]) byDate[iv.preferredDate] = [];
+    byDate[iv.preferredDate].push({ uname, iv });
+  });
+
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">`;
+
+  // Header
+  DAY_NAMES.forEach(d => {
+    html += `<div style="text-align:center;font-size:0.75rem;font-weight:700;color:var(--text-muted);padding:6px 0;">${d}</div>`;
+  });
+
+  // Empty cells before 1st
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div style="min-height:72px;"></div>`;
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entries = byDate[dateStr] || [];
+    const isToday = dateStr === today;
+
+    html += `<div style="min-height:72px;border:1px solid var(--border);border-radius:8px;padding:5px 6px;
+                         background:${isToday ? 'rgba(100,150,255,0.08)' : 'var(--surface)'};
+                         ${isToday ? 'border-color:rgba(100,150,255,0.4);' : ''}">
+      <div style="font-size:0.78rem;font-weight:${isToday?'700':'500'};color:${isToday?'#6496ff':'var(--text-secondary)'};margin-bottom:3px;">${d}</div>`;
+
+    entries.forEach(({ uname, iv }) => {
+      const color = IV_STATUS_COLOR[iv.status] || '#f59e0b';
+      html += `<div onclick="openConfirmModal && openConfirmModal('${uname}')"
+                    title="${uname} · ${iv.preferredTime||''} · ${iv.timezone||''}"
+                    style="background:${color}22;border:1px solid ${color}55;border-radius:4px;
+                           padding:2px 5px;margin-bottom:2px;cursor:pointer;
+                           font-size:0.68rem;color:${color};font-weight:600;
+                           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:3px;vertical-align:middle;"></span>${uname}${iv.preferredTime ? ' · '+iv.preferredTime : ''}
+               </div>`;
+    });
+
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('ivCalGrid').innerHTML = html;
 }
 
 function markCompleted(uname) {

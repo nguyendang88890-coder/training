@@ -434,11 +434,72 @@ function showBookedView(b) {
         </div>
       </div>
       ${meetingHtml}
-    </div>`;
+    </div>
+    ${buildMiniCalendar(b)}`;
 
   if (b.status === 'pending') {
     document.getElementById('cancelBtn').style.display = 'inline-flex';
   }
+}
+
+// ── Mini Calendar ────────────────────────────────────────────────────────────
+let _calYear  = null;
+let _calMonth = null;
+let _calBooking = null;
+
+function buildMiniCalendar(b) {
+  if (!b.preferredDate) return '';
+  _calBooking = b;
+  const d = new Date(b.preferredDate + 'T00:00:00');
+  _calYear  = d.getFullYear();
+  _calMonth = d.getMonth();
+  return `<div id="miniCalWrap" style="margin-top:20px;">${renderMiniCalHTML()}</div>`;
+}
+
+function renderMiniCalHTML() {
+  const b = _calBooking;
+  const year = _calYear, month = _calMonth;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const firstDay    = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const bookedDay   = (b.preferredDate && b.preferredDate.startsWith(`${year}-${String(month+1).padStart(2,'0')}`))
+                      ? parseInt(b.preferredDate.slice(8), 10) : null;
+  const today    = new Date();
+  const todayDay = (today.getFullYear() === year && today.getMonth() === month) ? today.getDate() : null;
+  const statusColors = { pending:'#f59e0b', confirmed:'#00d68f', completed:'#6496ff', cancelled:'#ef4444' };
+  const sColor = statusColors[b.status] || '#f59e0b';
+
+  let grid = '';
+  DAY_NAMES.forEach(n => { grid += `<div style="text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);padding:4px 0;">${n}</div>`; });
+  for (let i = 0; i < firstDay; i++) grid += `<div></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isBooked = d === bookedDay;
+    const isToday  = d === todayDay;
+    grid += `<div style="text-align:center;padding:5px 2px;border-radius:50%;font-size:0.8rem;
+      ${isBooked ? `background:${sColor};color:#fff;font-weight:700;` : isToday ? 'color:#6496ff;font-weight:700;' : 'color:var(--text-secondary);'}">${d}</div>`;
+  }
+
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;max-width:320px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <button onclick="shiftMiniCal(-1)" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--text-secondary);">‹</button>
+      <span style="font-weight:700;font-size:0.9rem;">${MONTHS[month]} ${year}</span>
+      <button onclick="shiftMiniCal(1)"  style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;cursor:pointer;color:var(--text-secondary);">›</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${grid}</div>
+    <div style="margin-top:10px;font-size:0.78rem;color:var(--text-muted);text-align:center;">
+      ${bookedDay
+        ? `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sColor};margin-right:4px;vertical-align:middle;"></span>${MONTHS[month]} ${bookedDay}${b.preferredTime ? ' · ' + b.preferredTime : ''}${b.timezone ? ' · ' + b.timezone : ''}`
+        : 'Preferred date not in this month'}
+    </div>
+  </div>`;
+}
+
+function shiftMiniCal(delta) {
+  _calMonth += delta;
+  if (_calMonth > 11) { _calMonth = 0;  _calYear++; }
+  if (_calMonth < 0)  { _calMonth = 11; _calYear--; }
+  document.getElementById('miniCalWrap').innerHTML = renderMiniCalHTML();
 }
 
 function submitBooking() {
