@@ -1975,13 +1975,23 @@ function renderScoresTables() {
     return sc.score >= passOthers ? 'pass' : 'fail';
   }
 
+  const allMS = JSON.parse(localStorage.getItem('wmt_monthly_scores') || '{}');
+  const countFails = un => Object.values(allMS).filter(m => m[un]?.passed === false).length;
+  const failCell  = un => {
+    const n = countFails(un);
+    if (n === 0) return `<td style="text-align:center;color:var(--text-muted);font-size:0.82rem;">0 times</td>`;
+    return `<td style="text-align:center;"><span style="font-weight:700;font-size:0.82rem;padding:2px 8px;border-radius:10px;
+      background:${n>=3?'rgba(239,68,68,0.15)':'rgba(245,158,11,0.15)'};
+      color:${n>=3?'#ef4444':'#f59e0b'};">${n} time${n>1?'s':''}</span></td>`;
+  };
+
   function buildRowsBDCS(list, isSupp=false) {
     if (!list.length) return `<div class="score-section-empty">No trainees in this group.</div>`;
     return `<div class="score-section-body"><table><thead><tr>
       <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
       ${isSupp?'<th>Supp Schedule</th>':''}
       <th>Start</th><th>Submit</th><th>Duration</th>
-      <th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th><th></th>
+      <th>Score (0–300)</th><th>Liet ×</th><th>Pass / Fail</th><th>Total Fails</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
         const sc  = scores[un];
@@ -2028,6 +2038,7 @@ function renderScoresTables() {
             value="${liet!==null?liet:''}" placeholder="0"
             oninput="liveUpdatePFBDCS('${un}',${passBDCS},${lietMax})"></td>
           <td><span class="pf-badge ${pf}" id="pf_bdcs_${un}">${pfTxt}</span></td>
+          ${failCell(un)}
           <td><button class="btn-xs ok" onclick="saveOneBDCS('${un}','${month}',${passBDCS},${lietMax})">Save</button></td>
         </tr>`;
       }).join('')}
@@ -2040,7 +2051,7 @@ function renderScoresTables() {
       <th>#</th><th>Full Name</th><th>Username</th><th>Type</th><th>Submission Status</th>
       ${isSupp?'<th>Supp Schedule</th>':''}
       <th>Start</th><th>Submit</th><th>Duration</th>
-      <th>Score (0–100)</th><th>Pass / Fail</th><th></th>
+      <th>Score (0–100)</th><th>Pass / Fail</th><th>Total Fails</th><th></th>
     </tr></thead><tbody>
       ${list.map(([un,ud], idx)=>{
         const sc  = scores[un];
@@ -2084,6 +2095,7 @@ function renderScoresTables() {
               oninput="liveUpdatePFOthers('${un}',${passOthers})">${autoTag}
           </td>
           <td><span class="pf-badge ${pf}" id="pf_others_${un}">${pfTxt}</span></td>
+          ${failCell(un)}
           <td><button class="btn-xs ok" onclick="saveOneOthers('${un}','${month}',${passOthers})">Save</button></td>
         </tr>`;
       }).join('')}

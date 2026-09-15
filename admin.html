@@ -405,7 +405,7 @@
               <tr>
                 <th>User</th><th>Full Name</th><th>Email</th>
                 <th>Department</th><th>Position</th><th>Role</th><th>Leader</th><th>Type</th><th>Joined</th>
-                <th>Modules</th><th>Avg Score</th><th>Exam</th>
+                <th>Modules</th><th>Avg Score</th><th>Fails</th><th>Exam</th>
                 <th>Interview</th><th>Actions</th>
               </tr>
             </thead>
@@ -1398,6 +1398,8 @@ function renderUsersTableBody() {
       if (p[`module${i}_score`] !== undefined) { scoreSum += p[`module${i}_score`]; scoreCnt++; }
     }
     const avgScore = scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) + '%' : '—';
+    const allMS = JSON.parse(localStorage.getItem('wmt_monthly_scores') || '{}');
+    const failCnt = Object.values(allMS).filter(m => m[uname]?.passed === false).length;
     const modPct   = Math.round((doneCnt / 7) * 100);
 
     let examBadge = '';
@@ -1482,6 +1484,13 @@ function renderUsersTableBody() {
         </div>
       </td>
       <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
+      <td style="text-align:center;">
+        ${failCnt === 0
+          ? `<span style="color:var(--text-muted);font-size:0.85rem;">0 times</span>`
+          : `<span style="font-weight:700;font-size:0.85rem;padding:2px 8px;border-radius:10px;
+              background:${failCnt >= 3 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'};
+              color:${failCnt >= 3 ? '#ef4444' : '#f59e0b'};">${failCnt} time${failCnt > 1 ? 's' : ''}</span>`}
+      </td>
       <td>${examCell}</td>
       <td>${ivCell}</td>
       <td>

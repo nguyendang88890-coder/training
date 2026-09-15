@@ -106,11 +106,13 @@ updateSidebarProgress();
 (function() {
   const user  = localStorage.getItem('wmt_user') || '';
   const users = getUsersDB();
-  const dept  = (users[user]?.department || '').toLowerCase();
+  const role   = (users[user]?.role || '').toLowerCase();
+  const dept   = (users[user]?.department || '').toLowerCase();
   const isBDCS = dept.includes('business development') || dept.includes('customer service')
                || dept === 'bd' || dept === 'cs';
+  const canView = isBDCS || role === 'admin' || role === 'mod';
 
-  if (!isBDCS) {
+  if (!canView) {
     document.getElementById('accessDenied').classList.remove('hidden');
     document.getElementById('hubspotContent').classList.add('hidden');
     return;
