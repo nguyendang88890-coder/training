@@ -488,7 +488,7 @@ function getSidebarHTML(activeModule) {
           <span class="nav-icon">${m.icon}</span> <span>${m.title}</span>
           <span class="nav-badge" id="badge-m${m.id}">M${m.id}</span>
         </a>`).join('')}
-      ${isBDCS ? `
+      ${(isBDCS || isAdmin || isMod) ? `
         <a href="hubspot.html" class="nav-item ${activeModule === 'hubspot' ? 'active' : ''}" id="nav-mHS">
           <span class="nav-icon">🎓</span> <span>HubSpot Training</span>
           <span class="nav-badge" id="badge-mHS" style="background:rgba(255,122,89,0.15);color:#ff7a59;">HS</span>
