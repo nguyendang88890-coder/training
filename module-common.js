@@ -459,8 +459,10 @@ function getSidebarHTML(activeModule) {
   }
 
   const dept    = (udata.department || '').toLowerCase();
-  const isBDCS  = dept.includes('business development') || dept.includes('customer service')
-                || dept === 'bd' || dept === 'cs';
+  const _deptBDCS = dept === 'bd' || dept === 'cs' || dept.includes('business dev') || dept.includes('customer serv');
+  const isBDCS  = udata.testGroup === 'bdcs' ? true
+                : udata.testGroup === 'others' ? false
+                : _deptBDCS;
 
   const examData  = JSON.parse(localStorage.getItem('wmt_exam_' + user) || '{}');
   const examPassed = examData.passed || false;
