@@ -106,10 +106,13 @@ updateSidebarProgress();
 (function() {
   const user  = localStorage.getItem('wmt_user') || '';
   const users = getUsersDB();
-  const role   = (users[user]?.role || '').toLowerCase();
-  const dept   = (users[user]?.department || '').toLowerCase();
-  const isBDCS = dept.includes('business development') || dept.includes('customer service')
-               || dept === 'bd' || dept === 'cs';
+  const udata  = users[user] || {};
+  const role   = (udata.role || '').toLowerCase();
+  const dept   = (udata.department || '').toLowerCase();
+  const _deptBDCS = dept === 'bd' || dept === 'cs' || dept.includes('business dev') || dept.includes('customer serv');
+  const isBDCS = udata.testGroup === 'bdcs' ? true
+               : udata.testGroup === 'others' ? false
+               : _deptBDCS;
   const canView = isBDCS || role === 'admin' || role === 'mod';
 
   if (!canView) {
