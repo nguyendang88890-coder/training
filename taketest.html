@@ -802,7 +802,8 @@ function renderResult(sub, mc = {}) {
   const isBDCSU     = sub.group === 'bdcs';
   const maxScore    = isBDCSU ? 300 : 100;
   const lietMax     = mc.lietMax ?? 2;
-  const deadlinePassed = _effectiveDeadline && Date.now() > new Date(_effectiveDeadline).getTime();
+  // Show answers when: no deadline configured, OR deadline has passed
+  const deadlinePassed = !_effectiveDeadline || Date.now() > new Date(_effectiveDeadline).getTime();
 
   let statusHTML = '';
   if (isBDCSU && sub.essayPending) {
@@ -844,7 +845,7 @@ function renderResult(sub, mc = {}) {
           🔒 Correct answers revealed after: <strong>${fmtDT(_effectiveDeadline)}</strong>
         </div>` : `
         <div style="font-size:0.78rem;color:var(--success);background:rgba(0,214,143,0.07);border:1px solid rgba(0,214,143,0.2);border-radius:8px;padding:5px 12px;">
-          ✅ Test period ended — correct answers are now shown
+          ✅ Correct answers are shown below
         </div>`}
       </div>
 
