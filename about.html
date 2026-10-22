@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -35,7 +35,7 @@
 .vm-card.vision .vm-label{color:#FFD700}
 .vm-card.mission .vm-label{color:#a080ff}
 .vm-text{font-size:13px;color:#ccc;line-height:1.8}
-.offices-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.offices-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
 .office-card{background:#08081a;border:1px solid #1e1e3a;border-radius:12px;padding:20px 14px;text-align:center;transition:all .25s}
 .office-card:hover{border-color:rgba(255,215,0,.3);transform:translateY(-3px)}
 .office-flag{font-size:36px;margin-bottom:10px}
@@ -88,6 +88,14 @@
   <div class="hero-content">
     <div class="hero-eyebrow">🏢 About WeMasterTrade</div>
     <h1 class="hero-title">Built for Traders.<br><span>Trusted Worldwide.</span></h1>
+    <p style="margin-bottom:12px;">
+      <span style="font-size:0.68rem;color:rgba(255,215,0,0.55);letter-spacing:0.6px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:5px;">Company Name</span>
+      <span style="font-size:1rem;font-weight:800;color:#FFD700;letter-spacing:0.4px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.35);border-radius:8px;padding:6px 18px;display:inline-block;">WeCopy Fintech Inc.</span>
+    </p>
+    <p style="margin-bottom:14px;">
+      <span style="font-size:0.68rem;color:rgba(255,215,0,0.55);letter-spacing:0.6px;font-weight:600;text-transform:uppercase;display:block;margin-bottom:5px;">Motto</span>
+      <span style="font-size:1.05rem;font-weight:800;color:#fff;letter-spacing:0.2px;line-height:1.4;display:inline-block;">Trade Virtually,<br><span style="color:#FFD700;">Earn Real Rewards</span></span>
+    </p>
     <p class="hero-sub">A global prop trading firm headquartered in Vancouver, Canada — empowering disciplined traders to access institutional-level capital and build lasting wealth.</p>
     <div class="hero-badges">
       <span class="badge">🏆 Best Instant Funding 2025</span>
@@ -163,6 +171,12 @@
           <div class="office-city">Dubai</div>
           <div class="office-country">United Arab Emirates</div>
           
+        </div>
+        <div class="office-card">
+          <div style="font-size:44px;line-height:1;margin-bottom:12px;text-align:center;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">🇻🇳</div>
+          <div class="office-city">Ho Chi Minh City</div>
+          <div class="office-country">Vietnam</div>
+
         </div>
         <div class="office-card">
           <div style="font-size:44px;line-height:1;margin-bottom:12px;text-align:center;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif">🇺🇾</div>
@@ -254,6 +268,9 @@
       </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML('about');

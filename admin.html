@@ -1,0 +1,2793 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .admin-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .admin-stat-card.gold  { border-color: var(--border-gold); }
+    .admin-stat-card.green { border-color: rgba(0,214,143,0.3); }
+    .admin-stat-card.blue  { border-color: rgba(100,150,255,0.3); }
+    .admin-stat-card.warn  { border-color: rgba(255,170,0,0.3); }
+    .admin-stat-value {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .admin-stat-card.green .admin-stat-value { color: var(--success); }
+    .admin-stat-card.blue  .admin-stat-value { color: #6496ff; }
+    .admin-stat-card.warn  .admin-stat-value { color: var(--warning); }
+    .admin-stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    /* Table */
+    .users-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+    }
+    .users-table-wrap table {
+      font-size: 0.85rem;
+    }
+    .users-table-wrap thead th {
+      background: var(--bg-secondary);
+      padding: 14px 16px;
+    }
+    .users-table-wrap tbody td {
+      padding: 13px 16px;
+      vertical-align: middle;
+    }
+
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.7rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .role-badge.admin   { background: rgba(255,215,0,0.15); color: var(--gold); }
+    .role-badge.trainee { background: rgba(144,144,176,0.15); color: var(--text-muted); }
+    .role-badge.mod     { background: rgba(100,150,255,0.15); color: #6496ff; }
+    .role-badge.leader { background: rgba(255,165,0,0.18); color: #ffaa33; }
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .filter-bar input, .filter-bar select { padding:7px 12px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-size:0.83rem; min-width:140px; }
+    .filter-bar input { min-width:200px; }
+    .filter-bar .filter-clear { padding:7px 14px; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--text-muted); font-size:0.83rem; cursor:pointer; }
+    .filter-bar .filter-clear:hover { color:var(--text-primary); border-color:var(--text-muted); }
+    .prop-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; }
+    .prop-card.pending  { border-left: 3px solid var(--warning); }
+    .prop-card.approved { border-left: 3px solid var(--success); opacity: .75; }
+    .prop-card.rejected { border-left: 3px solid var(--danger);  opacity: .75; }
+    .prop-meta { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 10px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .prop-diff { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+    .prop-diff-box { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 13px; font-size: 0.8rem; }
+    .prop-diff-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .prop-diff-box.orig .prop-diff-label { color: var(--text-muted); }
+    .prop-diff-box.prop .prop-diff-label { color: var(--gold); }
+    @media (max-width:640px) { .prop-diff { grid-template-columns: 1fr; } }
+
+    .exam-badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .exam-badge.passed       { background: rgba(0,214,143,0.15); color: var(--success); }
+    .exam-badge.failed       { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .exam-badge.disqualified { background: rgba(255,61,113,0.15); color: var(--danger); }
+    .exam-badge.none         { background: rgba(144,144,176,0.1); color: var(--text-muted); }
+
+    .mod-progress {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    .mod-progress-bar {
+      width: 64px;
+      height: 6px;
+      background: var(--bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .mod-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+      border-radius: 3px;
+    }
+    .mod-progress-fill.complete { background: linear-gradient(90deg, #00a36c, var(--success)); }
+
+    .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-xs {
+      padding: 5px 12px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn-xs.reset {
+      background: rgba(255,170,0,0.1);
+      border-color: rgba(255,170,0,0.4);
+      color: var(--warning);
+    }
+    .btn-xs.reset:hover { background: rgba(255,170,0,0.2); }
+    .btn-xs.delete {
+      background: rgba(255,61,113,0.1);
+      border-color: rgba(255,61,113,0.4);
+      color: var(--danger);
+    }
+    .btn-xs.delete:hover { background: rgba(255,61,113,0.2); }
+    .btn-xs:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* Add user modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-gold);
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 400px;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-box h3 { color: var(--gold); margin-bottom: 20px; font-size: 1.1rem; }
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+    .modal-footer .btn { flex: 1; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* Page tabs */
+    .page-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 28px;
+      width: fit-content;
+    }
+    .page-tab {
+      padding: 8px 20px;
+      border-radius: 7px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .page-tab.active {
+      background: var(--bg-card);
+      color: var(--gold);
+      border: 1px solid var(--border-gold);
+    }
+    .page-tab:hover:not(.active) { color: var(--text-secondary); }
+
+    .tab-badge {
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    /* Interviews table */
+    .iv-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .iv-status.pending   { background: rgba(255,170,0,0.15);   color: var(--warning); }
+    .iv-status.confirmed { background: rgba(0,214,143,0.15);   color: var(--success); }
+    .iv-status.completed { background: rgba(100,150,255,0.15); color: #6496ff; }
+    .iv-status.cancelled { background: rgba(255,61,113,0.15);  color: var(--danger); }
+
+    .meeting-link-cell a {
+      color: var(--success);
+      font-size: 0.82rem;
+      word-break: break-all;
+    }
+    .meeting-link-cell a:hover { color: var(--gold); }
+
+    .btn-xs.confirm {
+      background: rgba(0,214,143,0.1);
+      border-color: rgba(0,214,143,0.4);
+      color: var(--success);
+    }
+    .btn-xs.confirm:hover { background: rgba(0,214,143,0.2); }
+    .btn-xs.app { background: rgba(0,214,143,0.1); border-color: rgba(0,214,143,0.4); color: var(--success); }
+    .btn-xs.app:hover { background: rgba(0,214,143,0.2); }
+    .btn-xs.rej { background: rgba(255,61,113,0.1); border-color: rgba(255,61,113,0.4); color: var(--danger); }
+    .btn-xs.rej:hover { background: rgba(255,61,113,0.2); }
+    .pf-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+    .pf-badge.pass { background: rgba(0,214,143,0.15); color: var(--success); }
+    .pf-badge.fail { background: rgba(255,61,113,0.12); color: var(--danger); }
+    .pf-badge.none { background: rgba(90,90,120,0.15); color: var(--text-muted); }
+    .rsched-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; }
+    .rsched-hdr  { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+    .btn-xs.complete {
+      background: rgba(100,150,255,0.1);
+      border-color: rgba(100,150,255,0.4);
+      color: #6496ff;
+    }
+    .btn-xs.complete:hover { background: rgba(100,150,255,0.2); }
+    .btn-xs.edit {
+      background: rgba(255,215,0,0.08);
+      border-color: rgba(255,215,0,0.3);
+      color: var(--gold);
+    }
+    .btn-xs.edit:hover { background: rgba(255,215,0,0.16); }
+    .btn-xs.exam {
+      background: rgba(100,150,255,0.08);
+      border-color: rgba(100,150,255,0.35);
+      color: #6496ff;
+    }
+    .btn-xs.exam:hover { background: rgba(100,150,255,0.18); }
+
+    /* Scrollable wide table */
+    .users-table-wrap {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 295px);
+    }
+    .users-table-wrap table { min-width: 1250px; }
+
+    /* Sticky thead */
+    .users-table-wrap thead th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      background: var(--bg-secondary);
+    }
+
+    /* Sticky first column — User */
+    .users-table-wrap th:first-child,
+    .users-table-wrap td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: 2px 0 8px rgba(0,0,0,0.18);
+    }
+    .users-table-wrap thead th:first-child {
+      background: var(--bg-secondary);
+      z-index: 4;
+    }
+
+    /* Sticky last column — Actions */
+    .users-table-wrap th:last-child,
+    .users-table-wrap td:last-child {
+      position: sticky;
+      right: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: -2px 0 8px rgba(0,0,0,0.18);
+    }
+    .users-table-wrap thead th:last-child {
+      background: var(--bg-secondary);
+      z-index: 4;
+    }
+
+    /* Row hover — giữ đúng màu cho sticky cells */
+    .users-table-wrap tbody tr:hover td:first-child,
+    .users-table-wrap tbody tr:hover td:last-child {
+      background: var(--bg-hover);
+    }
+
+    /* Custom scrollbars */
+    .users-table-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
+    .users-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .users-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.25); border-radius: 3px; }
+    .users-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.5); }
+    .users-table-wrap::-webkit-scrollbar-corner { background: transparent; }
+
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">Admin Panel</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <!-- Tabs -->
+      <div class="page-tabs">
+        <button class="page-tab active" id="tabUsers"       onclick="switchTab('users')">👥 Users</button>
+        <button class="page-tab"        id="tabInterviews"  onclick="switchTab('interviews')">
+          📅 Interviews <span class="tab-badge hidden" id="pendingBadge">0</span>
+        </button>
+        <button class="page-tab"        id="tabQuiz"        onclick="switchTab('quiz')">📝 Quiz</button>
+        <button class="page-tab"        id="tabProposals"   onclick="switchTab('proposals')">💡 Proposals <span class="tab-badge hidden" id="proposalsBadge">0</span></button>
+        <button class="page-tab"        id="tabReschedule"  onclick="switchTab('reschedule')">🔄 Reschedule <span class="tab-badge hidden" id="rsBadge">0</span></button>
+        <button class="page-tab"        id="tabEvaluations" onclick="switchTab('evaluations')">📊 Evaluations</button>
+        <button class="page-tab"        id="tabSettings"    onclick="switchTab('settings')">⚙️ Settings</button>
+      </div>
+
+      <!-- ===== USERS TAB ===== -->
+      <div id="usersTab">
+        <div class="section-title">Overview</div>
+        <div class="admin-stats" id="adminStats"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div class="section-title" style="margin-bottom:0;">Registered Users</div>
+          <button class="btn btn-primary" onclick="openCreateAccountModal()" style="padding:9px 18px;font-size:0.85rem;">➕ Create Account</button>
+        </div>
+        <div class="filter-bar" id="filterBar">
+          <input type="text" id="filterSearch" placeholder="🔍 Username, email, working name, leader…" oninput="applyUserFilters()">
+          <select id="filterDept" onchange="applyUserFilters()">
+            <option value="">All Departments</option>
+          </select>
+          <select id="filterRole" onchange="applyUserFilters()">
+            <option value="">All Roles</option>
+            <option value="trainee">Trainee</option>
+            <option value="mod">Moderator</option>
+            <option value="admin">Admin</option>
+            <option value="leader">Leaders only</option>
+          </select>
+          <select id="filterLeader" onchange="applyUserFilters()">
+            <option value="">All Teams</option>
+          </select>
+          <button class="filter-clear" onclick="clearUserFilters()">✕ Clear</button>
+          <button class="filter-clear" onclick="fixAllDepartments()" title="Merge duplicate / misspelled department names into the canonical name and sync to Firebase" style="border-color:#a78bfa;color:#a78bfa;">🏷️ Fix Depts</button>
+          <button class="filter-clear" onclick="migrateLeaderNames()" title="Normalise all leaderName values in the database to the correct leader username" style="border-color:#f59e0b;color:#f59e0b;">🔧 Fix Leader Names</button>
+          <span id="filterCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+        </div>
+        <div class="users-table-wrap">
+          <table id="usersTable">
+            <thead>
+              <tr>
+                <th>User</th><th>Full Name</th><th>Email</th>
+                <th>Department</th><th>Position</th><th>Role</th><th>Leader</th><th>Type</th><th>Joined</th>
+                <th>Modules</th><th>Avg Score</th><th>Fails</th><th>Exam</th>
+                <th>Interview</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== QUIZ TAB ===== -->
+      <div id="quizTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Manage quiz retake permissions for each module. Click <strong>↺ Reset</strong> to allow a trainee to retake that module's quiz.
+        </p>
+        <div class="users-table-wrap">
+          <table id="quizTable" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>M1 Products</th><th>M2 Rules</th><th>M3 Profit</th><th>M4 Payment</th>
+                <th>M5 Payment</th><th>M6 Payouts</th><th>M7 Compliance</th>
+                <th>Reset All</th>
+              </tr>
+            </thead>
+            <tbody id="quizTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== PROPOSALS TAB ===== -->
+      <div id="proposalsTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Suggested edits from Moderators. Approve to apply changes to the Question Bank.
+        </p>
+        <div id="proposalsContent"></div>
+      </div>
+
+      <!-- ===== INTERVIEWS TAB ===== -->
+      <div id="interviewsTab" class="hidden">
+        <div class="section-title">Interview Requests</div>
+
+        <!-- Toolbar: view toggle + month nav -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div style="display:flex;gap:6px;">
+            <button id="ivViewTable" class="btn btn-primary" style="padding:6px 14px;font-size:0.82rem;" onclick="setIvView('table')">☰ Table</button>
+            <button id="ivViewCal"   class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;" onclick="setIvView('calendar')">📅 Calendar</button>
+          </div>
+          <div id="ivCalNav" style="display:none;align-items:center;gap:10px;">
+            <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.82rem;" onclick="shiftIvMonth(-1)">‹</button>
+            <span id="ivCalMonthLabel" style="font-weight:600;min-width:120px;text-align:center;"></span>
+            <button class="btn btn-secondary" style="padding:4px 12px;font-size:0.82rem;" onclick="shiftIvMonth(1)">›</button>
+          </div>
+        </div>
+
+        <!-- Table view -->
+        <div id="ivTableView">
+          <div class="users-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Username</th><th>Full Name</th><th>Email</th>
+                  <th>Preferred Slot</th><th>Timezone</th>
+                  <th>Status</th><th>Meeting</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="interviewsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Calendar view -->
+        <div id="ivCalView" style="display:none;">
+          <!-- Legend -->
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;font-size:0.78rem;">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#f59e0b;margin-right:4px;"></span>Pending</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00d68f;margin-right:4px;"></span>Confirmed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6496ff;margin-right:4px;"></span>Completed</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>Cancelled</span>
+          </div>
+          <div id="ivCalGrid"></div>
+        </div>
+      </div>
+
+      <!-- ===== RESCHEDULE TAB ===== -->
+      <div id="rescheduleTab" class="hidden">
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+          Monthly Test reschedule requests from trainees. Approve or reject each request below.
+        </p>
+        <div id="adminRescheduleTab"></div>
+      </div>
+
+      <!-- ===== EVALUATIONS TAB ===== -->
+      <div id="evaluationsTab" class="hidden">
+        <div id="evaluationsContent"></div>
+      </div>
+
+      <!-- ===== SETTINGS TAB ===== -->
+      <div id="settingsTab" class="hidden">
+        <div class="section-title">AI Grading Settings</div>
+        <div style="max-width:520px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:1.1rem;">🤖</span>
+              <strong>Google Gemini API Key</strong>
+            </div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px;">
+              Used for AI essay grading in Monthly Test. Key is stored locally in your browser only and never sent to WMT servers.<br>
+              Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--gold);">aistudio.google.com</a>.
+            </p>
+            <div class="form-group" style="margin-bottom:10px;">
+              <label>API Key</label>
+              <input type="password" id="geminiKeyInput" placeholder="AIza…"
+                style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+              <button class="btn btn-primary" style="font-size:0.85rem;padding:7px 20px;" onclick="saveGeminiKey()">💾 Save Key</button>
+              <button class="btn btn-secondary" style="font-size:0.85rem;padding:7px 16px;" onclick="clearGeminiKey()">🗑 Clear</button>
+              <span id="geminiKeySavedMsg" style="font-size:0.8rem;color:var(--success);display:none;">✅ Saved!</span>
+            </div>
+          </div>
+          <div style="background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.2);border-radius:10px;padding:14px 16px;">
+            <div style="font-size:0.8rem;color:var(--text-muted);line-height:1.6;">
+              <strong style="color:var(--gold);">⚠ Security note:</strong> The API key is stored in <code>localStorage</code> of this browser. Do not use on shared computers. The key is only sent directly to Google's API — it is not logged or stored by this system.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Create Account Modal -->
+<div class="modal-overlay" id="createAccountModal">
+  <div class="modal-box" style="max-width:560px;max-height:90vh;overflow-y:auto;">
+    <h3 style="margin-bottom:18px;">➕ Create New Account</h3>
+
+    <!-- Success view (hidden until created) -->
+    <div id="createAccountSuccess" style="display:none;text-align:center;padding:8px 0 16px;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">🎉</div>
+      <div style="font-weight:700;color:var(--success);font-size:1.1rem;margin-bottom:6px;">Account Created!</div>
+      <div style="color:var(--text-muted);font-size:0.84rem;margin-bottom:20px;">Share these credentials with the user.</div>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:left;margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">USERNAME</span>
+          <button onclick="copyText('caResultUsername')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.8rem;padding:2px 8px;">📋 Copy</button>
+        </div>
+        <div id="caResultUsername" style="font-size:1.05rem;font-weight:700;color:var(--text-primary);font-family:monospace;margin-bottom:14px;word-break:break-all;"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:0.78rem;color:var(--text-muted);font-weight:600;">PASSWORD</span>
+          <button onclick="copyText('caResultPassword')" style="background:none;border:none;color:var(--gold);cursor:pointer;font-size:0.8rem;padding:2px 8px;">📋 Copy</button>
+        </div>
+        <div id="caResultPassword" style="font-size:1.05rem;font-weight:700;color:var(--gold);font-family:monospace;word-break:break-all;"></div>
+      </div>
+      <button onclick="copyBoth()" class="btn btn-primary" style="width:100%;margin-bottom:10px;">📋 Copy Both Credentials</button>
+      <button onclick="closeCreateModal(true)" class="btn btn-secondary" style="width:100%;">Done</button>
+    </div>
+
+    <!-- Form view -->
+    <div id="createAccountForm">
+      <!-- Quick Fill from Card -->
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;letter-spacing:0.04em;">⚡ QUICK FILL FROM SLACK CARD</div>
+        <textarea id="caCardPaste" rows="4" placeholder="Paste Slack card text here…&#10;&#10;Họ tên: Nguyen Van A&#10;Work Email: a.nguyen@example.com&#10;Department: Business Development&#10;Position: Sales Trainee"
+          style="width:100%;box-sizing:border-box;background:var(--bg-primary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);font-size:0.82rem;resize:vertical;font-family:inherit;"></textarea>
+        <button onclick="parseSlackCard()" class="btn btn-secondary" style="margin-top:8px;font-size:0.82rem;padding:6px 16px;">Parse &amp; Fill Fields</button>
+        <div id="caParseMsg" style="font-size:0.78rem;margin-top:6px;display:none;"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Username *</label>
+          <input type="text" id="caUsername" placeholder="e.g. john_doe" autocomplete="off" maxlength="20"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">3–20 chars: letters, numbers, _ only</div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Full Name</label>
+          <input type="text" id="caFullName" placeholder="e.g. Nguyen Van A"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Work Name</label>
+          <input type="text" id="caWorkName" placeholder="e.g. Alex (display name)"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Email</label>
+          <input type="email" id="caEmail" placeholder="e.g. john@example.com"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Department</label>
+          <input type="text" id="caDepartment" placeholder="e.g. Business Development"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Position</label>
+          <input type="text" id="caPosition" placeholder="e.g. Sales Trainee"
+            style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+        </div>
+        <div class="form-group" style="margin-bottom:0;grid-column:1/-1;">
+          <label>Leader</label>
+          <select id="caLeader" style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text-primary);width:100%;box-sizing:border-box;font-size:0.85rem;">
+            <option value="">— No Leader —</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="caError" style="color:var(--danger);font-size:0.83rem;margin-top:14px;display:none;"></div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-primary" onclick="adminCreateAccount()" style="flex:1;">Create Account</button>
+        <button class="btn btn-secondary" onclick="closeCreateModal()" style="flex:1;">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Interview Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>✅ Confirm Interview</h3>
+    <input type="hidden" id="confirmUsername">
+    <div class="form-group">
+      <label>Confirmed Date & Time *</label>
+      <input type="text" id="confirmedSlot" placeholder="e.g. Monday 12 May 2026, 10:00 AM UTC+7">
+    </div>
+    <div class="form-group">
+      <label>Meeting Platform *</label>
+      <select id="meetingPlatform">
+        <option value="Zoom">Zoom</option>
+        <option value="Google Meet">Google Meet</option>
+        <option value="Microsoft Teams">Microsoft Teams</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Meeting Link *</label>
+      <input type="url" id="meetingLink" placeholder="https://zoom.us/j/...">
+    </div>
+    <div class="form-group">
+      <label>Admin Notes <span style="color:var(--text-muted);font-weight:400;">(optional)</span></label>
+      <input type="text" id="adminNotes" placeholder="e.g. Please prepare your portfolio">
+    </div>
+    <div class="error-msg" id="confirmError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-success"   onclick="saveConfirmInterview()">✅ Confirm & Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal-overlay" id="resetPwModal">
+  <div class="modal-box" style="max-width:360px;">
+    <h3 style="color:var(--gold);margin-bottom:6px;">🔑 Reset Password</h3>
+    <p id="resetPwLabel" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:20px;"></p>
+    <div class="form-group"><label>New Password</label>
+      <input type="password" id="resetPwNew" placeholder="Min 6 characters"
+        style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;"></div>
+    <div class="form-group"><label>Confirm Password</label>
+      <input type="password" id="resetPwConfirm" placeholder="Repeat new password"
+        style="width:100%;padding:10px 14px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:14px;box-sizing:border-box;"></div>
+    <div id="resetPwError" style="color:#ff4d6d;font-size:0.82rem;margin-top:4px;min-height:18px;"></div>
+    <div class="modal-footer" style="margin-top:20px;">
+      <button class="btn btn-secondary" onclick="closeResetPwModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveResetPw()">💾 Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- Exam Reset Modal -->
+<div class="modal-overlay" id="examResetModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>📝 Manage Final Exam</h3>
+    <input type="hidden" id="examResetUsername">
+    <div id="examResetStatus" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:0.84rem;line-height:1.8;"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;" id="examResetOptions"></div>
+    <div class="error-msg" id="examResetError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeExamReset()">Cancel</button>
+      <button class="btn btn-primary"   id="examResetSaveBtn" onclick="saveExamReset()">💾 Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>✎ Edit User Profile</h3>
+    <input type="hidden" id="editUsername">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px;">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Username</label>
+        <input type="text" id="editUsernameDisplay" disabled style="opacity:0.45;cursor:not-allowed;">
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="editFullName" placeholder="e.g. Nguyen Van A">
+      </div>
+      <div class="form-group">
+        <label>Work Name</label>
+        <input type="text" id="editWorkName" placeholder="e.g. Alex Nguyen">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Email</label>
+        <input type="email" id="editEmail" placeholder="e.g. alex@example.com">
+      </div>
+      <div class="form-group">
+        <label>Department</label>
+        <input type="text" id="editDepartment" placeholder="e.g. Sales">
+      </div>
+      <div class="form-group">
+        <label>Position</label>
+        <input type="text" id="editPosition" placeholder="e.g. Sales Trainee">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="editRole">
+          <option value="trainee">Trainee</option>
+          <option value="mod">🛡️ Moderator</option>
+          <option value="admin">⭐ Admin</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+          <input type="checkbox" id="editIsLeader" style="width:16px;height:16px;accent-color:#ffaa33;">
+          <span>🏆 This user is a Team Leader</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">(can be set alongside any role)</span>
+        </label>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Leader Name <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(username of this user's team leader)</span></label>
+        <input type="text" id="editLeaderName" placeholder="e.g. alice — leave blank if none">
+      </div>
+      <div class="form-group">
+        <label>Employee Type</label>
+        <select id="editEmpType">
+          <option value="new">🆕 New Employee</option>
+          <option value="old">🏅 Existed Employee</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Monthly Test Group <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(override department-based assignment)</span></label>
+        <select id="editTestGroup">
+          <option value="auto">🔄 Auto — follow department</option>
+          <option value="bdcs">📊 Force BDCS Test (BD/CS format)</option>
+          <option value="others">📋 Force Others Test (standard format)</option>
+        </select>
+      </div>
+
+      <!-- PASSWORD SECTION -->
+      <div class="form-group" style="grid-column:1/-1;margin-top:4px;padding-top:16px;border-top:1px solid var(--border);">
+        <label style="color:var(--text-secondary);margin-bottom:10px;display:block;">🔐 Password</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:5px;">Current Password</div>
+            <div style="position:relative;">
+              <input type="password" id="editCurrentPwDisplay" disabled
+                style="width:100%;padding:9px 38px 9px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:13px;font-family:monospace;box-sizing:border-box;letter-spacing:0.1em;">
+              <button type="button" onclick="toggleEditPwVis('editCurrentPwDisplay',this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.9rem;padding:2px;color:var(--text-muted);line-height:1;"
+                title="Show/hide password">👁️</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:5px;">Set New Password <span style="opacity:.6;">(leave blank to keep)</span></div>
+            <div style="position:relative;">
+              <input type="password" id="editNewPw" placeholder="Min 6 characters"
+                style="width:100%;padding:9px 38px 9px 12px;background:#0a0a16;border:1px solid #2a2a4a;border-radius:8px;color:#e0e0e0;font-size:13px;box-sizing:border-box;">
+              <button type="button" onclick="toggleEditPwVis('editNewPw',this)"
+                style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:0.9rem;padding:2px;color:var(--text-muted);line-height:1;"
+                title="Show/hide">👁️</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="error-msg" id="editUserError"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditUser()">Cancel</button>
+      <button class="btn btn-primary"   onclick="saveEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="module-common.js"></script>
+<script>
+// Admin guard — runs AFTER syncFromFirebase so newly promoted admins
+// are recognised on their first visit without needing an extra navigation.
+const CUR_ADMIN = localStorage.getItem('wmt_user') || '';
+
+// true if current user is mod (not full admin)
+let CUR_IS_MOD = false;
+
+window.addEventListener('load', async function() {
+  await syncFromFirebase();
+
+  // Re-check role from freshly-synced data
+  const _guardUsers = getUsersDB();
+  const _curRole = _guardUsers[CUR_ADMIN]?.role;
+  if (!CUR_ADMIN || !_guardUsers[CUR_ADMIN] || (_curRole !== 'admin' && _curRole !== 'mod')) {
+    window.location.href = 'index.html';
+    return;
+  }
+
+  CUR_IS_MOD = (_curRole === 'mod');
+
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
+  updateSidebarProgress();
+
+  if (CUR_IS_MOD) {
+    // Moderators: show Evaluations tab only
+    applyModPermissions();
+    await syncFromFirebase();
+    renderEvaluationsTab();
+  } else {
+    renderAdminPanel();
+    renderInterviewsTable();
+    updateRsBadge();
+    await runAutoUpgrade();
+  }
+});
+
+function applyModPermissions() {
+  // Hide tabs not available to moderators
+  const hiddenTabs = ['tabUsers','tabInterviews','tabQuiz','tabProposals','tabReschedule','tabSettings'];
+  hiddenTabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  // Hide corresponding tab content except evaluations
+  ['users','interviews','quiz','proposals','reschedule','settings'].forEach(t => {
+    const el = document.getElementById(t + 'Tab');
+    if (el) el.classList.add('hidden');
+  });
+  // Activate evaluations tab
+  document.getElementById('evaluationsTab').classList.remove('hidden');
+  const tabEl = document.getElementById('tabEvaluations');
+  if (tabEl) tabEl.classList.add('active');
+
+  // Add a mod notice banner
+  const header = document.querySelector('.page-header-row') || document.querySelector('.page-tabs');
+  if (header) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(100,150,255,0.1);border:1px solid rgba(100,150,255,0.3);border-radius:8px;padding:8px 14px;font-size:0.82rem;color:#6496ff;margin-bottom:12px;';
+    banner.textContent = '🛡️ Moderator view — Evaluations only';
+    header.parentNode.insertBefore(banner, header);
+  }
+}
+
+// ===== AUTO-UPGRADE: New → Existed after 2 calendar months =====
+function _isUpgradeEligible(udata) {
+  if (!udata || !udata.createdAt) return false;
+  if ((udata.employeeType || 'new') === 'old') return false;
+  if (udata.role === 'admin' || udata.role === 'mod') return false;
+  const threshold = new Date(udata.createdAt);
+  threshold.setMonth(threshold.getMonth() + 2);
+  return Date.now() >= threshold.getTime();
+}
+
+async function runAutoUpgrade() {
+  const allUsers = getUsersDB();
+  const upgraded = [];
+
+  for (const [uname, udata] of Object.entries(allUsers)) {
+    if (_isUpgradeEligible(udata)) {
+      allUsers[uname].employeeType = 'old';
+      upgraded.push({ uname, fullName: udata.fullName || uname, createdAt: udata.createdAt });
+    }
+  }
+  if (!upgraded.length) return;
+
+  localStorage.setItem('wmt_users_db', JSON.stringify(allUsers));
+
+  if (window.FDB) {
+    await Promise.all(upgraded.map(({ uname }) =>
+      window.FDB.ref('users/' + uname).update({ employeeType: 'old' })
+        .catch(e => console.warn('[WMT] autoUpgrade Firebase error:', uname, e.message))
+    ));
+  }
+
+  showUpgradeNotif(upgraded);
+  renderAdminPanel(); // refresh Users table to reflect new status
+}
+
+function showUpgradeNotif(upgraded) {
+  const existing = document.getElementById('autoUpgradeNotif');
+  if (existing) existing.remove();
+
+  const fmtDate = iso => iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+    : '—';
+
+  const rows = upgraded.map(({ uname, fullName, createdAt }) => `
+    <tr style="border-top:1px solid var(--border);">
+      <td style="padding:7px 12px;font-weight:600;color:var(--text-primary);">${uname}</td>
+      <td style="padding:7px 12px;color:var(--text-secondary);">${fullName !== uname ? fullName : '—'}</td>
+      <td style="padding:7px 12px;color:var(--text-muted);font-size:0.78rem;">${fmtDate(createdAt)}</td>
+    </tr>`).join('');
+
+  const notif = document.createElement('div');
+  notif.id = 'autoUpgradeNotif';
+  notif.style.cssText = `
+    position:fixed; bottom:24px; right:24px; width:380px; max-height:70vh;
+    background:var(--bg-card); border:1px solid rgba(0,214,143,0.35);
+    border-radius:16px; padding:20px; box-shadow:0 12px 40px rgba(0,0,0,.55);
+    z-index:400; overflow-y:auto; animation:slideUp .22s ease;`;
+
+  notif.innerHTML = `
+    <style>@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}</style>
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.5rem;line-height:1;">🏅</span>
+        <div>
+          <div style="font-weight:800;color:var(--success);font-size:0.95rem;">Auto-Upgrade Complete</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+            ${upgraded.length} user${upgraded.length > 1 ? 's' : ''} → <strong>Existed</strong> · Monthly Test unlocked
+          </div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('autoUpgradeNotif').remove()"
+        style="background:none;border:none;color:var(--text-muted);font-size:1.1rem;cursor:pointer;flex-shrink:0;line-height:1;padding:2px;">✕</button>
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;line-height:1.6;">
+      Accounts reached 2 calendar months since registration. Revert anytime via <strong>Edit</strong> in the Users tab.
+    </div>
+    <div style="overflow-x:auto;border-radius:8px;border:1px solid var(--border);">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+        <thead>
+          <tr style="background:rgba(255,255,255,0.04);">
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Username</th>
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Full Name</th>
+            <th style="padding:6px 12px;text-align:left;color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;">Joined</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <button onclick="document.getElementById('autoUpgradeNotif').remove()"
+      style="width:100%;margin-top:14px;padding:9px;background:rgba(0,214,143,0.12);border:1px solid rgba(0,214,143,0.3);border-radius:8px;color:var(--success);font-weight:700;font-size:0.84rem;cursor:pointer;">
+      Dismiss ✓
+    </button>`;
+
+  document.body.appendChild(notif);
+}
+
+// ===== HELPERS =====
+function getUserProgress(username) {
+  return JSON.parse(localStorage.getItem('wmt_progress_' + username) || '{}');
+}
+function getExamData(username) {
+  return JSON.parse(localStorage.getItem('wmt_exam_' + username) || '{}');
+}
+function getInterviewData(username) {
+  return JSON.parse(localStorage.getItem('wmt_interview_' + username) || 'null');
+}
+function saveInterviewData(username, data) {
+  dbWrite('wmt_interview_' + username, JSON.stringify(data));
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  const idx  = list.findIndex(x => x.username === username);
+  if (idx >= 0) list[idx] = data; else list.push(data);
+  dbWrite('wmt_interviews_list', JSON.stringify(list));
+}
+
+// ===== TAB SWITCH =====
+async function switchTab(tab) {
+  if (CUR_IS_MOD && tab !== 'evaluations') return; // moderators: evaluations only
+  ['users','interviews','quiz','proposals','reschedule','evaluations','settings'].forEach(t => {
+    document.getElementById(t+'Tab').classList.toggle('hidden', t !== tab);
+    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t === tab);
+  });
+  if (tab === 'quiz') {
+    document.getElementById('quizTableBody').innerHTML =
+      '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Loading data…</td></tr>';
+    await syncFromFirebase();
+    renderQuizTab();
+  }
+  if (tab === 'proposals')    renderProposalsTab();
+  if (tab === 'reschedule')   { await syncFromFirebase(); renderRescheduleTab(); }
+  if (tab === 'evaluations')  { await syncFromFirebase(); renderEvaluationsTab(); }
+  if (tab === 'settings')     renderSettingsTab();
+}
+
+// ===== EVALUATIONS TAB =====
+function renderEvaluationsTab() {
+  const users = getUsersDB();
+  const el    = document.getElementById('evaluationsContent');
+
+  const STAR_FIELDS = [
+    { key: 'contentClarity',       label: 'Content Clarity' },
+    { key: 'contentUsefulness',    label: 'Content Usefulness' },
+    { key: 'contentStructure',     label: 'Content Structure' },
+    { key: 'trainerKnowledge',     label: 'Trainer Knowledge' },
+    { key: 'trainerCommunication', label: 'Trainer Communication' },
+    { key: 'trainerSupport',       label: 'Trainer Support' },
+    { key: 'overallSatisfaction',  label: 'Overall Satisfaction' },
+  ];
+
+  // Collect all submitted evaluations
+  const evals = [];
+  Object.keys(users).forEach(u => {
+    const ev = JSON.parse(localStorage.getItem('wmt_eval_' + u) || 'null');
+    if (ev?.submittedAt) evals.push({ u, ud: users[u], ev });
+  });
+
+  // Summary averages
+  const avgOf = key => {
+    const vals = evals.map(e => e.ev[key] || 0).filter(v => v > 0);
+    return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+  };
+  const overallAvg = evals.length
+    ? (STAR_FIELDS.map(f => parseFloat(avgOf(f.key))||0).reduce((a,b)=>a+b,0) / STAR_FIELDS.length).toFixed(1)
+    : '—';
+  const recommendYes = evals.filter(e => e.ev.recommend === 'yes').length;
+
+  function stars(val) {
+    const n = Math.round(val || 0);
+    return '★'.repeat(n) + '☆'.repeat(5-n);
+  }
+
+  // Summary strip
+  const summaryHTML = evals.length === 0 ? '' : `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:var(--gold)">${overallAvg}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Overall Avg</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:#6496ff">${evals.length}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Responses</div>
+      </div>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 22px;flex:1;min-width:130px;text-align:center;">
+        <div style="font-size:1.8rem;font-weight:800;color:var(--success)">${recommendYes}/${evals.length}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Would Recommend</div>
+      </div>
+      ${STAR_FIELDS.map(f => `
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;flex:1;min-width:150px;">
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">${f.label}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:1rem;font-weight:700;color:var(--gold)">${avgOf(f.key)}</span>
+            <span style="color:#FFD700;font-size:0.85rem;letter-spacing:1px;">${stars(parseFloat(avgOf(f.key)))}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+
+  if (evals.length === 0) {
+    el.innerHTML = `
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:20px;">
+        Submitted training evaluations from trainees appear here once their interview is completed.
+      </p>
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:48px 32px;text-align:center;">
+        <div style="font-size:2.5rem;margin-bottom:12px;">📋</div>
+        <div style="color:var(--text-muted);font-size:0.9rem;">No evaluations submitted yet.</div>
+      </div>`;
+    return;
+  }
+
+  const rowsHTML = evals.sort((a,b) => new Date(b.ev.submittedAt)-new Date(a.ev.submittedAt)).map(({u, ud, ev}) => {
+    const diffLabel = { too_easy:'Too Easy', just_right:'Just Right', too_hard:'Too Hard' }[ev.difficulty] || '—';
+    return `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:12px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px;">
+          <div>
+            <span style="font-weight:700;color:var(--text-primary);">${ud.fullName || u}</span>
+            <span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">@${u}</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);margin-left:8px;">${ud.department || ''}${ud.position ? ' · '+ud.position : ''}</span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">${new Date(ev.submittedAt).toLocaleString('en-GB')}</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+          ${STAR_FIELDS.map(f => `
+            <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+              <span style="color:var(--text-muted);">${f.label}: </span>
+              <span style="color:#FFD700;">${stars(ev[f.key])}</span>
+              <span style="color:var(--gold);font-weight:700;margin-left:4px;">${ev[f.key]||'—'}</span>
+            </div>`).join('')}
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+            <span style="color:var(--text-muted);">Difficulty: </span>
+            <span style="color:var(--text-primary);font-weight:600;">${diffLabel}</span>
+          </div>
+          <div style="background:var(--bg-secondary);border-radius:8px;padding:6px 12px;font-size:0.8rem;">
+            <span style="color:var(--text-muted);">Recommend: </span>
+            <span style="color:${ev.recommend==='yes'?'var(--success)':'var(--danger)'};font-weight:600;">${ev.recommend==='yes'?'✓ Yes':'✗ No'}</span>
+          </div>
+        </div>
+        ${(ev.bestPart||ev.improvements) ? `
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          ${ev.bestPart ? `<div style="flex:1;min-width:200px;background:rgba(0,214,143,0.05);border:1px solid rgba(0,214,143,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.72rem;color:var(--success);font-weight:600;margin-bottom:4px;">✓ Most Valuable</div>
+            <div style="font-size:0.83rem;color:var(--text-secondary);">${ev.bestPart}</div>
+          </div>` : ''}
+          ${ev.improvements ? `<div style="flex:1;min-width:200px;background:rgba(100,150,255,0.05);border:1px solid rgba(100,150,255,0.15);border-radius:8px;padding:10px 14px;">
+            <div style="font-size:0.72rem;color:#6496ff;font-weight:600;margin-bottom:4px;">💡 Suggested Improvements</div>
+            <div style="font-size:0.83rem;color:var(--text-secondary);">${ev.improvements}</div>
+          </div>` : ''}
+        </div>` : ''}
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:16px;">
+      Submitted training evaluations from trainees (available after interview is marked completed).
+    </p>
+    ${summaryHTML}
+    ${rowsHTML}`;
+}
+
+function renderSettingsTab() {
+  const existing = localStorage.getItem('wmt_gemini_key') || '';
+  document.getElementById('geminiKeyInput').value = existing ? '•'.repeat(20) : '';
+  document.getElementById('geminiKeyInput').dataset.loaded = existing ? '1' : '';
+}
+
+function saveGeminiKey() {
+  const input = document.getElementById('geminiKeyInput');
+  // If user didn't type a new value (still shows dots), keep existing
+  if (input.dataset.loaded && input.value === '•'.repeat(20)) {
+    showMsg(); return;
+  }
+  const val = input.value.trim();
+  if (!val) { alert('Please enter a valid API key.'); return; }
+  localStorage.setItem('wmt_gemini_key', val);
+  input.dataset.loaded = '1';
+  input.value = '•'.repeat(20);
+  showMsg();
+  function showMsg() {
+    const msg = document.getElementById('geminiKeySavedMsg');
+    msg.style.display = 'inline';
+    setTimeout(() => { msg.style.display = 'none'; }, 2500);
+  }
+}
+
+function clearGeminiKey() {
+  if (!confirm('Remove the saved Gemini API key?')) return;
+  localStorage.removeItem('wmt_gemini_key');
+  document.getElementById('geminiKeyInput').value = '';
+  document.getElementById('geminiKeyInput').dataset.loaded = '';
+  document.getElementById('geminiKeySavedMsg').style.display = 'none';
+}
+
+// ===== LEADER NAME NORMALIZATION HELPERS =====
+// Strip accents (é→e, ñ→n, etc.) so "martínez" === "martinez" in comparisons
+const normL = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+function getLeaderKeys(leaderRef, allUsers) {
+  const keys = new Set();
+  const ref = normL(leaderRef);
+  if (!ref) return keys;
+  keys.add(ref);
+  const byUser = allUsers[leaderRef];
+  if (byUser) {
+    if (byUser.fullName) keys.add(normL(byUser.fullName));
+    if (byUser.workName) keys.add(normL(byUser.workName));
+  }
+  for (const [uname, ud] of Object.entries(allUsers)) {
+    if (normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref) {
+      keys.add(normL(uname));
+      if (ud.fullName) keys.add(normL(ud.fullName));
+      if (ud.workName) keys.add(normL(ud.workName));
+    }
+  }
+  // Prefix match: any stored leaderName whose first token equals this ref
+  // e.g. ref="janny" also covers "janny giang", "janny - giang vu", "janny (quỳnh giang)"
+  const firstToken = ref.split(/[\s\-\(]+/)[0];
+  if (firstToken.length >= 3) {
+    for (const [, ud] of Object.entries(allUsers)) {
+      if (!ud.leaderName) continue;
+      const ln = normL(ud.leaderName);
+      if (ln.split(/[\s\-\(]+/)[0] === firstToken) keys.add(ln);
+    }
+  }
+  keys.delete('');
+  return keys;
+}
+
+function findLeaderEntry(leaderRef, allUsers) {
+  const ref = normL(leaderRef);
+  // 1. Exact match on username / fullName / workName
+  const exact = Object.entries(allUsers).find(([uname, ud]) =>
+    normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref
+  );
+  if (exact) return exact;
+  // 2. First-word prefix: orphan like "janny giang" → match isLeader with username "janny"
+  const firstWord = ref.split(/[\s\-\(]+/)[0];
+  if (firstWord.length >= 3) {
+    const prefix = Object.entries(allUsers).find(([uname, ud]) =>
+      ud.isLeader && normL(uname) === firstWord
+    );
+    if (prefix) return prefix;
+  }
+  return [null, {}];
+}
+
+// ===== DEPARTMENT NORMALISATION =====
+// Maps lowercase variants → canonical display name.
+// Add new entries here whenever a new typo/variant appears.
+const DEPT_CANONICAL = {
+  // Assistance
+  'assistance':              'Assistance',
+  'assistant':               'Assistance',
+
+  // Audit
+  'audit':                   'Audit',
+
+  // BD group
+  'bd':                      'BD',
+  'bd cambodia':             'BD Cambodia',
+  'bdm':                     'BDM',
+  'business':                'Business Development',
+  'business dev':            'Business Development',
+  'business developement':   'Business Development',
+  'business development':    'Business Development',
+
+  // CS group
+  'cs':                      'CS',
+  'cs latam':                'CS Latam',
+  'costumer service':        'Customer Service',
+  'customer cervice':        'Customer Service',
+  'customer service':        'Customer Service',
+  'customer services':       'Customer Service',
+  'customer support':        'Customer Service',
+
+  // Finance / Accounting
+  'finance':                 'Finance',
+  'accounting':              'Finance',
+
+  // HR
+  'hr':                      'HR',
+  'human resource':          'HR',
+  'human resources':         'HR',
+
+  // IT
+  'it':                      'IT',
+  'information technology':  'IT',
+
+  // Marketing
+  'marketing':               'Marketing',
+
+  // Operations
+  'operation':               'Operations',
+  'operations':              'Operations',
+
+  // Sales
+  'sales':                   'Sales',
+};
+
+function normalizeDept(raw) {
+  if (!raw || !raw.trim()) return '';
+  return DEPT_CANONICAL[raw.trim().toLowerCase()] || raw.trim();
+}
+
+async function fixAllDepartments() {
+  const users = getUsersDB();
+  const changed = [];
+
+  Object.entries(users).forEach(([uname, u]) => {
+    if (!u.department) return;
+    const fixed = normalizeDept(u.department);
+    if (fixed !== u.department) {
+      changed.push({ uname, old: u.department, fixed });
+      users[uname].department = fixed;
+    }
+  });
+
+  if (!changed.length) {
+    alert('✅ All department names are already clean — nothing to fix.');
+    return;
+  }
+
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+
+  if (window.FDB) {
+    await Promise.all(changed.map(({ uname, fixed }) =>
+      window.FDB.ref('users/' + uname).update({ department: fixed })
+        .catch(e => console.warn('[WMT] fixDept Firebase error:', uname, e.message))
+    ));
+  }
+
+  populateFilterDropdowns();
+  renderUsersTableBody();
+
+  const lines = changed.map(({ uname, old, fixed }) => `  ${uname}: "${old}" → "${fixed}"`).join('\n');
+  alert(`✅ Fixed ${changed.length} department name${changed.length > 1 ? 's' : ''}:\n\n${lines}`);
+}
+
+// ===== USER FILTERS =====
+let _filterState = { search: '', dept: '', role: '', leader: '' };
+
+function populateFilterDropdowns() {
+  const users = getUsersDB();
+  const depts = new Set();
+  // leaders: use actual usernames as keys so getLeaderKeys can resolve later
+  const leaders = new Set();
+
+  Object.entries(users).forEach(([uname, u]) => {
+    if (u.department) depts.add(normalizeDept(u.department));
+    if (u.isLeader)   leaders.add(uname);  // preferred: actual username
+  });
+
+  // For any leaderName that doesn't resolve to an isLeader user, add as fallback
+  Object.entries(users).forEach(([, u]) => {
+    if (!u.leaderName) return;
+    const ref = normL(u.leaderName);
+    // Check if this leaderName is already covered by a leader in the set
+    const alreadyCovered = [...leaders].some(lKey => getLeaderKeys(lKey, users).has(ref));
+    if (!alreadyCovered) {
+      // Try to find a user entry for this leaderName
+      const [foundKey] = findLeaderEntry(u.leaderName, users);
+      if (foundKey) leaders.add(foundKey);
+      else leaders.add(normL(u.leaderName)); // orphan — use normalized value
+    }
+  });
+
+  const deptSel = document.getElementById('filterDept');
+  const prevDept = deptSel.value;
+  deptSel.innerHTML = '<option value="">All Departments</option>' +
+    [...depts].sort().map(d => `<option value="${d}"${d===prevDept?' selected':''}>${d}</option>`).join('');
+
+  const ldrSel = document.getElementById('filterLeader');
+  const prevLdr = ldrSel.value;
+  ldrSel.innerHTML = '<option value="">All Teams</option>' +
+    [...leaders].sort().map(l => {
+      const ud = users[l];
+      // Prefer workName → fullName → username for a clean display
+      const label = ud?.workName || ud?.fullName || l;
+      return `<option value="${l}"${l===prevLdr?' selected':''}>${label}'s Team</option>`;
+    }).join('');
+}
+
+function applyUserFilters() {
+  _filterState.search = (document.getElementById('filterSearch')?.value || '').toLowerCase().trim();
+  _filterState.dept   = document.getElementById('filterDept')?.value   || '';
+  _filterState.role   = document.getElementById('filterRole')?.value   || '';
+  _filterState.leader = document.getElementById('filterLeader')?.value || '';
+  renderUsersTableBody();
+}
+
+function clearUserFilters() {
+  document.getElementById('filterSearch').value = '';
+  document.getElementById('filterDept').value   = '';
+  document.getElementById('filterRole').value   = '';
+  document.getElementById('filterLeader').value = '';
+  _filterState = { search: '', dept: '', role: '', leader: '' };
+  renderUsersTableBody();
+}
+
+function renderUsersTableBody() {
+  const users    = getUsersDB();
+  const tbody    = document.getElementById('usersTableBody');
+  const { search, dept, role, leader } = _filterState;
+
+  let userList = Object.entries(users);
+
+  // Apply filters
+  userList = userList.filter(([uname, udata]) => {
+    if (search) {
+      const hay = [uname, udata.fullName||'', udata.workName||'', udata.email||'', udata.leaderName||''].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (dept   && normalizeDept(udata.department) !== dept) return false;
+    if (role === 'leader') { if (!udata.isLeader) return false; }
+    else if (role && udata.role !== role) return false;
+    if (leader) {
+      // Use getLeaderKeys for bidirectional normalization (handles username vs display name mismatch)
+      const lKeys = getLeaderKeys(leader, users);
+      if (!lKeys.has(normL(udata.leaderName))) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('filterCount').textContent = `${userList.length} user${userList.length!==1?'s':''}`;
+
+  if (userList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="14" style="text-align:center;padding:24px;color:var(--text-muted);">No users match the current filters.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = userList.map(([uname, udata]) => {
+    const p  = getUserProgress(uname);
+    const ex = getExamData(uname);
+    const iv = getInterviewData(uname);
+
+    let doneCnt = 0, scoreSum = 0, scoreCnt = 0;
+    for (let i = 1; i <= 7; i++) {
+      if (p[`module${i}_done`]) doneCnt++;
+      if (p[`module${i}_score`] !== undefined) { scoreSum += p[`module${i}_score`]; scoreCnt++; }
+    }
+    const avgScore = scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) + '%' : '—';
+    const allMS = JSON.parse(localStorage.getItem('wmt_monthly_scores') || '{}');
+    const failCnt = Object.values(allMS).filter(m => m[uname]?.passed === false).length;
+    const modPct   = Math.round((doneCnt / 7) * 100);
+
+    let examBadge = '';
+    const hasExamData = ex.score !== undefined || ex.passed || ex.disqualified;
+    if (ex.passed) {
+      examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else if (ex.disqualified) {
+      examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
+    } else if (ex.score !== undefined) {
+      const lockoutActive = ex.fail1Date && !ex.fail2Date && !ex.passed && (() => {
+        const diff = Date.now() - new Date(ex.fail1Date).getTime();
+        return diff < 3 * 24 * 60 * 60 * 1000;
+      })();
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1}/2 — ${Math.round((ex.score/(ex.total||30))*100)}%${lockoutActive?' 🔒':''}</span>`;
+    } else {
+      examBadge = `<span class="exam-badge none">Not Started</span>`;
+    }
+    const examCell = `<div>
+      ${examBadge}
+      ${hasExamData ? `<div style="margin-top:5px;"><button class="btn-xs exam" onclick="openExamReset('${uname}')" style="font-size:0.68rem;padding:3px 8px;">📝 Manage</button></div>` : ''}
+    </div>`;
+
+    const ivColors = { pending:'var(--warning)', confirmed:'var(--success)', completed:'#6496ff', cancelled:'var(--danger)', failed:'var(--danger)' };
+    const ivLabels = { pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Done', cancelled:'❌ Cancelled', failed:'⛔ Failed' };
+    const ivText  = iv ? (ivLabels[iv.status] || '⏳ Pending') : '—';
+    const ivColor = iv ? (ivColors[iv.status] || ivColors.pending) : 'var(--text-muted)';
+    const ivCell  = `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="color:${ivColor};font-size:0.8rem;font-weight:600;">${ivText}</span>
+      <button class="btn-xs edit" onclick="openSetIvStatus('${uname}')" title="Change interview status" style="padding:2px 8px;font-size:0.7rem;">🎤 Set</button>
+    </div>`;
+
+    const joined = udata.createdAt
+      ? new Date(udata.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary)">${uname}</div>
+        ${udata.workName ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;">${udata.workName}</div>` : ''}
+      </td>
+      <td style="color:var(--text-secondary)">${udata.fullName || '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.email || '—'}</td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">
+        ${normalizeDept(udata.department) || '—'}
+        ${udata.testGroup === 'bdcs'   ? `<br><span style="font-size:0.68rem;background:rgba(255,165,0,0.15);color:#ffaa33;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📊 BDCS</span>` : ''}
+        ${udata.testGroup === 'others' ? `<br><span style="font-size:0.68rem;background:rgba(100,150,255,0.15);color:#6496ff;padding:1px 7px;border-radius:10px;font-weight:700;white-space:nowrap;">📋 Others</span>` : ''}
+      </td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
+      <td>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <span class="role-badge ${udata.role}">${udata.role==='mod'?'🛡️ Mod':udata.role==='admin'?'⭐ Admin':udata.role}</span>
+          ${udata.isLeader ? `<span class="role-badge leader">🏆 Leader</span>` : ''}
+          ${udata.role !== 'admin' ? `
+          <button class="btn-xs ${udata.role==='mod'?'reset':'edi'}" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
+            onclick="toggleModRole('${uname}')" title="${udata.role==='mod'?'Revoke Moderator':'Grant Moderator'}">
+            ${udata.role==='mod' ? '↩ Unset Mod' : '🛡️ Set Mod'}
+          </button>
+          <button class="btn-xs" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;background:rgba(255,215,0,0.1);border:1px solid rgba(255,215,0,0.4);color:var(--gold);border-radius:4px;cursor:pointer;"
+            onclick="toggleAdminRole('${uname}')" title="Grant Admin Role">
+            ⭐ Set Admin
+          </button>` :
+          uname !== CUR_ADMIN ? `
+          <button class="btn-xs reset" style="font-size:0.68rem;padding:2px 7px;margin-top:1px;"
+            onclick="toggleAdminRole('${uname}')" title="Revoke Admin Role">
+            ↩ Unset Admin
+          </button>` : `<span style="font-size:0.65rem;color:var(--text-muted);margin-top:2px;">(You)</span>`}
+        </div>
+      </td>
+      <td style="font-size:0.8rem;color:var(--text-secondary);">${udata.leaderName || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${(udata.role==='admin'||udata.role==='mod') ? '<span style="color:var(--text-muted);font-size:0.8rem;">—</span>' :
+        (udata.employeeType||'new')==='old'
+          ? `<span class="role-badge" style="background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+          : `<span class="role-badge" style="background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`
+      }</td>
+      <td style="color:var(--text-muted);font-size:0.8rem;">${joined}</td>
+      <td>
+        <div class="mod-progress">
+          <div class="mod-progress-bar">
+            <div class="mod-progress-fill ${doneCnt===7?'complete':''}" style="width:${modPct}%"></div>
+          </div>
+          <span style="color:${doneCnt===7?'var(--success)':'var(--text-secondary)'};">${doneCnt}/7</span>
+        </div>
+      </td>
+      <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
+      <td style="text-align:center;">
+        ${failCnt === 0
+          ? `<span style="color:var(--text-muted);font-size:0.85rem;">0 times</span>`
+          : `<span style="font-weight:700;font-size:0.85rem;padding:2px 8px;border-radius:10px;
+              background:${failCnt >= 3 ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.15)'};
+              color:${failCnt >= 3 ? '#ef4444' : '#f59e0b'};">${failCnt} time${failCnt > 1 ? 's' : ''}</span>`}
+      </td>
+      <td>${examCell}</td>
+      <td>${ivCell}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn-xs editt"   onclick="openEditUser('${uname}')">✎ Edit</button>
+          <button class="btn-xs reset"  onclick="resetUser('${uname}')">↺ Reset</button>
+          <button class="btn-xs delete" onclick="deleteUser('${uname}')" ${udata.role==='admin'?'disabled title="Revoke admin role first before deleting"':''}>✕ Delete</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ===== USERS TABLE =====
+function renderAdminPanel() {
+  const users    = getUsersDB();
+  const userList = Object.entries(users);
+
+  let totalTrainees = 0, totalCompleted = 0, totalPassed = 0, totalInterviews = 0, pendingCount = 0;
+
+  userList.forEach(([uname, udata]) => {
+    if (udata.role !== 'admin') totalTrainees++;
+    const p = getUserProgress(uname);
+    let done = 0;
+    for (let i = 1; i <= 7; i++) { if (p[`module${i}_done`]) done++; }
+    if (done === 7) totalCompleted++;
+    if (getExamData(uname).passed) totalPassed++;
+    const iv = getInterviewData(uname);
+    if (iv) { totalInterviews++; if (iv.status === 'pending') pendingCount++; }
+  });
+
+  // Update interview badge
+  const badge = document.getElementById('pendingBadge');
+  if (pendingCount > 0) { badge.textContent = pendingCount; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+
+  // Update proposals badge
+  updateProposalsBadge();
+
+  document.getElementById('adminStats').innerHTML = `
+    <div class="admin-stat-card gold">
+      <div class="admin-stat-value">${userList.length}</div>
+      <div class="admin-stat-label">Total Users</div>
+    </div>
+    <div class="admin-stat-card">
+      <div class="admin-stat-value">${totalTrainees}</div>
+      <div class="admin-stat-label">Trainees</div>
+    </div>
+    <div class="admin-stat-card green">
+      <div class="admin-stat-value">${totalCompleted}</div>
+      <div class="admin-stat-label">Modules Completed</div>
+    </div>
+    <div class="admin-stat-card blue">
+      <div class="admin-stat-value">${totalPassed}</div>
+      <div class="admin-stat-label">Exam Passed</div>
+    </div>
+    <div class="admin-stat-card warn">
+      <div class="admin-stat-value">${totalInterviews}</div>
+      <div class="admin-stat-label">Interviews Booked</div>
+    </div>`;
+
+  populateFilterDropdowns();
+  renderUsersTableBody();
+}
+
+function toggleModRole(uname) {
+  const users = getUsersDB();
+  if (!users[uname] || users[uname].role === 'admin') return;
+  const isMod = users[uname].role === 'mod';
+  const action = isMod ? 'Revoke Moderator' : 'Grant Moderator';
+  if (!confirm(`${action} cho "${uname}"?`)) return;
+  const newRole = isMod ? 'trainee' : 'mod';
+  users[uname].role = newRole;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
+  renderAdminPanel();
+}
+
+function toggleAdminRole(uname) {
+  const users = getUsersDB();
+  if (!users[uname]) return;
+  // Cannot change your own admin role
+  if (uname === CUR_ADMIN) { alert('You cannot change your own Admin role.'); return; }
+  // Cannot change the base system admin account
+  if (uname === 'admin') { alert('Cannot change the role of the root admin account.'); return; }
+  const isAdmin = users[uname].role === 'admin';
+  const action = isAdmin ? 'Revoke Admin' : 'Grant Admin';
+  if (!confirm(`${action} for account "${uname}"?\n\n${isAdmin ? 'This account will become a trainee and lose admin access.' : 'This account will have full admin privileges.'}`)) return;
+  const newRole = isAdmin ? 'trainee' : 'admin';
+  users[uname].role = newRole;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
+  renderAdminPanel();
+}
+
+// ===== LEADER NAME DATABASE MIGRATION =====
+// Normalises every user's leaderName to the actual leader's username (lowercase).
+// Safe to run multiple times — skips users that already have the correct value.
+async function migrateLeaderNames() {
+  const users = getUsersDB();
+  const updates = []; // [{uname, oldVal, newVal}]
+
+  for (const [uname, u] of Object.entries(users)) {
+    if (!u.leaderName) continue;
+    const [foundKey] = findLeaderEntry(u.leaderName, users);
+    const newVal = foundKey ? normL(foundKey) : normL(u.leaderName);
+    if (newVal !== u.leaderName) updates.push({ uname, oldVal: u.leaderName, newVal });
+  }
+
+  if (updates.length === 0) {
+    alert('✅ All leaderName values are already correct — no updates needed.');
+    return;
+  }
+
+  const preview = updates.slice(0, 10).map(({uname, oldVal, newVal}) =>
+    `• ${uname}: "${oldVal}" → "${newVal}"`).join('\n')
+    + (updates.length > 10 ? `\n… and ${updates.length - 10} more users` : '');
+
+  if (!confirm(`Will update leaderName for ${updates.length} account${updates.length!==1?'s':''}:\n\n${preview}\n\nContinue?`)) return;
+
+  // Apply to localStorage
+  for (const { uname, newVal } of updates) users[uname].leaderName = newVal;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+
+  // Apply to Firebase (per-user update — safe)
+  if (window.FDB) {
+    const promises = updates.map(({ uname, newVal }) =>
+      window.FDB.ref('users/' + uname).update({ leaderName: newVal })
+    );
+    try {
+      await Promise.all(promises);
+      alert(`✅ Normalised leaderName for ${updates.length} account${updates.length!==1?'s':''} and saved to Firebase.`);
+    } catch (e) {
+      alert(`⚠️ localStorage updated but Firebase write failed:\n${e.message}`);
+    }
+  } else {
+    alert(`✅ Normalised leaderName for ${updates.length} account${updates.length!==1?'s':''} (localStorage only — Firebase not connected).`);
+  }
+
+  renderAdminPanel();
+  populateFilterDropdowns();
+}
+
+function resetUser(uname) {
+  if (!confirm(`Reset all progress for "${uname}"?\n\nThis will clear module progress, quiz results, exam data, and interview booking.`)) return;
+  dbRemove('wmt_progress_' + uname);
+  dbRemove('wmt_exam_'      + uname);
+  dbRemove('wmt_interview_' + uname);
+  for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== PROPOSALS =====
+const EQ_MOD_NAMES = ['','Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk'];
+
+function getProposals()   { return JSON.parse(localStorage.getItem('wmt_proposals') || '[]'); }
+function saveProposals(d) { dbWrite('wmt_proposals', JSON.stringify(d)); }
+
+function updateProposalsBadge() {
+  const pending = getProposals().filter(p => p.status === 'pending').length;
+  const badge = document.getElementById('proposalsBadge');
+  if (!badge) return;
+  badge.textContent = pending;
+  badge.classList.toggle('hidden', pending === 0);
+}
+
+function renderProposalsTab() {
+  const all      = getProposals().slice().reverse();
+  const pending  = all.filter(p => p.status === 'pending');
+  const reviewed = all.filter(p => p.status !== 'pending');
+  const el = document.getElementById('proposalsContent');
+
+  if (!all.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">💡</div><div>No proposals yet.</div></div>`;
+    return;
+  }
+
+  function cardHTML(p) {
+    const srcLabel = p.source === 'exam'
+      ? `Final Exam${p.action==='add'?' — Add Question':` — Question #${(p.idx??0)+1} (Module ${p.proposed?.module??''} ${EQ_MOD_NAMES[p.proposed?.module]??''})`}`
+      : p.source === 'module'
+        ? `📝 Module ${p.moduleId||''} — ${p.moduleName||''}${p.section ? ` · <em style="color:var(--text-secondary);font-weight:400;">${p.section}</em>` : ''}`
+        : `Monthly Test${p.group?' ('+p.group.toUpperCase()+')':''}${p.action==='add'?' — Add Question':`— Question #${(p.idx??0)+1}`}`;
+    const statusColor = {pending:'var(--warning)',approved:'var(--success)',rejected:'var(--danger)'}[p.status];
+    const statusLabel = {pending:'⏳ Pending',approved:'✅ Approved',rejected:'❌ Rejected'}[p.status];
+    const dt = d => d ? new Date(d).toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    const origBlock = p.original
+      ? `<div class="prop-diff-box orig">
+           <div class="prop-diff-label">Original</div>
+           <div>${p.original.q || p.original.text || '—'}</div>
+           ${p.original.opts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${p.original.opts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
+           ${p.original.correct!==undefined&&p.original.opts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${p.original.opts[p.original.correct]}</div>` : ''}
+         </div>` : '';
+
+    const propQ    = p.proposed?.q || p.proposed?.text || '—';
+    const propOpts = p.proposed?.opts;
+    const propCorr = p.proposed?.correct;
+    const propBlock = `<div class="prop-diff-box prop">
+      <div class="prop-diff-label" style="color:var(--gold);">Proposed${p.action==='add'?' (New)':''}</div>
+      <div>${propQ}</div>
+      ${propOpts ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">${propOpts.map((o,i)=>`${String.fromCharCode(65+i)}. ${o}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
+      ${propCorr!==undefined&&propOpts ? `<div style="font-size:0.75rem;color:var(--success);margin-top:4px;">✓ ${propOpts[propCorr]}</div>` : ''}
+      ${p.proposed?.type ? `<div style="font-size:0.73rem;color:var(--text-muted);margin-top:4px;">Type: ${p.proposed.type} · Points: ${p.proposed.points??'—'}</div>` : ''}
+    </div>`;
+
+    const noteHTML = p.note ? `<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:10px;padding:8px 12px;background:rgba(100,150,255,0.06);border-radius:7px;">💬 <em>${p.note}</em></div>` : '';
+    const reviewHTML = p.reviewedBy ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:8px;">Reviewed by <strong>${p.reviewedBy}</strong> — ${dt(p.reviewedAt)}${p.reviewNote?' &nbsp;·&nbsp; "'+p.reviewNote+'"':''}</div>` : '';
+
+    const actions = p.status === 'pending' ? `
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="btn-xs ok"  onclick="approveProposal('${p.id}')">✅ Approve</button>
+        <button class="btn-xs del" onclick="rejectProposal('${p.id}')">❌ Reject</button>
+      </div>` : '';
+
+    return `<div class="prop-card ${p.status}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;color:var(--text-primary);margin-bottom:4px;">${srcLabel}</div>
+          <div class="prop-meta">
+            <span>👤 ${p.proposedBy}</span>
+            <span>🕐 ${dt(p.proposedAt)}</span>
+            <span style="color:${statusColor};font-weight:700;">${statusLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="prop-diff">${origBlock}${propBlock}</div>
+      ${noteHTML}${reviewHTML}${actions}
+    </div>`;
+  }
+
+  el.innerHTML = (pending.length ? `<div class="section-title" style="margin-bottom:12px;">Pending (${pending.length})</div>${pending.map(cardHTML).join('')}` : '') +
+    (reviewed.length ? `<div class="section-title" style="margin:24px 0 12px;">Reviewed (${reviewed.length})</div>${reviewed.map(cardHTML).join('')}` : '');
+}
+
+function approveProposal(id) {
+  const proposals = getProposals();
+  const idx = proposals.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const p = proposals[idx];
+
+  if (p.source === 'exam') {
+    const bank = JSON.parse(localStorage.getItem('wmt_exam_qbank') || 'null');
+    if (!bank) { alert('Question bank not initialised. Open the Final Exam page once first.'); return; }
+    if (p.action === 'edit') bank[p.idx] = p.proposed;
+    else bank.push(p.proposed);
+    dbWrite('wmt_exam_qbank', JSON.stringify(bank));
+  } else if (p.source === 'monthly') {
+    const qb = JSON.parse(localStorage.getItem('wmt_qbank_' + p.group) || 'null');
+    if (!qb) { alert('Question Bank has no data. Upload a file first.'); return; }
+    if (p.action === 'edit') qb.questions[p.idx] = { ...qb.questions[p.idx], ...p.proposed };
+    else { qb.questions.push(p.proposed); qb.totalPoints = qb.questions.reduce((s,q)=>s+(q.points||0),0); }
+    dbWrite('wmt_qbank_' + p.group, JSON.stringify(qb));
+  }
+  // source === 'module': no automatic apply — admin must manually update module HTML
+
+  const curUser = localStorage.getItem('wmt_user') || '';
+  proposals[idx] = { ...p, status:'approved', reviewedBy:curUser, reviewedAt:new Date().toISOString(), reviewNote:'' };
+  saveProposals(proposals);
+  renderProposalsTab();
+  updateProposalsBadge();
+  if (p.source === 'module') {
+    alert(`✅ Proposal approved.\n\n📌 Note: This is a content edit proposal for Module ${p.moduleId} — ${p.moduleName}.\nPlease update the corresponding HTML file manually.`);
+  } else {
+    alert('✅ Proposal approved and applied to the Question Bank.');
+  }
+}
+
+function rejectProposal(id) {
+  const note = prompt('Rejection reason (optional):');
+  if (note === null) return;
+  const proposals = getProposals();
+  const idx = proposals.findIndex(p => p.id === id);
+  if (idx < 0) return;
+  const curUser = localStorage.getItem('wmt_user') || '';
+  proposals[idx] = { ...proposals[idx], status:'rejected', reviewedBy:curUser, reviewedAt:new Date().toISOString(), reviewNote:note };
+  saveProposals(proposals);
+  renderProposalsTab();
+  updateProposalsBadge();
+}
+
+// ===== QUIZ TAB =====
+const MODULE_LABELS = ['Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Intro Partner','Compliance'];
+
+function renderQuizTab() {
+  const users    = getUsersDB();
+  const trainees = Object.entries(users).filter(([,u]) => u.role === 'trainee');
+  const tbody    = document.getElementById('quizTableBody');
+
+  if (!trainees.length) {
+    tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📝</div><div>No trainees found.</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = trainees.map(([uname, udata]) => {
+    const progress = getUserProgress(uname);
+
+    const cells = Array.from({length: 7}, (_, i) => {
+      const mid    = i + 1;
+      const result = JSON.parse(localStorage.getItem(`wmt_quiz_${uname}_m${mid}`) || 'null');
+
+      if (result && result.score !== undefined) {
+        const color = result.score >= 60 ? 'var(--success)' : 'var(--danger)';
+        return `<td style="text-align:center;">
+          <div style="font-weight:700;color:${color};font-size:0.88rem;">${result.score}%</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);">${result.correct}/${result.total}</div>
+          <button class="btn-xs reset" style="margin-top:4px;font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
+        </td>`;
+      }
+      // Fallback: module marked done in progress (legacy or quiz key missing)
+      const progressScore = progress[`module${mid}_score`];
+      if (progress[`module${mid}_done`] || progressScore !== undefined) {
+        const score = progressScore ?? 0;
+        const color = score >= 60 ? 'var(--success)' : 'var(--danger)';
+        const label = progress[`module${mid}_done`] ? 'done' : `${score}%`;
+        return `<td style="text-align:center;">
+          <div style="font-weight:700;color:${color};font-size:0.88rem;">${score}%</div>
+          <div style="font-size:0.68rem;color:var(--text-muted);margin-bottom:2px;">legacy</div>
+          <button class="btn-xs reset" style="font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
+        </td>`;
+      }
+      return `<td style="color:var(--text-muted);font-size:0.8rem;text-align:center;">—</td>`;
+    });
+
+    const anySubmitted = Array.from({length:7}, (_, i) => {
+      const mid = i + 1;
+      return localStorage.getItem(`wmt_quiz_${uname}_m${mid}`) || progress[`module${mid}_done`];
+    }).some(Boolean);
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary)">${uname}</div>
+        ${udata.fullName ? `<div style="font-size:0.73rem;color:var(--text-muted)">${udata.fullName}</div>` : ''}
+      </td>
+      ${cells.join('')}
+      <td style="text-align:center;">
+        <button class="btn-xs reset" onclick="resetAllQuizzes('${uname}')" ${!anySubmitted ? 'disabled' : ''}>↺ All</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function resetQuiz(uname, moduleId) {
+  if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz for "${uname}"?\nTrainee will be able to retake this quiz.`)) return;
+  // Remove quiz result from Firebase + localStorage
+  dbRemove(`wmt_quiz_${uname}_m${moduleId}`);
+  // Remove module done/score from progress so trainee can re-mark complete
+  const p = getUserProgress(uname);
+  delete p[`module${moduleId}_done`];
+  delete p[`module${moduleId}_score`];
+  dbWrite('wmt_progress_' + uname, JSON.stringify(p));
+  // Also remove the "mark complete" flag locally (for immediate UI update)
+  localStorage.removeItem(`wmt_quiz_${uname}_m${moduleId}`);
+  renderQuizTab();
+  renderAdminPanel();
+}
+
+function resetAllQuizzes(uname) {
+  if (!confirm(`Reset all quizzes for "${uname}"?\nTrainee will be able to retake all 7 module quizzes.`)) return;
+  const p = getUserProgress(uname);
+  for (let i = 1; i <= 7; i++) {
+    dbRemove(`wmt_quiz_${uname}_m${i}`);
+    delete p[`module${i}_done`];
+    delete p[`module${i}_score`];
+  }
+  dbWrite('wmt_progress_' + uname, JSON.stringify(p));
+  renderQuizTab();
+  renderAdminPanel();
+}
+
+function deleteUser(uname) {
+  const _du = getUsersDB();
+  // Protect all admin accounts — revoke admin role first
+  if (_du[uname] && _du[uname].role === 'admin') {
+    alert(`Cannot delete admin account "${uname}".\nPlease revoke Admin role first, then delete.`);
+    return;
+  }
+  if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
+  const users = getUsersDB();
+  delete users[uname];
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).remove();
+  ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => dbRemove(k + uname));
+  for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
+  const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+  dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  if (localStorage.getItem('wmt_user') === uname) { localStorage.removeItem('wmt_user'); window.location.href = 'index.html'; return; }
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== INTERVIEWS TABLE =====
+function renderInterviewsTable() {
+  const users  = getUsersDB();
+  const tbody  = document.getElementById('interviewsTableBody');
+  const rows   = [];
+
+  Object.keys(users).forEach(uname => {
+    const iv = getInterviewData(uname);
+    if (iv) rows.push({ uname, iv });
+  });
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div><div>No interview requests yet.</div></div></td></tr>`;
+    return;
+  }
+
+  // Sort: pending first, then by submittedAt
+  rows.sort((a, b) => {
+    const order = { pending:0, confirmed:1, completed:2, cancelled:3 };
+    const oa = order[a.iv.status] ?? 9, ob = order[b.iv.status] ?? 9;
+    if (oa !== ob) return oa - ob;
+    return new Date(a.iv.submittedAt) - new Date(b.iv.submittedAt);
+  });
+
+  tbody.innerHTML = rows.map(({ uname, iv }) => {
+    const submitted = iv.submittedAt
+      ? new Date(iv.submittedAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    const statusBadge = `<span class="iv-status ${iv.status||'pending'}">${
+      {pending:'⏳ Pending', confirmed:'✅ Confirmed', completed:'🏆 Completed', cancelled:'❌ Cancelled', failed:'⛔ Failed'}[iv.status] || '⏳ Pending'
+    }${iv.adminSet?' <span style="font-size:0.65rem;opacity:.7;">(admin)</span>':''}</span>`;
+
+    const meetingCell = iv.meetingLink
+      ? `<div class="meeting-link-cell">
+           <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:2px;">${iv.meetingPlatform||''}</div>
+           <a href="${iv.meetingLink}" target="_blank" rel="noopener">🔗 Join Link</a>
+           ${iv.confirmedSlot ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">${iv.confirmedSlot}</div>` : ''}
+         </div>`
+      : `<span style="color:var(--text-muted);font-size:0.8rem;">—</span>`;
+
+    const canConfirm  = iv.status === 'pending';
+    const canComplete = iv.status === 'confirmed';
+    const canCancel   = iv.status === 'pending' || iv.status === 'confirmed';
+
+    return `<tr>
+      <td style="font-weight:600;color:var(--text-primary)">${uname}</td>
+      <td style="color:var(--text-secondary)">${iv.fullName||'—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${iv.email||'—'}</td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">${iv.preferredDate||''} ${iv.preferredTime||''}</td>
+      <td style="color:var(--text-muted);font-size:0.78rem;">${iv.timezone||'—'}</td>
+      <td>${statusBadge}<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${submitted}</div></td>
+      <td>${meetingCell}</td>
+      <td>
+        <div class="action-btns">
+          ${canConfirm  ? `<button class="btn-xs confirm"  onclick="openConfirmModal('${uname}')">✅ Confirm</button>` : ''}
+          ${canComplete ? `<button class="btn-xs complete" onclick="markCompleted('${uname}')">🏆 Done</button>` : ''}
+          ${canCancel   ? `<button class="btn-xs delete"   onclick="cancelInterview('${uname}')">✕ Cancel</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Interview Calendar ──────────────────────────────────────────────────────
+let _ivView = 'table';
+let _ivCalYear  = new Date().getFullYear();
+let _ivCalMonth = new Date().getMonth(); // 0-indexed
+
+const IV_STATUS_COLOR = { pending:'#f59e0b', confirmed:'#00d68f', completed:'#6496ff', cancelled:'#ef4444', failed:'#ef4444' };
+
+function setIvView(v) {
+  _ivView = v;
+  document.getElementById('ivTableView').style.display = v === 'table' ? '' : 'none';
+  document.getElementById('ivCalView').style.display   = v === 'calendar' ? '' : 'none';
+  document.getElementById('ivCalNav').style.display    = v === 'calendar' ? 'flex' : 'none';
+  document.getElementById('ivViewTable').className = 'btn ' + (v === 'table'    ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('ivViewCal').className   = 'btn ' + (v === 'calendar' ? 'btn-primary' : 'btn-secondary');
+  document.getElementById('ivViewTable').style.padding = '6px 14px';
+  document.getElementById('ivViewTable').style.fontSize = '0.82rem';
+  document.getElementById('ivViewCal').style.padding = '6px 14px';
+  document.getElementById('ivViewCal').style.fontSize = '0.82rem';
+  if (v === 'calendar') renderInterviewCalendar();
+}
+
+function shiftIvMonth(delta) {
+  _ivCalMonth += delta;
+  if (_ivCalMonth > 11) { _ivCalMonth = 0;  _ivCalYear++; }
+  if (_ivCalMonth < 0)  { _ivCalMonth = 11; _ivCalYear--; }
+  renderInterviewCalendar();
+}
+
+function renderInterviewCalendar() {
+  const year = _ivCalYear, month = _ivCalMonth;
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('ivCalMonthLabel').textContent = `${MONTHS[month]} ${year}`;
+
+  // Collect all interviews and group by preferredDate
+  const users = getUsersDB();
+  const byDate = {};
+  Object.keys(users).forEach(uname => {
+    const iv = getInterviewData(uname);
+    if (!iv || !iv.preferredDate) return;
+    if (!byDate[iv.preferredDate]) byDate[iv.preferredDate] = [];
+    byDate[iv.preferredDate].push({ uname, iv });
+  });
+
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = new Date().toISOString().slice(0, 10);
+
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">`;
+
+  // Header
+  DAY_NAMES.forEach(d => {
+    html += `<div style="text-align:center;font-size:0.75rem;font-weight:700;color:var(--text-muted);padding:6px 0;">${d}</div>`;
+  });
+
+  // Empty cells before 1st
+  for (let i = 0; i < firstDay; i++) {
+    html += `<div style="min-height:72px;"></div>`;
+  }
+
+  // Day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const entries = byDate[dateStr] || [];
+    const isToday = dateStr === today;
+
+    html += `<div style="min-height:72px;border:1px solid var(--border);border-radius:8px;padding:5px 6px;
+                         background:${isToday ? 'rgba(100,150,255,0.08)' : 'var(--surface)'};
+                         ${isToday ? 'border-color:rgba(100,150,255,0.4);' : ''}">
+      <div style="font-size:0.78rem;font-weight:${isToday?'700':'500'};color:${isToday?'#6496ff':'var(--text-secondary)'};margin-bottom:3px;">${d}</div>`;
+
+    entries.forEach(({ uname, iv }) => {
+      const color = IV_STATUS_COLOR[iv.status] || '#f59e0b';
+      html += `<div onclick="openConfirmModal && openConfirmModal('${uname}')"
+                    title="${uname} · ${iv.preferredTime||''} · ${iv.timezone||''}"
+                    style="background:${color}22;border:1px solid ${color}55;border-radius:4px;
+                           padding:2px 5px;margin-bottom:2px;cursor:pointer;
+                           font-size:0.68rem;color:${color};font-weight:600;
+                           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${color};margin-right:3px;vertical-align:middle;"></span>${uname}${iv.preferredTime ? ' · '+iv.preferredTime : ''}
+               </div>`;
+    });
+
+    html += `</div>`;
+  }
+
+  html += `</div>`;
+  document.getElementById('ivCalGrid').innerHTML = html;
+}
+
+function markCompleted(uname) {
+  if (!confirm(`Mark interview for "${uname}" as completed?`)) return;
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status = 'completed';
+  saveInterviewData(uname, iv);
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+function cancelInterview(uname) {
+  if (!confirm(`Cancel interview booking for "${uname}"?`)) return;
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status = 'cancelled';
+  saveInterviewData(uname, iv);
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== SET INTERVIEW STATUS (admin override) =====
+function openSetIvStatus(uname) {
+  const ex = document.getElementById('setIvModal'); if (ex) ex.remove();
+  const iv = getInterviewData(uname);
+  const cur = iv ? iv.status : 'no_record';
+  const opts = [
+    { value:'no_record', icon:'🗑️', label:'No Record',  sub:'Remove interview data entirely',      color:'var(--text-muted)' },
+    { value:'failed',    icon:'⛔', label:'Failed',      sub:'Interview was held but failed',        color:'var(--danger)' },
+    { value:'completed', icon:'🏆', label:'Completed',  sub:'Interview completed successfully',     color:'#6496ff' }
+  ];
+  const modal = document.createElement('div');
+  modal.id = 'setIvModal'; modal.className = 'modal-overlay show';
+  modal.innerHTML = `<div class="modal-box" style="max-width:400px;">
+    <h3 style="margin-bottom:4px;">🎤 Set Interview Status</h3>
+    <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:18px;">User: <strong style="color:var(--text-primary)">${uname}</strong></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px;">
+      ${opts.map(o=>`
+        <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid ${cur===o.value?o.color:'var(--border)'};border-radius:10px;cursor:pointer;background:${cur===o.value?'rgba(255,255,255,0.04)':'transparent'};transition:all .15s;">
+          <input type="radio" name="ivStat" value="${o.value}" ${cur===o.value?'checked':''} style="accent-color:var(--gold);flex-shrink:0;">
+          <div>
+            <div style="font-weight:700;color:${o.color};font-size:0.88rem;">${o.icon} ${o.label}</div>
+            <div style="font-size:0.74rem;color:var(--text-muted);margin-top:2px;">${o.sub}</div>
+          </div>
+        </label>`).join('')}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('setIvModal').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveIvStatus('${uname}')">💾 Save</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+}
+
+function saveIvStatus(uname) {
+  const sel = document.querySelector('input[name="ivStat"]:checked');
+  if (!sel) return;
+  const status = sel.value;
+
+  if (status === 'no_record') {
+    // Clear interview data completely
+    dbRemove('wmt_interview_' + uname);
+    const list = JSON.parse(localStorage.getItem('wmt_interviews_list') || '[]');
+    dbWrite('wmt_interviews_list', JSON.stringify(list.filter(x => x.username !== uname)));
+  } else {
+    const users = getUsersDB();
+    const u = users[uname] || {};
+    let iv = getInterviewData(uname) || {
+      username:    uname,
+      fullName:    u.fullName || '',
+      email:       u.email || '',
+      submittedAt: new Date().toISOString()
+    };
+    iv.status     = status;
+    iv.adminSet   = true;
+    iv.adminSetAt = new Date().toISOString();
+    saveInterviewData(uname, iv);
+  }
+
+  document.getElementById('setIvModal').remove();
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== EXAM RESET MODAL =====
+function openExamReset(uname) {
+  const ex = getExamData(uname);
+  document.getElementById('examResetUsername').value = uname;
+  document.getElementById('examResetError').textContent = '';
+
+  // Build status summary
+  const fmt = d => d ? new Date(d).toLocaleString('en-GB', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  let statusHTML = `<div style="color:var(--text-muted);font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Current Status — <strong style="color:var(--text-primary)">${uname}</strong></div>`;
+
+  if (ex.passed) {
+    statusHTML += `<div>✅ <strong style="color:var(--success)">Passed</strong> — ${Math.round((ex.score/(ex.total||30))*100)}% (${fmt(ex.passDate)})</div>`;
+  } else if (ex.disqualified) {
+    statusHTML += `<div>🚫 <strong style="color:var(--danger)">Disqualified (used both attempts)</strong></div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Attempt 1: ${Math.round((ex.fail1Score/(ex.total||30))*100)}% — ${fmt(ex.fail1Date)}</div>`;
+    statusHTML += `<div style="color:var(--text-muted);font-size:0.8rem;">Attempt 2: ${Math.round((ex.fail2Score/(ex.total||30))*100)}% — ${fmt(ex.fail2Date)}</div>`;
+  } else if (ex.fail1Date) {
+    const daysLeft = Math.max(0, Math.ceil((new Date(ex.fail1Date).getTime() + 3*864e5 - Date.now()) / 864e5));
+    statusHTML += `<div>⚠️ <strong style="color:var(--warning)">Failed Attempt 1</strong> — ${Math.round((ex.fail1Score/(ex.total||30))*100)}% (${fmt(ex.fail1Date)})</div>`;
+    if (daysLeft > 0) {
+      statusHTML += `<div style="color:var(--danger);font-size:0.8rem;">🔒 Locked — <strong>${daysLeft} day(s)</strong> remaining before retry</div>`;
+    } else {
+      statusHTML += `<div style="color:var(--success);font-size:0.8rem;">✓ Lockout expired — eligible for attempt 2</div>`;
+    }
+  } else if (ex.score !== undefined) {
+    statusHTML += `<div>📋 Attempted — ${Math.round((ex.score/(ex.total||30))*100)}%</div>`;
+  } else {
+    statusHTML += `<div style="color:var(--text-muted);">Not started.</div>`;
+  }
+  document.getElementById('examResetStatus').innerHTML = statusHTML;
+
+  // Build action options
+  const opts = [];
+
+  if (ex.disqualified) {
+    opts.push({
+      value: 'restore_attempt1',
+      icon: '↺',
+      color: 'var(--warning)',
+      label: 'Restore — 2 fresh attempts (full reset)',
+      sub: 'Clear all exam data. User starts over with 2 fresh attempts.'
+    });
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
+    });
+  } else if (ex.fail1Date) {
+    opts.push({
+      value: 'restore_attempt1',
+      icon: '↺',
+      color: 'var(--warning)',
+      label: 'Clear attempt 1 result — restore 2 attempts',
+      sub: 'Clear failed attempt 1 and lockout period. User restarts with 2 full attempts.'
+    });
+    opts.push({
+      value: 'unlock_only',
+      icon: '🔓',
+      color: '#6496ff',
+      label: 'Unlock waiting period only',
+      sub: 'Keep attempt 1 data but skip the 3-day lockout. User can take attempt 2 immediately.'
+    });
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
+    });
+  } else if (ex.passed) {
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Full Reset (including Pass status)',
+      sub: '⚠️ Clear all exam data including Pass status. Use when a full retake is required.'
+    });
+  } else if (ex.score !== undefined) {
+    opts.push({
+      value: 'full_reset',
+      icon: '🗑️',
+      color: 'var(--danger)',
+      label: 'Full Reset — 2 fresh attempts',
+      sub: 'Clear all exam data. User starts over with 2 full attempts.'
+    });
+  }
+
+  const optContainer = document.getElementById('examResetOptions');
+  if (!opts.length) {
+    optContainer.innerHTML = '<div style="color:var(--text-muted);font-size:0.84rem;text-align:center;">No actions available.</div>';
+    document.getElementById('examResetSaveBtn').style.display = 'none';
+  } else {
+    document.getElementById('examResetSaveBtn').style.display = '';
+    optContainer.innerHTML = opts.map((o, idx) => `
+      <label style="display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border:1.5px solid ${idx===0?o.color:'var(--border)'};border-radius:10px;cursor:pointer;background:${idx===0?'rgba(255,255,255,0.03)':'transparent'};transition:all .15s;">
+        <input type="radio" name="examResetOpt" value="${o.value}" ${idx===0?'checked':''} style="accent-color:var(--gold);flex-shrink:0;margin-top:3px;">
+        <div>
+          <div style="font-weight:700;color:${o.color};font-size:0.88rem;">${o.icon} ${o.label}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;line-height:1.5;">${o.sub}</div>
+        </div>
+      </label>`).join('');
+  }
+
+  document.getElementById('examResetModal').classList.add('show');
+}
+
+function closeExamReset() {
+  document.getElementById('examResetModal').classList.remove('show');
+}
+
+function saveExamReset() {
+  const uname = document.getElementById('examResetUsername').value;
+  const sel   = document.querySelector('input[name="examResetOpt"]:checked');
+  if (!sel) return;
+  const action = sel.value;
+  const ex     = getExamData(uname);
+
+  if (action === 'full_reset') {
+    if (!confirm(`Reset ALL Final Exam data for "${uname}"?\nUser will start over with 2 fresh attempts.`)) return;
+    dbRemove('wmt_exam_' + uname);
+
+  } else if (action === 'restore_attempt1') {
+    // Clear fail1 data (and fail2 if disqualified) — restore to "not started"
+    if (!confirm(`Clear attempt 1 result and restore 2 attempts for "${uname}"?`)) return;
+    dbRemove('wmt_exam_' + uname);
+
+  } else if (action === 'unlock_only') {
+    // Keep fail1 data but clear the lockout date so user can retry immediately
+    if (!confirm(`Unlock the 3-day waiting period for "${uname}"?\nUser will be able to take attempt 2 immediately.`)) return;
+    const updated = { ...ex };
+    // Remove fail1Date to bypass lockout check — keep score/attempts so attempt 2 rules still apply
+    delete updated.fail1Date;
+    // Keep attempts at 1 so the system knows this is attempt 2
+    updated.attempts = 1;
+    dbWrite('wmt_exam_' + uname, JSON.stringify(updated));
+  }
+
+  closeExamReset();
+  renderAdminPanel();
+
+  // Remind admin that user must refresh their page
+  setTimeout(() => {
+    alert(`✅ Exam reset for "${uname}".\n\n📌 Ask user "${uname}" to refresh (F5) exam.html for changes to take effect.`);
+  }, 200);
+}
+
+// ===== CONFIRM INTERVIEW MODAL =====
+function openConfirmModal(uname) {
+  document.getElementById('confirmUsername').value = uname;
+  document.getElementById('confirmedSlot').value   = '';
+  document.getElementById('meetingLink').value     = '';
+  document.getElementById('adminNotes').value      = '';
+  document.getElementById('meetingPlatform').value = 'Zoom';
+  document.getElementById('confirmError').textContent = '';
+  document.getElementById('confirmModal').classList.add('show');
+  setTimeout(() => document.getElementById('confirmedSlot').focus(), 100);
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+}
+
+function saveConfirmInterview() {
+  const uname    = document.getElementById('confirmUsername').value;
+  const slot     = document.getElementById('confirmedSlot').value.trim();
+  const platform = document.getElementById('meetingPlatform').value;
+  const link     = document.getElementById('meetingLink').value.trim();
+  const notes    = document.getElementById('adminNotes').value.trim();
+  const err      = document.getElementById('confirmError');
+
+  err.textContent = '';
+  if (!slot) { err.textContent = 'Please enter the confirmed date & time.'; return; }
+  if (!link) { err.textContent = 'Please enter the meeting link.'; return; }
+  if (!link.startsWith('http')) { err.textContent = 'Meeting link must start with http:// or https://.'; return; }
+
+  const iv = getInterviewData(uname);
+  if (!iv) return;
+  iv.status          = 'confirmed';
+  iv.confirmedSlot   = slot;
+  iv.meetingPlatform = platform;
+  iv.meetingLink     = link;
+  iv.adminNotes      = notes;
+  iv.confirmedAt     = new Date().toISOString();
+  saveInterviewData(uname, iv);
+
+  closeConfirmModal();
+  renderAdminPanel();
+  renderInterviewsTable();
+}
+
+// ===== ADD USER MODAL =====
+
+function toggleEditPwVis(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+}
+
+function openEditUser(uname) {
+  const users = getUsersDB();
+  const u = users[uname];
+  if (!u) return;
+  document.getElementById('editUsername').value        = uname;
+  document.getElementById('editUsernameDisplay').value = uname;
+  document.getElementById('editFullName').value        = u.fullName   || '';
+  document.getElementById('editWorkName').value        = u.workName   || '';
+  document.getElementById('editEmail').value           = u.email      || '';
+  document.getElementById('editDepartment').value      = u.department || '';
+  document.getElementById('editPosition').value        = u.position   || '';
+  document.getElementById('editRole').value            = u.role         || 'trainee';
+  document.getElementById('editEmpType').value         = u.employeeType || 'new';
+  document.getElementById('editTestGroup').value       = u.testGroup   || 'auto';
+  document.getElementById('editIsLeader').checked      = u.isLeader    || false;
+  document.getElementById('editLeaderName').value      = u.leaderName  || '';
+  document.getElementById('editUserError').textContent = '';
+  // Password fields
+  const curPwEl = document.getElementById('editCurrentPwDisplay');
+  curPwEl.value = u.password || '';
+  curPwEl.type  = 'password';
+  const curBtn  = curPwEl.nextElementSibling;
+  if (curBtn) curBtn.textContent = '👁️';
+  document.getElementById('editNewPw').value = '';
+  document.getElementById('editNewPw').type  = 'password';
+  const newBtn = document.getElementById('editNewPw').nextElementSibling;
+  if (newBtn) newBtn.textContent = '👁️';
+  document.getElementById('editUserModal').classList.add('show');
+  setTimeout(() => document.getElementById('editFullName').focus(), 100);
+}
+function closeEditUser() { document.getElementById('editUserModal').classList.remove('show'); }
+
+function saveEditUser() {
+  const uname = document.getElementById('editUsername').value;
+  const users = getUsersDB();
+  if (!users[uname]) return;
+
+  const newPw = document.getElementById('editNewPw').value;
+  const err   = document.getElementById('editUserError');
+  err.textContent = '';
+  if (newPw && newPw.length < 6) {
+    err.textContent = 'New password must be at least 6 characters.';
+    return;
+  }
+
+  const patch = {
+    fullName:     document.getElementById('editFullName').value.trim(),
+    workName:     document.getElementById('editWorkName').value.trim(),
+    email:        document.getElementById('editEmail').value.trim(),
+    department:   document.getElementById('editDepartment').value.trim(),
+    position:     document.getElementById('editPosition').value.trim(),
+    role:         document.getElementById('editRole').value,
+    employeeType: document.getElementById('editEmpType').value,
+    testGroup:    document.getElementById('editTestGroup').value,
+    isLeader:     document.getElementById('editIsLeader').checked,
+    leaderName:   document.getElementById('editLeaderName').value.trim().toLowerCase(),
+  };
+  if (newPw) patch.password = newPw;
+
+  Object.assign(users[uname], patch);
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update(patch);
+  closeEditUser();
+  renderAdminPanel();
+}
+
+// ===== RESCHEDULE TAB =====
+function getRS(u) { return JSON.parse(localStorage.getItem('wmt_monthly_reschedule_'+u) || '{}'); }
+function saveRS(u,d) { dbWrite('wmt_monthly_reschedule_'+u, JSON.stringify(d)); }
+
+function fmtDT(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function fmtMonth(m) {
+  if (!m) return '—';
+  const [y,mo] = m.split('-');
+  return new Date(+y,+mo-1).toLocaleString('en-GB',{month:'long',year:'numeric'});
+}
+
+function updateRsBadge() {
+  let n=0;
+  Object.keys(getUsersDB()).forEach(u=>{ Object.values(getRS(u)).forEach(r=>{ if(r.status==='pending') n++; }); });
+  const b=document.getElementById('rsBadge');
+  if (b) { b.textContent=n; b.classList.toggle('hidden',n===0); }
+}
+
+function renderRescheduleTab() {
+  const users=getUsersDB(), reqs=[];
+  Object.entries(users).forEach(([un,ud])=>{
+    Object.entries(getRS(un)).forEach(([m,req])=>{ reqs.push({un,ud,m,req}); });
+  });
+  // Approved-without-deadline entries block the user — sort them first
+  reqs.sort((a,b)=>{
+    const aWarn = a.req.status==='approved' && !a.req.rsDeadline ? -1 : 0;
+    const bWarn = b.req.status==='approved' && !b.req.rsDeadline ? -1 : 0;
+    if (aWarn!==bWarn) return aWarn-bWarn;
+    return ({pending:0,approved:1,rejected:2}[a.req.status]??9)-({pending:0,approved:1,rejected:2}[b.req.status]??9);
+  });
+  const el=document.getElementById('adminRescheduleTab');
+  if (!reqs.length) { el.innerHTML=`<div class="empty-state"><div class="empty-icon">🔄</div><div>No reschedule requests.</div></div>`; return; }
+
+  const missingDeadline = reqs.filter(r=>r.req.status==='approved'&&!r.req.rsDeadline);
+  const warningBanner = missingDeadline.length
+    ? `<div style="margin-bottom:14px;padding:10px 16px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:8px;font-size:0.84rem;color:var(--danger);">
+        ⚠️ <strong>${missingDeadline.length} request${missingDeadline.length!==1?'s':''}</strong> approved but <strong>no deadline set</strong> — users cannot enter the test. Click <strong>"⚠️ Set Deadline"</strong> to open their test window.
+       </div>`
+    : '';
+
+  const stB=s=>s==='approved'?`<span class="pf-badge pass">✓ Approved</span>`:s==='rejected'?`<span class="pf-badge fail">✗ Rejected</span>`:`<span class="pf-badge none">⏳ Pending</span>`;
+  el.innerHTML=warningBanner+reqs.map(({un,ud,m,req})=>`
+    <div class="rsched-item" style="${req.status==='approved'&&!req.rsDeadline?'border-color:rgba(255,61,113,0.4);':''}">
+      <div class="rsched-hdr">
+        <div>
+          <span style="font-weight:700;color:var(--text-primary)">${un}</span>
+          ${ud.fullName?`<span style="color:var(--text-muted);font-size:0.82rem"> — ${ud.fullName}</span>`:''}
+          <span style="color:var(--gold);font-size:0.82rem;margin-left:8px;">${fmtMonth(m)}</span>
+        </div>
+        ${stB(req.status)}
+      </div>
+      <div style="font-size:0.82rem;color:var(--text-secondary);line-height:1.9;">
+        Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
+        ${req.rsDeadline?`<br>Approved window: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> → <strong>${fmtDT(req.rsDeadline)}</strong>`:''}
+        ${req.reason?`<br>Reason: ${req.reason}`:''}
+        ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        ${req.status==='pending'?`
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')">✓ Approve</button>
+          <button class="btn-xs rej" onclick="rejectRs('${un}','${m}')">✗ Reject</button>`:''}
+        ${req.status==='approved'?`
+          <button class="btn-xs app" onclick="approveRs('${un}','${m}')"
+            style="background:rgba(0,214,143,0.12);border-color:var(--success);"
+            title="${req.rsDeadline?'Edit approved deadline':'⚠️ Deadline not set — set it now to open the test window'}">
+            ${req.rsDeadline?'✏️ Edit Deadline':'⚠️ Set Deadline'}
+          </button>`:''}
+        <button class="btn-xs" onclick="resetRs('${un}','${m}')"
+          style="background:transparent;border:1px solid var(--border);color:var(--text-muted);"
+          title="Remove request — user can submit a new one">↩ Reset</button>
+      </div>
+    </div>`).join('');
+}
+
+function approveRs(un, m) {
+  const rs=getRS(un); if(!rs[m]) return;
+  const req=rs[m];
+
+  document.getElementById('approveRsModal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='approveRsModal';
+  modal.className='modal-overlay show';
+  modal.innerHTML=`<div class="modal-box" style="max-width:420px;">
+    <h3 style="margin-bottom:8px;">✓ Approve Reschedule</h3>
+    <div style="font-size:0.84rem;color:var(--text-muted);margin-bottom:16px;">
+      <strong>${un}</strong>${(getUsersDB()[un]?.fullName?' — '+getUsersDB()[un].fullName:'')}<br>
+      Month: <strong>${fmtMonth(m)}</strong> &nbsp;·&nbsp; Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong>
+    </div>
+    <div class="form-group">
+      <label>Test Opens At</label>
+      <input type="text" value="${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}" disabled
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-muted);font-size:0.88rem;width:100%;box-sizing:border-box;">
+    </div>
+    <div class="form-group">
+      <label>Test Deadline *</label>
+      <input type="datetime-local" id="rsApproveDeadline"
+        style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text-primary);font-size:0.88rem;width:100%;box-sizing:border-box;">
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Tip: add 2–4 hours after the start time.</div>
+    </div>
+    <div class="error-msg" id="rsApproveErr"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('approveRsModal').remove()">Cancel</button>
+      <button class="btn btn-success" onclick="confirmApproveRs('${un}','${m}')">✓ Confirm Approve</button>
+    </div>
+  </div>`;
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  document.body.appendChild(modal);
+
+  // Pre-fill deadline = rsStart + 3 hours
+  try {
+    const startMs=new Date(req.rsStart||`${req.newDate}T${req.newTime||'09:00'}`).getTime();
+    const sug=new Date(startMs+3*60*60*1000);
+    const p=n=>String(n).padStart(2,'0');
+    document.getElementById('rsApproveDeadline').value=`${sug.getFullYear()}-${p(sug.getMonth()+1)}-${p(sug.getDate())}T${p(sug.getHours())}:${p(sug.getMinutes())}`;
+  } catch(e){}
+}
+
+function confirmApproveRs(un, m) {
+  const deadline=document.getElementById('rsApproveDeadline').value;
+  const err=document.getElementById('rsApproveErr');
+  err.textContent='';
+  if(!deadline){ err.textContent='Please set a deadline.'; return; }
+  const rs=getRS(un); if(!rs[m]) return;
+  const start=rs[m].rsStart||new Date(`${rs[m].newDate}T${rs[m].newTime||'09:00'}`).toISOString();
+  if(new Date(deadline)<=new Date(start)){ err.textContent='Deadline must be after start time.'; return; }
+  rs[m].status='approved';
+  rs[m].rsDeadline=new Date(deadline).toISOString();
+  rs[m].processedAt=new Date().toISOString();
+  saveRS(un,rs);
+  document.getElementById('approveRsModal').remove();
+  updateRsBadge(); renderRescheduleTab();
+}
+
+function rejectRs(un,m) {
+  const note=prompt('Rejection note (optional):')||'';
+  const rs=getRS(un); if(!rs[m]) return;
+  rs[m].status='rejected'; rs[m].processedAt=new Date().toISOString();
+  if(note.trim()) rs[m].rejectReason=note.trim();
+  saveRS(un,rs); updateRsBadge(); renderRescheduleTab();
+}
+
+function resetRs(un, m) {
+  const ud=getUsersDB()[un];
+  if(!confirm(`Remove ${fmtMonth(m)} reschedule request for "${ud?.fullName||un}"?\n\nThe user can submit a new request after this.`)) return;
+  const rs=getRS(un);
+  delete rs[m];
+  if(Object.keys(rs).length===0) dbRemove('wmt_monthly_reschedule_'+un);
+  else saveRS(un,rs);
+  updateRsBadge(); renderRescheduleTab();
+}
+
+// ===== RESET PASSWORD (admin) =====
+let _resetPwTarget = null;
+function openResetPwModal(uname) {
+  _resetPwTarget = uname;
+  document.getElementById('resetPwLabel').textContent = 'Set a new password for: ' + uname;
+  document.getElementById('resetPwNew').value     = '';
+  document.getElementById('resetPwConfirm').value = '';
+  document.getElementById('resetPwError').textContent = '';
+  document.getElementById('resetPwModal').classList.add('show');
+  setTimeout(() => document.getElementById('resetPwNew').focus(), 80);
+}
+
+function closeResetPwModal() {
+  document.getElementById('resetPwModal').classList.remove('show');
+  _resetPwTarget = null;
+}
+
+function saveResetPw() {
+  const uname = _resetPwTarget;
+  const nw  = document.getElementById('resetPwNew').value;
+  const cf  = document.getElementById('resetPwConfirm').value;
+  const err = document.getElementById('resetPwError');
+  err.textContent = '';
+  if (!uname) { err.textContent = 'No user selected.'; return; }
+  if (nw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+  if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
+  const users = getUsersDB();
+  if (!users[uname]) { err.textContent = 'User not found.'; return; }
+  users[uname].password = nw;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) window.FDB.ref('users/' + uname).update({ password: nw })
+    .catch(e => console.warn('[WMT] resetPw Firebase error:', e.message));
+  closeResetPwModal();
+  alert('✅ Password for "' + uname + '" has been reset successfully.');
+}
+
+document.getElementById('editUserModal').addEventListener('click',   function(e) { if (e.target===this) closeEditUser(); });
+document.getElementById('confirmModal').addEventListener('click',    function(e) { if (e.target===this) closeConfirmModal(); });
+document.getElementById('examResetModal').addEventListener('click',  function(e) { if (e.target===this) closeExamReset(); });
+document.getElementById('resetPwModal').addEventListener('click',    function(e) { if (e.target===this) closeResetPwModal(); });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeEditUser(); closeConfirmModal(); closeExamReset(); closeResetPwModal(); }
+  if (e.key === 'Enter') {
+    if (document.getElementById('editUserModal').classList.contains('show')) saveEditUser();
+    if (document.getElementById('confirmModal').classList.contains('show'))  saveConfirmInterview();
+  }
+});
+
+// ===== CREATE ACCOUNT =====
+function generatePassword() {
+  const upper  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower  = 'abcdefghjkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const syms   = '@#$!';
+  const all    = upper + lower + digits + syms;
+  let pw = upper[Math.floor(Math.random()*upper.length)]
+         + lower[Math.floor(Math.random()*lower.length)]
+         + digits[Math.floor(Math.random()*digits.length)]
+         + syms[Math.floor(Math.random()*syms.length)];
+  for (let i = 0; i < 6; i++) pw += all[Math.floor(Math.random()*all.length)];
+  return pw.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+function parseSlackCard() {
+  const raw = (document.getElementById('caCardPaste').value || '').trim();
+  const msgEl = document.getElementById('caParseMsg');
+  if (!raw) {
+    msgEl.style.color = 'var(--danger)'; msgEl.textContent = 'Please paste card text first.'; msgEl.style.display = '';
+    return;
+  }
+
+  // Normalise: remove bold/italic markdown, split into lines
+  const lines = raw.split('\n').map(l => l.replace(/\*+/g, '').trim()).filter(Boolean);
+
+  // Build a label→value map (handles "Label: Value" and "Label:Value")
+  const map = {};
+  for (const line of lines) {
+    const colon = line.indexOf(':');
+    if (colon < 1) continue;
+    const label = line.slice(0, colon).trim().toLowerCase();
+    const value = line.slice(colon + 1).trim();
+    if (value) map[label] = value;
+  }
+
+  const filled = [];
+
+  // Full name
+  const name = map['họ tên'] || map['ho ten'] || map['full name'] || map['name'] || '';
+  if (name) { document.getElementById('caFullName').value = name; filled.push('Full Name'); }
+
+  // Work Email → also auto-derive username
+  const email = map['work email'] || map['email'] || '';
+  if (email) {
+    document.getElementById('caEmail').value = email; filled.push('Email');
+    const prefix = email.split('@')[0].replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+    if (prefix.length >= 3) {
+      document.getElementById('caUsername').value = prefix.slice(0, 20); filled.push('Username');
+    }
+  }
+
+  // Department
+  const dept = map['department'] || map['phòng ban'] || map['phong ban'] || '';
+  if (dept) { document.getElementById('caDepartment').value = dept; filled.push('Department'); }
+
+  // Position
+  const pos = map['position'] || map['chức vụ'] || map['chuc vu'] || map['title'] || '';
+  if (pos) { document.getElementById('caPosition').value = pos; filled.push('Position'); }
+
+  // Work Name (future card field)
+  const workName = map['work name'] || map['tên hiển thị'] || '';
+  if (workName) { document.getElementById('caWorkName').value = workName; filled.push('Work Name'); }
+
+  // Leader (future card field) — match against dropdown options
+  const leaderRaw = map['leader'] || map['trưởng nhóm'] || '';
+  if (leaderRaw) {
+    const leaderSel = document.getElementById('caLeader');
+    const lowerRaw = leaderRaw.toLowerCase();
+    let matched = false;
+    for (const opt of leaderSel.options) {
+      if (opt.value && opt.textContent.toLowerCase().includes(lowerRaw)) {
+        leaderSel.value = opt.value; filled.push('Leader'); matched = true; break;
+      }
+    }
+    if (!matched) filled.push(`Leader (no match for "${leaderRaw}" — select manually)`);
+  }
+
+  if (filled.length) {
+    msgEl.style.color = 'var(--success)';
+    msgEl.textContent = '✓ Filled: ' + filled.join(', ') + '. Review and adjust as needed.';
+  } else {
+    msgEl.style.color = 'var(--danger)';
+    msgEl.textContent = 'No recognised fields found. Check the card format.';
+  }
+  msgEl.style.display = '';
+}
+
+function openCreateAccountModal() {
+  // Reset form
+  document.getElementById('createAccountForm').style.display   = '';
+  document.getElementById('createAccountSuccess').style.display = 'none';
+  ['caUsername','caFullName','caWorkName','caEmail','caDepartment','caPosition']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const cardPaste = document.getElementById('caCardPaste');
+  if (cardPaste) cardPaste.value = '';
+  const parseMsg = document.getElementById('caParseMsg');
+  if (parseMsg) { parseMsg.style.display = 'none'; parseMsg.textContent = ''; }
+  document.getElementById('caError').style.display = 'none';
+
+  // Populate leader dropdown
+  const users = getUsersDB();
+  const leaderSel = document.getElementById('caLeader');
+  leaderSel.innerHTML = '<option value="">— No Leader —</option>';
+  Object.entries(users)
+    .filter(([, ud]) => ud.isLeader || ud.role === 'admin')
+    .sort(([, a], [, b]) => (a.workName || a.fullName || '').localeCompare(b.workName || b.fullName || ''))
+    .forEach(([uname, ud]) => {
+      const label = ud.workName || ud.fullName || uname;
+      const opt = document.createElement('option');
+      opt.value = uname;
+      opt.textContent = `${label} (@${uname})`;
+      leaderSel.appendChild(opt);
+    });
+
+  document.getElementById('createAccountModal').classList.add('show');
+}
+
+function closeCreateModal(refresh) {
+  document.getElementById('createAccountModal').classList.remove('show');
+  if (refresh) { renderAdminPanel(); populateFilterDropdowns(); }
+}
+
+function adminCreateAccount() {
+  const u       = (document.getElementById('caUsername').value || '').trim().toLowerCase();
+  const errEl   = document.getElementById('caError');
+  errEl.style.display = 'none';
+
+  if (!/^[a-z0-9_]{3,20}$/.test(u)) {
+    errEl.textContent = 'Username must be 3–20 characters: letters, numbers, underscores only.'; errEl.style.display=''; return;
+  }
+  const users = getUsersDB();
+  if (users[u]) {
+    errEl.textContent = `Username "${u}" is already taken.`; errEl.style.display=''; return;
+  }
+
+  const password = generatePassword();
+  const newUser = {
+    password,
+    role:         'trainee',
+    fullName:     (document.getElementById('caFullName').value  || '').trim(),
+    workName:     (document.getElementById('caWorkName').value  || '').trim(),
+    email:        (document.getElementById('caEmail').value     || '').trim(),
+    department:   (document.getElementById('caDepartment').value|| '').trim(),
+    position:     (document.getElementById('caPosition').value  || '').trim(),
+    employeeType: 'new',
+    leaderName:   (() => {
+      const sel = document.getElementById('caLeader');
+      if (!sel.value) return '';
+      const opt = sel.options[sel.selectedIndex];
+      // Store display name (workName/fullName) to stay consistent with manual entry
+      return opt ? (opt.textContent.split(' (@')[0].trim()) : sel.value;
+    })(),
+    isLeader:     false,
+    testGroup:    'auto',
+    createdAt:    new Date().toISOString(),
+    createdBy:    localStorage.getItem('wmt_user') || 'admin',
+  };
+
+  users[u] = newUser;
+  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (window.FDB) {
+    window.FDB.ref('users/' + u).set(newUser)
+      .catch(e => console.warn('[WMT] create account Firebase error:', e.message));
+  }
+
+  // Show success with credentials
+  document.getElementById('caResultUsername').textContent = u;
+  document.getElementById('caResultPassword').textContent = password;
+  document.getElementById('createAccountForm').style.display    = 'none';
+  document.getElementById('createAccountSuccess').style.display = '';
+}
+
+function copyText(elementId) {
+  const text = document.getElementById(elementId)?.textContent || '';
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`button[onclick="copyText('${elementId}')"]`);
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+  }).catch(() => {
+    const el = document.getElementById(elementId);
+    if (el) { const r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); }
+  });
+}
+
+function copyBoth() {
+  const u = document.getElementById('caResultUsername')?.textContent || '';
+  const p = document.getElementById('caResultPassword')?.textContent || '';
+  const text = `Username: ${u}\nPassword: ${p}`;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('button[onclick="copyBoth()"]');
+    if (btn) { const orig = btn.textContent; btn.textContent = '✓ Copied!'; setTimeout(() => { btn.textContent = orig; }, 1500); }
+  });
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Team | WMT Training</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Stats */
+    .team-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .team-stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      text-align: center;
+    }
+    .team-stat-card.gold  { border-color: var(--border-gold); }
+    .team-stat-card.green { border-color: rgba(0,214,143,0.3); }
+    .team-stat-card.blue  { border-color: rgba(100,150,255,0.3); }
+    .team-stat-card.orange{ border-color: rgba(255,165,0,0.35); }
+    .team-stat-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--gold);
+    }
+    .team-stat-card.green  .team-stat-value { color: var(--success); }
+    .team-stat-card.blue   .team-stat-value { color: #6496ff; }
+    .team-stat-card.orange .team-stat-value { color: #ffaa33; }
+    .team-stat-label {
+      font-size: 0.73rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-top: 4px;
+    }
+
+    /* Filter bar */
+    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; align-items:center; }
+    .filter-bar input, .filter-bar select {
+      padding:7px 12px;
+      background:var(--bg-secondary);
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:var(--text-primary);
+      font-size:0.83rem;
+      min-width:140px;
+    }
+    .filter-bar input { min-width:200px; }
+    .filter-bar .filter-clear {
+      padding:7px 14px;
+      background:transparent;
+      border:1px solid var(--border);
+      border-radius:8px;
+      color:var(--text-muted);
+      font-size:0.83rem;
+      cursor:pointer;
+    }
+    .filter-bar .filter-clear:hover { color:var(--text-primary); border-color:var(--text-muted); }
+
+    /* Table */
+    .team-table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 295px);
+    }
+    .team-table-wrap table { min-width: 900px; font-size: 0.85rem; }
+    .team-table-wrap thead th {
+      background: var(--bg-secondary);
+      padding: 13px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+    .team-table-wrap tbody td { padding: 12px 14px; vertical-align: middle; }
+    /* Sticky first column */
+    .team-table-wrap th:first-child,
+    .team-table-wrap td:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      box-shadow: 2px 0 8px rgba(0,0,0,0.18);
+    }
+    .team-table-wrap thead th:first-child { background: var(--bg-secondary); z-index: 4; }
+    .team-table-wrap tbody tr:hover td:first-child { background: var(--bg-hover); }
+    /* Custom scrollbars */
+    .team-table-wrap::-webkit-scrollbar { height: 6px; width: 6px; }
+    .team-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .team-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,215,0,0.25); border-radius: 3px; }
+    .team-table-wrap::-webkit-scrollbar-thumb:hover { background: rgba(255,215,0,0.5); }
+    .team-table-wrap::-webkit-scrollbar-corner { background: transparent; }
+
+    /* Progress bar */
+    .mod-progress { display:flex; align-items:center; gap:8px; }
+    .mod-progress-bar { flex:1; height:6px; background:rgba(255,255,255,0.07); border-radius:4px; overflow:hidden; min-width:60px; }
+    .mod-progress-fill { height:100%; background:linear-gradient(90deg,var(--gold),#e6b800); border-radius:4px; transition:width 0.3s; }
+    .mod-progress-fill.complete { background:linear-gradient(90deg,var(--success),#00a86b); }
+
+    /* Badges */
+    .role-badge { display:inline-block; font-size:0.7rem; padding:2px 8px; border-radius:20px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+    .exam-badge { display:inline-block; font-size:0.72rem; padding:3px 8px; border-radius:6px; font-weight:600; }
+    .exam-badge.passed       { background:rgba(0,214,143,0.15); color:var(--success); }
+    .exam-badge.failed       { background:rgba(255,61,113,0.12); color:var(--danger); }
+    .exam-badge.disqualified { background:rgba(255,61,113,0.2);  color:var(--danger); }
+    .exam-badge.none         { background:rgba(255,255,255,0.05); color:var(--text-muted); }
+
+    /* Pass/Fail badge (monthly scores) */
+    .pf-badge { display:inline-flex; align-items:center; padding:2px 10px; border-radius:20px; font-size:0.7rem; font-weight:700; }
+    .pf-badge.pass { background:rgba(0,214,143,0.15); color:var(--success); }
+    .pf-badge.fail { background:rgba(255,61,113,0.12); color:var(--danger); }
+    .pf-badge.none { background:rgba(90,90,120,0.15);  color:var(--text-muted); }
+
+    /* Leader tab container */
+    #leaderTabContainer .page-tabs { margin-bottom: 0; border-radius: 10px 10px 0 0; }
+    #leaderTabMembersContent, #leaderTabScoresContent { padding-top: 16px; }
+
+    /* Member card (mobile view) */
+    @media (max-width: 700px) {
+      .team-table-wrap { border-radius:10px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <div class="main-content">
+    <div class="top-bar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="top-bar-title">🏆 My Team</span>
+      <div class="top-bar-actions">
+        <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+      </div>
+    </div>
+
+    <div class="page-content animate-in">
+
+      <div class="module-header">
+        <div class="module-header-num" style="background:linear-gradient(135deg,#ffaa33,#e6850a);color:#000;">👥</div>
+        <div class="module-header-info">
+          <h2 id="leaderPageTitle">Member Management</h2>
+          <p id="leaderPageSub">Overview of your team's training progress</p>
+        </div>
+      </div>
+
+      <!-- Admin: Team selector -->
+      <div id="adminTeamSelector" style="display:none;margin-bottom:20px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📋 Select Team</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <select id="adminLeaderSelect" onchange="onAdminLeaderChange()" style="padding:8px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.88rem;min-width:220px;">
+              <option value="">🌐 All Teams (Overview)</option>
+            </select>
+            <span id="adminTeamMeta" style="font-size:0.82rem;color:var(--text-muted);"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin: All-teams overview cards -->
+      <div id="adminAllTeamsView" style="display:none;"></div>
+
+      <!-- Stats -->
+      <div class="team-stats" id="teamStats"></div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar" id="teamFilterBar">
+        <input type="text" id="teamSearch" placeholder="🔍 Search member name…" oninput="renderTeamTable()">
+        <select id="teamFilterDept" onchange="renderTeamTable()">
+          <option value="">All Departments</option>
+        </select>
+        <select id="teamFilterProgress" onchange="renderTeamTable()">
+          <option value="">All Progress</option>
+          <option value="complete">✅ All Modules Done</option>
+          <option value="inprogress">⏳ In Progress</option>
+          <option value="notstarted">🔴 Not Started</option>
+        </select>
+        <select id="teamFilterExam" onchange="renderTeamTable()">
+          <option value="">All Exam Status</option>
+          <option value="passed">✓ Passed</option>
+          <option value="failed">✗ Failed / Attempt</option>
+          <option value="none">Not Started</option>
+        </select>
+        <button class="filter-clear" onclick="clearTeamFilters()">✕ Clear</button>
+        <span id="teamCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+      </div>
+
+      <!-- Table -->
+      <div class="team-table-wrap" id="teamTableWrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Member</th>
+              <th>Department</th>
+              <th>Position</th>
+              <th>Type</th>
+              <th>Modules</th>
+              <th>Avg Score</th>
+              <th>Exam</th>
+              <th>Joined</th>
+            </tr>
+          </thead>
+          <tbody id="teamTableBody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="module-common.js"></script>
+<script>
+// ===== GLOBALS =====
+let _isAdmin = false;
+let _currentUser = '';
+
+// ===== LEADER / ADMIN GUARD =====
+(async function() {
+  const user = localStorage.getItem('wmt_user');
+  if (!user) { window.location.href = 'index.html'; return; }
+
+  document.querySelector('.page-content').innerHTML =
+    '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">⏳ Loading data…</div>';
+
+  if (typeof syncFromFirebase === 'function') await syncFromFirebase();
+
+  const users = getUsersDB();
+  if (!users[user]) { window.location.href = 'index.html'; return; }
+  if (!users[user].isLeader && users[user].role !== 'admin') {
+    window.location.href = 'index.html'; return;
+  }
+
+  _currentUser = user;
+  _isAdmin = users[user].role === 'admin';
+
+  // Admin: push field migration defaults to Firebase for all existing users
+  // Safe — only fills missing fields, never overwrites existing values
+  if (_isAdmin && typeof adminPushUserMigration === 'function') {
+    adminPushUserMigration();
+  }
+
+  // Restore page HTML
+  document.querySelector('.page-content').innerHTML = `
+    <div class="module-header">
+      <div class="module-header-num" style="background:linear-gradient(135deg,#ffaa33,#e6850a);color:#000;">👥</div>
+      <div class="module-header-info">
+        <h2 id="leaderPageTitle">Member Management</h2>
+        <p id="leaderPageSub">Overview of team training progress</p>
+      </div>
+    </div>
+
+    <div id="adminTeamSelector" style="display:none;margin-bottom:20px;">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📋 Select Team</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <select id="adminLeaderSelect" onchange="onAdminLeaderChange()" style="padding:8px 14px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:0.88rem;min-width:220px;">
+            <option value="">🌐 All Teams (Overview)</option>
+          </select>
+          <span id="adminTeamMeta" style="font-size:0.82rem;color:var(--text-muted);"></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="adminAllTeamsView" style="display:none;"></div>
+    <div class="team-stats" id="teamStats"></div>
+    <div id="leaderTabContainer">
+      <div class="page-tabs" style="margin-bottom:0;">
+        <button class="page-tab active" id="leaderTabMembersBtn" onclick="switchLeaderTab('Members')">👥 Members</button>
+        <button class="page-tab"        id="leaderTabScoresBtn"  onclick="switchLeaderTab('Scores')">📊 Monthly Scores</button>
+      </div>
+      <div id="leaderTabMembersContent">
+        <div class="filter-bar" id="teamFilterBar">
+          <input type="text" id="teamSearch" placeholder="🔍 Search member name…" oninput="renderTeamTable()">
+          <select id="teamFilterDept" onchange="renderTeamTable()"><option value="">All Departments</option></select>
+          <select id="teamFilterProgress" onchange="renderTeamTable()">
+            <option value="">All Progress</option>
+            <option value="complete">✅ All Modules Done</option>
+            <option value="inprogress">⏳ In Progress</option>
+            <option value="notstarted">🔴 Not Started</option>
+          </select>
+          <select id="teamFilterExam" onchange="renderTeamTable()">
+            <option value="">All Exam Status</option>
+            <option value="passed">✓ Passed</option>
+            <option value="failed">✗ Failed / Attempt</option>
+            <option value="none">Not Started</option>
+          </select>
+          <button class="filter-clear" onclick="clearTeamFilters()">✕ Clear</button>
+          <span id="teamCount" style="font-size:0.8rem;color:var(--text-muted);margin-left:4px;"></span>
+        </div>
+        <div class="team-table-wrap" id="teamTableWrap">
+          <table>
+            <thead><tr>
+              <th>Member</th><th>Department</th><th>Position</th><th>Type</th>
+              <th>Modules</th><th>Avg Score</th><th>Exam</th><th>Joined</th>
+            </tr></thead>
+            <tbody id="teamTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="leaderTabScoresContent" style="display:none;"></div>
+    </div>`;
+
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('leader');
+  updateSidebarProgress();
+  renderLeaderPage();
+})();
+
+// ===== HELPERS =====
+// Normalize a string: lowercase + trim (handles mixed-case, extra spaces).
+// Strip accents (é→e, ñ→n, etc.) so "martínez" === "martinez" in comparisons
+const normL = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+// Build a Set of ALL normalized identifiers a leader might be known by:
+// their username, fullName, and workName.
+// leaderRef can be either a username OR a display name stored in u.leaderName.
+function getLeaderKeys(leaderRef, allUsers) {
+  const keys = new Set();
+  const ref = normL(leaderRef);
+  if (!ref) return keys;
+  keys.add(ref);
+  // Direct username lookup → add their display names
+  const byUser = allUsers[leaderRef];
+  if (byUser) {
+    if (byUser.fullName) keys.add(normL(byUser.fullName));
+    if (byUser.workName) keys.add(normL(byUser.workName));
+  }
+  // Scan all users: if any identifier matches ref, add all their identifiers.
+  // This handles the case where leaderRef is a display name, not a username.
+  for (const [uname, ud] of Object.entries(allUsers)) {
+    if (normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref) {
+      keys.add(normL(uname));
+      if (ud.fullName) keys.add(normL(ud.fullName));
+      if (ud.workName) keys.add(normL(ud.workName));
+    }
+  }
+  keys.delete('');
+  return keys;
+}
+
+// Find the [username, userdata] entry for a leader reference (username or display name).
+function findLeaderEntry(leaderRef, allUsers) {
+  const ref = normL(leaderRef);
+  return Object.entries(allUsers).find(([uname, ud]) =>
+    normL(uname) === ref || normL(ud.fullName||'') === ref || normL(ud.workName||'') === ref
+  ) || [null, {}];
+}
+
+function getUserProgress(uname) {
+  return JSON.parse(localStorage.getItem('wmt_progress_' + uname) || '{}');
+}
+function getExamData(uname) {
+  return JSON.parse(localStorage.getItem('wmt_exam_' + uname) || '{}');
+}
+
+// ===== MAIN RENDER =====
+function renderLeaderPage() {
+  const users = getUsersDB();
+
+  if (_isAdmin) {
+    // ── Admin: show team selector ──────────────────────────────────────────
+    document.getElementById('adminTeamSelector').style.display = 'block';
+
+    // Collect leaders from member assignments, resolving each leaderName to its
+    // canonical key (actual username when found, else normL fallback) so variants
+    // like "clelia" / "clelia martinez" / "clelia martínez" collapse to one entry.
+    const leaderMap = new Map(); // canonical key → user data object
+    Object.entries(users).forEach(([, u]) => {
+      if (!u.leaderName) return;
+      const [foundKey, foundData] = findLeaderEntry(u.leaderName, users);
+      const canonical = foundKey || normL(u.leaderName);
+      if (!leaderMap.has(canonical)) leaderMap.set(canonical, foundKey ? foundData : {});
+    });
+    const leaders = [...leaderMap.entries()].sort(([a], [b]) => a.localeCompare(b));
+
+    const sel = document.getElementById('adminLeaderSelect');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">🌐 All Teams (Overview)</option>' +
+      leaders.map(([canonical, udata]) => {
+        // Prefer fullName for display, fall back to workName, then canonical key
+        const label = udata.fullName || udata.workName || canonical;
+        return `<option value="${canonical}"${canonical===prev?' selected':''}>${label}</option>`;
+      }).join('');
+
+    onAdminLeaderChange();
+  } else {
+    // ── Leader: show own team ──────────────────────────────────────────────
+    const udata = users[_currentUser] || {};
+    const displayName = udata.fullName || _currentUser;
+    document.getElementById('leaderPageTitle').textContent = `${displayName}'s Team`;
+    renderTeamStats(_currentUser);
+    renderTeamTable();
+  }
+}
+
+// Admin: fires when dropdown changes
+function onAdminLeaderChange() {
+  const sel          = document.getElementById('adminLeaderSelect');
+  const chosen       = sel.value;
+  const allTeamsView = document.getElementById('adminAllTeamsView');
+  const statsEl      = document.getElementById('teamStats');
+  const tabContainer = document.getElementById('leaderTabContainer');
+
+  if (!chosen) {
+    // Show overview of ALL teams
+    document.getElementById('leaderPageTitle').textContent = 'Member Management';
+    document.getElementById('leaderPageSub').textContent   = 'All teams overview';
+    document.getElementById('adminTeamMeta').textContent   = '';
+    allTeamsView.style.display  = 'block';
+    statsEl.style.display       = 'none';
+    if (tabContainer) tabContainer.style.display = 'none';
+    renderAllTeamsOverview();
+  } else {
+    // Show selected team
+    const users = getUsersDB();
+    const [, udata] = findLeaderEntry(chosen, users);
+    const label = udata.fullName || chosen;
+    document.getElementById('leaderPageTitle').textContent = `${label}'s Team`;
+    document.getElementById('leaderPageSub').textContent   = 'Team member training progress';
+    const lKeys = getLeaderKeys(chosen, users);
+    const members = Object.entries(users).filter(([uname, u]) =>
+      lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
+    );
+    document.getElementById('adminTeamMeta').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
+    allTeamsView.style.display  = 'none';
+    statsEl.style.display       = '';
+    if (tabContainer) tabContainer.style.display = '';
+    switchLeaderTab('Members'); // reset to Members tab when switching teams
+    renderTeamStats(chosen);
+    renderTeamTable();
+  }
+}
+
+// Render overview cards for ALL teams (admin only)
+function renderAllTeamsOverview() {
+  const users = getUsersDB();
+
+  // Collect leaders from member assignments, resolving to canonical keys (same logic as dropdown).
+  const leaderMap = new Map(); // canonical key → user data object
+  Object.entries(users).forEach(([, u]) => {
+    if (!u.leaderName) return;
+    const [foundKey, foundData] = findLeaderEntry(u.leaderName, users);
+    const canonical = foundKey || normL(u.leaderName);
+    if (!leaderMap.has(canonical)) leaderMap.set(canonical, foundKey ? foundData : {});
+  });
+
+  // Global stats
+  let totalMembers = 0, totalDone = 0, totalPassed = 0, totalStarted = 0;
+
+  const teamCards = [...leaderMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([leaderName, ludata]) => {
+    const lKeys = getLeaderKeys(leaderName, users);
+    const members = Object.entries(users).filter(([uname, u]) =>
+      lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
+    );
+    let tDone = 0, tPassed = 0, tStarted = 0;
+    members.forEach(([uname]) => {
+      const p = getUserProgress(uname);
+      let done = 0;
+      for (let i = 1; i <= 7; i++) if (p[`module${i}_done`]) done++;
+      if (done > 0) tStarted++;
+      if (done === 7) tDone++;
+      if (getExamData(uname).passed) tPassed++;
+    });
+    totalMembers += members.length;
+    totalDone    += tDone;
+    totalPassed  += tPassed;
+    totalStarted += tStarted;
+
+    const pct = members.length ? Math.round((tDone / members.length) * 100) : 0;
+    const displayName = ludata.fullName || leaderName;
+
+    return `
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:border-color 0.2s;"
+           onmouseenter="this.style.borderColor='var(--border-gold)'" onmouseleave="this.style.borderColor=''"
+           onclick="document.getElementById('adminLeaderSelect').value='${leaderName}';onAdminLeaderChange()">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div>
+            <div style="font-weight:700;color:var(--text-primary);font-size:0.92rem;">🏆 ${displayName}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${members.length} member${members.length !== 1 ? 's' : ''}</div>
+          </div>
+          <span style="font-size:0.72rem;font-weight:700;background:rgba(255,170,0,0.15);color:#ffaa33;padding:3px 9px;border-radius:20px;">TEAM</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+          <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:8px;">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--success);">${tStarted}</div>
+            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Started</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:8px;">
+            <div style="font-size:1.1rem;font-weight:800;color:var(--gold);">${tDone}</div>
+            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">All Done</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--bg-secondary);border-radius:8px;">
+            <div style="font-size:1.1rem;font-weight:800;color:#6496ff;">${tPassed}</div>
+            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">Passed</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;height:6px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--gold),#e6b800);border-radius:4px;"></div>
+          </div>
+          <span style="font-size:0.75rem;color:var(--text-secondary);">${pct}%</span>
+        </div>
+      </div>`;
+  });
+
+  // Global summary stats
+  const globalStats = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px;">
+      <div class="team-stat-card orange"><div class="team-stat-value">${leaderSet.size}</div><div class="team-stat-label">Total Teams</div></div>
+      <div class="team-stat-card"><div class="team-stat-value">${totalMembers}</div><div class="team-stat-label">Total Members</div></div>
+      <div class="team-stat-card green"><div class="team-stat-value">${totalDone}</div><div class="team-stat-label">All Modules Done</div></div>
+      <div class="team-stat-card blue"><div class="team-stat-value">${totalPassed}</div><div class="team-stat-label">Exam Passed</div></div>
+    </div>`;
+
+  document.getElementById('adminAllTeamsView').innerHTML = globalStats +
+    (teamCards.length
+      ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">${teamCards.join('')}</div>`
+      : `<div style="text-align:center;padding:40px;color:var(--text-muted);">No teams found. Assign leaders to users in Admin Panel.</div>`);
+}
+
+// Render stats bar for a specific leader
+function renderTeamStats(leaderName) {
+  const users   = getUsersDB();
+  const lKeys   = getLeaderKeys(leaderName, users);
+  const members = Object.entries(users).filter(([uname, u]) =>
+    lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
+  );
+
+  let totalDone = 0, totalPassed = 0, totalStarted = 0;
+  members.forEach(([uname]) => {
+    const p = getUserProgress(uname);
+    let done = 0;
+    for (let i = 1; i <= 7; i++) if (p[`module${i}_done`]) done++;
+    if (done > 0) totalStarted++;
+    if (done === 7) totalDone++;
+    if (getExamData(uname).passed) totalPassed++;
+  });
+
+  // Populate dept filter
+  const depts = new Set(members.map(([, u]) => u.department).filter(Boolean));
+  const deptSel = document.getElementById('teamFilterDept');
+  if (deptSel) {
+    const prev = deptSel.value;
+    deptSel.innerHTML = '<option value="">All Departments</option>' +
+      [...depts].sort().map(d => `<option value="${d}"${d===prev?' selected':''}>${d}</option>`).join('');
+  }
+
+  document.getElementById('teamStats').innerHTML = `
+    <div class="team-stat-card orange">
+      <div class="team-stat-value">${members.length}</div>
+      <div class="team-stat-label">Team Members</div>
+    </div>
+    <div class="team-stat-card">
+      <div class="team-stat-value">${totalStarted}</div>
+      <div class="team-stat-label">Training Started</div>
+    </div>
+    <div class="team-stat-card green">
+      <div class="team-stat-value">${totalDone}</div>
+      <div class="team-stat-label">All Modules Done</div>
+    </div>
+    <div class="team-stat-card blue">
+      <div class="team-stat-value">${totalPassed}</div>
+      <div class="team-stat-label">Exam Passed</div>
+    </div>`;
+
+  const subEl = document.getElementById('leaderPageSub');
+  if (subEl) subEl.textContent =
+    `${members.length} member${members.length !== 1 ? 's' : ''} · ${totalDone} completed all modules · ${totalPassed} passed final exam`;
+}
+
+function renderTeamTable() {
+  const users      = getUsersDB();
+  const search     = (document.getElementById('teamSearch')?.value || '').toLowerCase().trim();
+  const filterDept = document.getElementById('teamFilterDept')?.value  || '';
+  const filterProg = document.getElementById('teamFilterProgress')?.value || '';
+  const filterExam = document.getElementById('teamFilterExam')?.value || '';
+
+  // Determine which leader's team to show
+  const leaderName = _isAdmin
+    ? (document.getElementById('adminLeaderSelect')?.value || '')
+    : _currentUser;
+
+  const lKeys  = getLeaderKeys(leaderName, users);
+  let members  = Object.entries(users).filter(([uname, u]) =>
+    lKeys.has(normL(u.leaderName)) && !lKeys.has(normL(uname)) && u.role !== 'admin'
+  );
+
+  // Apply filters
+  members = members.filter(([uname, udata]) => {
+    if (search) {
+      const hay = (uname + ' ' + (udata.fullName || '') + ' ' + (udata.workName || '')).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (filterDept && udata.department !== filterDept) return false;
+
+    if (filterProg || filterExam) {
+      const p = getUserProgress(uname);
+      let done = 0;
+      for (let i = 1; i <= 7; i++) if (p[`module${i}_done`]) done++;
+      if (filterProg === 'complete'   && done < 7) return false;
+      if (filterProg === 'inprogress' && (done === 0 || done === 7)) return false;
+      if (filterProg === 'notstarted' && done > 0) return false;
+
+      const ex = getExamData(uname);
+      if (filterExam === 'passed' && !ex.passed) return false;
+      if (filterExam === 'failed' && (ex.passed || ex.score === undefined)) return false;
+      if (filterExam === 'none'   && ex.score !== undefined) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('teamCount').textContent =
+    `${members.length} member${members.length !== 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('teamTableBody');
+  if (members.length === 0) {
+    const isFiltered = search || filterDept || filterProg || filterExam;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted);">
+      ${isFiltered
+        ? '🔍 No members match the current filters.'
+        : '👥 No team members yet. Members who put your username as their Leader Name will appear here.'}
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = members.map(([uname, udata]) => {
+    const p  = getUserProgress(uname);
+    const ex = getExamData(uname);
+
+    let doneCnt = 0, scoreSum = 0, scoreCnt = 0;
+    for (let i = 1; i <= 7; i++) {
+      if (p[`module${i}_done`]) doneCnt++;
+      if (p[`module${i}_score`] !== undefined) { scoreSum += p[`module${i}_score`]; scoreCnt++; }
+    }
+    const avgScore = scoreCnt > 0 ? Math.round(scoreSum / scoreCnt) + '%' : '—';
+    const modPct   = Math.round((doneCnt / 7) * 100);
+
+    let examBadge;
+    if (ex.passed) {
+      examBadge = `<span class="exam-badge passed">✓ Passed ${Math.round((ex.score/(ex.total||30))*100)}%</span>`;
+    } else if (ex.disqualified) {
+      examBadge = `<span class="exam-badge disqualified">✗ Disqualified</span>`;
+    } else if (ex.score !== undefined) {
+      const lockout = ex.fail1Date && !ex.fail2Date && !ex.passed &&
+        (Date.now() - new Date(ex.fail1Date).getTime()) < 3 * 24 * 60 * 60 * 1000;
+      examBadge = `<span class="exam-badge failed">Attempt ${ex.attempts||1}/2 — ${Math.round((ex.score/(ex.total||30))*100)}%${lockout?' 🔒':''}</span>`;
+    } else {
+      examBadge = `<span class="exam-badge none">Not Started</span>`;
+    }
+
+    const joined = udata.createdAt
+      ? new Date(udata.createdAt).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+
+    const empBadge = (udata.employeeType||'new') === 'old'
+      ? `<span class="role-badge" style="background:rgba(0,214,143,0.12);color:var(--success);">🏅 Existed</span>`
+      : `<span class="role-badge" style="background:rgba(255,61,113,0.1);color:var(--danger);">🆕 New</span>`;
+
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary);">${uname}</div>
+        ${udata.fullName  ? `<div style="font-size:0.78rem;color:var(--text-secondary);margin-top:1px;">${udata.fullName}</div>` : ''}
+        ${udata.workName  ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">${udata.workName}</div>` : ''}
+      </td>
+      <td style="color:var(--text-secondary);font-size:0.82rem;">${udata.department || '—'}</td>
+      <td style="color:var(--text-muted);font-size:0.82rem;">${udata.position || '—'}</td>
+      <td>${empBadge}</td>
+      <td>
+        <div class="mod-progress">
+          <div class="mod-progress-bar">
+            <div class="mod-progress-fill ${doneCnt===7?'complete':''}" style="width:${modPct}%"></div>
+          </div>
+          <span style="font-size:0.8rem;color:${doneCnt===7?'var(--success)':'var(--text-secondary)'};">${doneCnt}/7</span>
+        </div>
+      </td>
+      <td style="color:var(--gold);font-weight:600;">${avgScore}</td>
+      <td>${examBadge}</td>
+      <td style="color:var(--text-muted);font-size:0.8rem;">${joined}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearTeamFilters() {
+  document.getElementById('teamSearch').value         = '';
+  document.getElementById('teamFilterDept').value     = '';
+  document.getElementById('teamFilterProgress').value = '';
+  document.getElementById('teamFilterExam').value     = '';
+  renderTeamTable();
+}
+
+// ===== MONTHLY SCORES TAB =====
+
+// Data helpers (monthly test keys)
+function getMS() { return JSON.parse(localStorage.getItem('wmt_monthly_scores') || '{}'); }
+function getMC() { return JSON.parse(localStorage.getItem('wmt_monthly_config')  || '{}'); }
+
+// Format "2026-06" → "June 2026"
+function fmtMonth(m) {
+  if (!m) return '—';
+  const [y, mo] = m.split('-');
+  return new Date(+y, +mo - 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+// Determine if a user object belongs to BD/CS group
+function isBDCSUser(u) {
+  if (!u || typeof u !== 'object') return false;
+  if (u.testGroup === 'bdcs')   return true;
+  if (u.testGroup === 'others') return false;
+  const d = (u.department || '').toLowerCase().trim();
+  return d === 'bd' || d.includes('business dev') ||
+         d === 'cs' || d.includes('customer serv') || d.includes('sales');
+}
+
+// Switch between Members / Monthly Scores tabs
+function switchLeaderTab(name) {
+  document.getElementById('leaderTabMembersBtn').classList.toggle('active', name === 'Members');
+  document.getElementById('leaderTabScoresBtn').classList.toggle('active',  name === 'Scores');
+  document.getElementById('leaderTabMembersContent').style.display = name === 'Members' ? '' : 'none';
+  document.getElementById('leaderTabScoresContent').style.display  = name === 'Scores'  ? '' : 'none';
+  if (name === 'Scores') renderLeaderMonthlyScores();
+}
+
+// Build the month selector + scores table shell
+function renderLeaderMonthlyScores() {
+  const cfgs   = getMC();
+  const months = Object.keys(cfgs).sort().reverse();
+  const el     = document.getElementById('leaderTabScoresContent');
+  if (!el) return;
+
+  const leaderName = _isAdmin
+    ? (document.getElementById('adminLeaderSelect')?.value || '')
+    : _currentUser;
+
+  if (!leaderName) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">Please select a team.</div>`;
+    return;
+  }
+  if (!months.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">No monthly tests configured yet.</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;flex-wrap:wrap;">
+      <label style="color:var(--text-secondary);font-weight:600;font-size:0.88rem;">Month:</label>
+      <select id="leaderScoreMonth" onchange="renderLeaderScoresTable()"
+        style="padding:7px 12px;background:var(--bg-secondary);border:1px solid var(--border);
+               border-radius:8px;color:var(--text-primary);font-size:0.88rem;min-width:180px;">
+        ${months.map(m => `<option value="${m}">${fmtMonth(m)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="leaderScoresTableWrap"></div>`;
+
+  renderLeaderScoresTable();
+}
+
+// Render the actual scores table for selected month
+function renderLeaderScoresTable() {
+  const el = document.getElementById('leaderScoresTableWrap');
+  if (!el) return;
+
+  const month = document.getElementById('leaderScoreMonth')?.value;
+  if (!month) return;
+
+  const users      = getUsersDB();
+  const leaderName = _isAdmin
+    ? (document.getElementById('adminLeaderSelect')?.value || '')
+    : _currentUser;
+
+  const lKeysS = getLeaderKeys(leaderName, users);
+  const members = Object.entries(users).filter(([uname, u]) =>
+    lKeysS.has(normL(u.leaderName)) && !lKeysS.has(normL(uname)) && u.role !== 'admin'
+  );
+
+  if (!members.length) {
+    el.innerHTML = `<div style="color:var(--text-muted);padding:24px 0;text-align:center;">No team members yet.</div>`;
+    return;
+  }
+
+  const scores = getMS()[month] || {};
+  const cfg    = getMC()[month] || {};
+
+  // Summary stats
+  const gradedCount    = members.filter(([un]) => scores[un]?.score !== undefined).length;
+  const passedCount    = members.filter(([un]) => scores[un]?.passed).length;
+  const submittedCount = members.filter(([un]) => {
+    try { const s = localStorage.getItem(`wmt_sub_${un}_${month}`); return s && JSON.parse(s).submittedAt; }
+    catch { return false; }
+  }).length;
+
+  const rows = members.map(([uname, udata], idx) => {
+    const sc    = scores[uname];
+    const bdcs  = isBDCSUser(udata);
+    const maxSc = bdcs ? 300 : 100;
+    const passScore = bdcs ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 70);
+
+    const scoreText = sc?.score !== undefined
+      ? `<span style="font-weight:700;color:var(--gold);">${sc.score}</span><span style="color:var(--text-muted);font-size:0.78rem;">/${maxSc}</span>`
+      : `<span style="color:var(--text-muted);">—</span>`;
+
+    const pfClass = !sc || sc.score === undefined ? 'none' : sc.passed ? 'pass' : 'fail';
+    const pfText  = !sc || sc.score === undefined ? '—' : sc.passed ? '✓ PASS' : '✗ FAIL';
+
+    const graded = sc?.gradedAt
+      ? new Date(sc.gradedAt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
+      : '—';
+
+    const deptBadge = bdcs
+      ? `<span style="font-size:0.65rem;background:rgba(255,165,0,0.15);color:#ffaa33;padding:1px 7px;border-radius:10px;font-weight:700;">BDCS</span>`
+      : `<span style="font-size:0.65rem;background:rgba(100,150,255,0.15);color:#6496ff;padding:1px 7px;border-radius:10px;font-weight:700;">Others</span>`;
+
+    const lietCell = bdcs && sc?.liet !== undefined
+      ? `<span style="font-size:0.82rem;">${sc.liet}</span>`
+      : `<span style="color:var(--text-muted);">—</span>`;
+
+    return `<tr>
+      <td style="color:var(--text-muted);font-size:0.78rem;width:28px;">${idx + 1}</td>
+      <td>
+        <div style="font-weight:600;color:var(--text-primary);">${udata.fullName || uname}</div>
+        ${udata.workName ? `<div style="font-size:0.72rem;color:var(--text-muted);">${udata.workName}</div>` : ''}
+      </td>
+      <td style="font-size:0.82rem;color:var(--text-secondary);">${uname}</td>
+      <td style="font-size:0.82rem;color:var(--text-muted);">${udata.department || '—'}</td>
+      <td>${deptBadge}</td>
+      <td>${scoreText}</td>
+      <td>${lietCell}</td>
+      <td><span class="pf-badge ${pfClass}">${pfText}</span></td>
+      <td style="font-size:0.8rem;color:var(--text-muted);">${graded}</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+      <div class="team-stat-card" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${members.length}</div>
+        <div class="team-stat-label">Members</div>
+      </div>
+      <div class="team-stat-card blue" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${submittedCount}</div>
+        <div class="team-stat-label">Submitted</div>
+      </div>
+      <div class="team-stat-card" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value" style="color:#a0a0c0;">${gradedCount}</div>
+        <div class="team-stat-label">Graded</div>
+      </div>
+      <div class="team-stat-card green" style="padding:12px 18px;min-width:0;">
+        <div class="team-stat-value">${passedCount}</div>
+        <div class="team-stat-label">Passed</div>
+      </div>
+    </div>
+    <div class="team-table-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Member</th><th>Username</th><th>Department</th><th>Group</th>
+          <th>Score</th><th>Liet ×</th><th>Pass / Fail</th><th>Graded At</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">No members match.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+// renderLeaderPage() is called inside the async guard above after sync completes.
+</script>
+</body>
+</html>

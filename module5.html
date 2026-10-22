@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Module 5 — Payment Methods | WMT Training</title>
+  <title>Module 5 — Financial Products | WMT Training</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div class="main-content">
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
-      <span class="top-bar-title">Module 5 — Payment Methods</span>
+      <span class="top-bar-title">Module 5 — Financial Products</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
       </div>
@@ -24,101 +24,138 @@
       <div class="module-header">
         <div class="module-header-num">5</div>
         <div class="module-header-info">
-          <h2>Payment Methods</h2>
-          <p>How to purchase packages and receive profit withdrawals at WeMasterTrade</p>
+          <h2>Financial Products</h2>
+          <p>Leverage, trading instruments, commission fees, and supported platforms</p>
         </div>
       </div>
 
+      <!-- Leverage -->
       <div class="content-section">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <h3>⚡ Leverage by Account Type</h3>
+        <p>Leverage allows traders to control larger positions with less capital. Different account types have different leverage limits based on risk profile.</p>
 
-          <!-- Package Purchase -->
-          <div style="background:rgba(255,215,0,.05);border:1px solid rgba(255,215,0,.2);border-radius:12px;padding:24px">
-            <h3 style="color:#FFD700;margin-bottom:6px;font-size:15px">📦 Package Purchase Methods</h3>
-            <p style="color:#888;font-size:13px;margin-bottom:16px">Accepted payment methods when purchasing any WeMasterTrade account package:</p>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">💳</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Visa / Mastercard / AMEX / JCB</div>
-                  <div style="font-size:11px;color:#666">All major credit &amp; debit cards accepted globally</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">🅿️</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">PayPal</div>
-                  <div style="font-size:11px;color:#666">Available in most countries via paypal.me/wecopytrade</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">₿</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Cryptocurrency</div>
-                  <div style="font-size:11px;color:#666">USDT and other stablecoins accepted</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">🏦</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Local Bank Transfers</div>
-                  <div style="font-size:11px;color:#666">Available in Singapore, Australia, USA, Canada, HK, NZ and more</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">📱</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Local Wallets</div>
-                  <div style="font-size:11px;color:#666">GCash, TNG, GoPay, UPI, PromptPay and more by country</div>
-                </div>
-              </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Account Type</th><th>Leverage</th><th>Notes</th></tr>
+            </thead>
+            <tbody>
+              <tr class="highlight-row"><td>Challenge Phase 1</td><td>1:100</td><td>Full leverage during Phase 1</td></tr>
+              <tr><td>Challenge Phase 2</td><td>1:33</td><td>Reduced leverage in Phase 2</td></tr>
+              <tr><td>Instant Funding — 51010</td><td>1:100</td><td>Standard leverage</td></tr>
+              <tr><td>Instant Funding — XAU247</td><td>1:100</td><td>Same as 51010; XAU247 symbol tradeable 24/7 &amp; weekends</td></tr>
+              <tr><td>Instant Funding — 510zero</td><td>1:100</td><td>Same leverage as 51010 (Stocks: 1:20)</td></tr>
+              <tr><td>Instant Funding — NOPC-EU</td><td>1:100</td><td>1:50 for $200k accounts</td></tr>
+              <tr><td>Funded (Challenge graduates)</td><td>1:10</td><td>Reduced leverage on funded account</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-content">
+            <strong>510zero Leverage Update</strong>
+            <p>The 510zero plan now uses 1:100 leverage for Forex, Crypto, and Indices — matching the 51010 plan. Stocks leverage is 1:20 for all Instant Funding plans. This gives traders maximum flexibility while maintaining structured risk management via the Profit Consistency Rule.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Commission Fees -->
+      <div class="content-section">
+        <h3>💲 Commission Fees (Per Trade)</h3>
+        <p>WeMasterTrade charges commission fees based on the instruments traded. These are deducted from the account per round-turn lot.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Instrument</th><th>Commission</th><th>Unit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Forex (all pairs)</td><td>$5.00</td><td>Per lot (round turn)</td></tr>
+              <tr class="highlight-row"><td>XAUUSD (Gold)</td><td>$6.00</td><td>Per lot (round turn)</td></tr>
+              <tr><td>Cryptocurrency</td><td>0.035%</td><td>Per trade value</td></tr>
+              <tr><td>Stocks / Equities</td><td>$0.07</td><td>Per lot</td></tr>
+              <tr><td>Indices (US30, NAS100, SPX500)</td><td>$0</td><td>Per lot</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout gold">
+          <span class="callout-icon">📌</span>
+          <div class="callout-content">
+            <strong>Commission Impact on Profit Calculation</strong>
+            <p>Commissions are part of trading costs and are factored into profit/loss calculations. Sales partners should help clients understand total cost of trading including spreads + commissions.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tradeable Assets -->
+      <div class="content-section">
+        <h3>📊 Tradeable Assets</h3>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Category</th><th>Available Instruments</th><th>Commission</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Forex</strong></td>
+                <td>Major, Minor, Exotic pairs (EUR/USD, GBP/USD, USD/JPY, etc.)</td>
+                <td>$5/lot</td>
+              </tr>
+              <tr>
+                <td><strong>Commodities</strong></td>
+                <td>Gold (XAUUSD), Silver (XAGUSD), Oil (WTI, Brent)</td>
+                <td>$6/lot (Gold), varies</td>
+              </tr>
+              <tr>
+                <td><strong>Indices</strong></td>
+                <td>US30 (Dow Jones), NAS100 (Nasdaq), SPX500 (S&P 500)</td>
+                <td>$0/lot</td>
+              </tr>
+              <tr>
+                <td><strong>Cryptocurrency</strong></td>
+                <td>Bitcoin (BTC), Ethereum (ETH), selected altcoins</td>
+                <td>0.035%</td>
+              </tr>
+              <tr>
+                <td><strong>Stocks</strong></td>
+                <td>US stocks (selected symbols)</td>
+                <td>$0.07/lot</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Trading Platforms -->
+      <div class="content-section">
+        <h3>💻 Trading Platforms</h3>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="callout gold">
+            <span class="callout-icon">📱</span>
+            <div class="callout-content">
+              <strong>MetaTrader 5 (MT5)</strong>
+              <p>Industry-standard platform. Available on Desktop (Windows/Mac), Web, iOS, and Android. Full EA support, advanced charting, multi-timeframe analysis.</p>
             </div>
           </div>
-
-          <!-- Profit Withdrawal -->
-          <div style="background:rgba(76,175,80,.05);border:1px solid rgba(76,175,80,.2);border-radius:12px;padding:24px">
-            <h3 style="color:#4CAF50;margin-bottom:6px;font-size:15px">💰 Profit Withdrawal (Payout) Methods</h3>
-            <p style="color:#888;font-size:13px;margin-bottom:16px">How traders receive their profit share from WeMasterTrade:</p>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">🌐</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Riseworks</div>
-                  <div style="font-size:11px;color:#666">Global payroll &amp; contractor payments platform</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">₿</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Cryptocurrency</div>
-                  <div style="font-size:11px;color:#666">BTC, USDT and other stablecoins — free of charge</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">🏦</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Local Bank Transfers</div>
-                  <div style="font-size:11px;color:#666">Direct to your bank account in your country</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#0a0a16;border-radius:8px;border:1px solid #1e1e3a">
-                <span style="font-size:20px">📱</span>
-                <div>
-                  <div style="font-weight:700;color:#eee;font-size:14px">Local Wallets</div>
-                  <div style="font-size:11px;color:#666">Available in select countries — contact support to confirm</div>
-                </div>
-              </div>
-            </div>
-
-            <div style="margin-top:14px;padding:14px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.25);border-radius:8px;display:flex;align-items:center;gap:12px">
-              <span style="font-size:22px">⚡</span>
-              <div>
-                <div style="font-weight:800;color:#FFD700;font-size:14px">Average Payout Speed: 24 Business Hours</div>
-                <div style="font-size:12px;color:#888;margin-top:2px">Submit your request anytime — processed within 1 business day</div>
-              </div>
+          <div class="callout danger">
+            <span class="callout-icon">⚙️</span>
+            <div class="callout-content">
+              <strong>cTrader</strong>
+              <p>Advanced trading platform with Level II pricing, fast order execution, and sophisticated algorithmic trading support (cBots). Available on Desktop, Web, iOS, and Android.</p>
             </div>
           </div>
+        </div>
 
+        <div class="callout success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>Platform Selection Tip for Clients</strong>
+            <p>Recommend MT5 for clients who use automated trading (EAs) or need advanced technical analysis. Recommend cTrader for clients who want advanced order types and algorithmic trading with cBots.</p>
+          </div>
         </div>
       </div>
 
@@ -126,27 +163,35 @@
       <div class="mark-complete-bar">
         <div class="mark-complete-text">
           <h4>Ready to move on?</h4>
-          <p>Mark this module complete after reading all content.</p>
+          <p>Complete the quiz below before advancing to Module 5.</p>
         </div>
         <button class="btn btn-success" id="markCompleteBtn" onclick="markModuleComplete(5)">✓ Mark as Complete</button>
         <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
       </div>
 
-      <!-- Quiz -->
+      <!-- Mini Quiz -->
       <div class="quiz-section">
         <div class="quiz-header">
           <h3>📝 Module 5 Quiz</h3>
-          <span class="quiz-counter" id="quizCounterTop">5 Questions</span>
+          <span class="quiz-counter">7 Questions</span>
         </div>
         <div class="quiz-progress-dots" id="quizDots"></div>
         <div id="quizContainer"></div>
+        <div id="quizNavBottom"></div>
+        <div class="quiz-result" id="quizResult">
+          <div class="result-score" id="quizScore"></div>
+          <p id="quizResultMsg"></p>
+          <a href="module6.html" class="btn btn-primary mt-16">Next Module →</a>
+        </div>
       </div>
-
 
     </div>
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(5);
@@ -155,29 +200,46 @@ checkCompleted(5);
 
 const questions = [
   {
-    q: "Which cryptocurrency stablecoin is accepted for international deposits?",
-    opts: ["Bitcoin (BTC)", "Ethereum (ETH)", "USDT (Tether)", "BNB"],
-    correct: 2
+    q: "What leverage is offered for the 510zero Instant Funding plan?",
+    opts: ["1:100", "1:50", "1:33", "1:200"],
+    _c: "MA==",
+    explain: "510zero now uses 1:100 leverage for Forex, Crypto, and Indices — the same as the 51010 plan. Stocks leverage is 1:20 across all Instant Funding plans."
   },
   {
-    q: "What is the ACH/Wire routing number for US bank transfers?",
-    opts: ["021000021", "026073150", "011000138", "063100277"],
-    correct: 1
+    q: "What is the commission for trading XAUUSD (Gold)?",
+    opts: ["$5 per lot", "$6 per lot", "0.035%", "$1 per lot"],
+    _c: "MQ==",
+    explain: "XAUUSD (Gold) commissions are $6 per lot. Forex pairs charge $5/lot, indices charge $0/lot, and crypto uses a percentage-based fee of 0.035% per trade."
   },
   {
-    q: "Which local bank is specified for Vietnam clients?",
-    opts: ["VietcomBank", "BIDV", "ACB", "Techcombank"],
-    correct: 2
+    q: "What is the commission for trading Indices (US30, NAS100, SPX500)?",
+    opts: ["$5 per lot", "$0.5 per lot", "$0 per lot", "0.035%"],
+    _c: "Mg==",
+    explain: "Indices (US30, NAS100, SPX500) have $0 commission per lot — no fixed commission is charged. This differs from Forex ($5/lot), Gold ($6/lot), and Crypto (0.035% per trade)."
   },
   {
-    q: "Which of the following is NOT listed as a withdrawal method?",
-    opts: ["Wise", "Coinbase", "Western Union", "Deel Card"],
-    correct: 2
+    q: "Which index is NOT listed as a tradeable instrument on WeMasterTrade?",
+    opts: ["US30", "NAS100", "SPX500", "US40"],
+    _c: "Mw==",
+    explain: "US40 (German stock index) is not currently available. Available indices include US30 (Dow Jones), NAS100 (Nasdaq), and SPX500 (S&P 500)."
   },
   {
-    q: "What is the Canadian local payment method available?",
-    opts: ["TD e-Transfer", "RBC Interac", "CIBC Direct", "Scotiabank Pay"],
-    correct: 1
+    q: "What commission applies to cryptocurrency trades?",
+    opts: ["$5 per lot", "$4 per lot", "0.035% per trade", "$1 per lot"],
+    _c: "Mg==",
+    explain: "Crypto trades use a 0.035% commission per trade (percentage-based), unlike forex and metals which use fixed per-lot fees. This aligns with how crypto position sizes vary widely."
+  },
+  {
+    q: "Which trading platform supports Expert Advisors (EAs) for automated trading?",
+    opts: ["MetaTrader 5", "cTrader", "TradingView", "NinjaTrader"],
+    _c: "MA==",
+    explain: "MetaTrader 5 (MT5) supports Expert Advisors (EAs) for fully automated trading strategies. cTrader supports algorithmic trading through cBots. WeMasterTrade currently supports MT5 and cTrader."
+  },
+  {
+    q: "Which platform supports algorithmic trading via cBots?",
+    opts: ["MetaTrader 5", "TradingView", "cTrader", "All platforms"],
+    _c: "Mg==",
+    explain: "cTrader supports algorithmic trading through cBots, along with advanced order types and Level II pricing. MT5 supports EAs (Expert Advisors) for automated trading."
   }
 ];
 
