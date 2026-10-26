@@ -302,10 +302,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   // === END FAST PATH ===
 
   // === SLOW PATH: user has not submitted — need full sync before showing test ===
+  // Helper: wraps a promise with a timeout so Firebase calls never hang forever
+  const fbCall = (promise, ms = 9000) =>
+    Promise.race([promise.catch(() => {}), new Promise(r => setTimeout(r, ms))]);
+
   if (window.FDB) {
     try {
       // Step 1: sync user profile first so testGroup is up-to-date before fetching gentest
-      await FDB.ref(`users/${CUR_USER}`).once('value').then(s => {
+      await fbCall(FDB.ref(`users/${CUR_USER}`).once('value').then(s => {
         if (!s.exists()) return;
         const db = getUsersDB();
         db[CUR_USER] = { ...db[CUR_USER], ...s.val() };
@@ -313,10 +317,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         USER_DATA = db[CUR_USER];
         IS_BDCS   = isBDCS(USER_DATA);
         MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
-      }).catch(() => {});
+      }));
 
       // Step 2: now fetch gentest with the correct (possibly updated) group
-      await Promise.all([
+      await fbCall(Promise.all([
         FDB.ref('monthly_config').once('value').then(s => {
           if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
         }).catch(()=>{}),
@@ -350,7 +354,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         FDB.ref(`supp_reschedule/${CUR_USER}`).once('value').then(s => {
           if (s.exists()) localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
         }).catch(()=>{}),
-      ]);
+      ]));
     } catch(e) { console.warn('[taketest] sync:', e.message); }
   }
 
