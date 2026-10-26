@@ -300,7 +300,7 @@
       <!-- ===== MOD VIEW ===== -->
       <div id="modView" class="hidden">
         <div class="page-tabs">
-          <button class="page-tab active" id="tabModScores" onclick="switchModTab('Scores')">📊 Results</button>
+          <button class="page-tab active" id="tabModScores">📊 Results</button>
         </div>
         <div id="modScheduleTab" class="hidden"></div>
         <div id="modScoresTab"></div>
@@ -690,8 +690,8 @@ function parseQBankFile(file, group, allowEssay) {
 // ===== MOD VIEW =====
 function switchModTab(name) {
   ['Schedule','Scores','Users'].forEach(t => {
-    document.getElementById('mod'+t+'Tab').classList.toggle('hidden', t !== name);
-    document.getElementById('tabMod'+t).classList.toggle('active', t === name);
+    document.getElementById('mod'+t+'Tab')?.classList.toggle('hidden', t !== name);
+    document.getElementById('tabMod'+t)?.classList.toggle('active', t === name);
   });
   if (name === 'Schedule') renderModScheduleTab();
   else if (name === 'Scores') renderModScoresTab();
@@ -4046,7 +4046,7 @@ function renderTraineeHistory() {
   }
   const lietTh = userIsBDCSH ? '<th>Liet Score</th>' : '';
   el.innerHTML=`<div class="hist-wrap"><table>
-    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th><th>🎥 Recording</th></tr></thead>
+    <thead><tr><th>Month</th><th>Test Period</th><th>Score (/${maxScoreH})</th>${lietTh}<th>Result</th><th>Total Failed</th><th>Reschedule</th><th>🎥 Recording</th><th>Answers</th></tr></thead>
     <tbody>
       ${rows.filter(r=>r.sc||r.cfg).map(({m,sc,cfg,rs,fc,sub})=>{
         const pfCls=sc?(sc.passed?'pf-badge pass':'pf-badge fail'):'pf-badge none';
@@ -4060,6 +4060,9 @@ function renderTraineeHistory() {
             ? `<td><a href="${cfg.driveLink}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;font-size:0.78rem;font-weight:600;color:#ff7096;text-decoration:none;padding:4px 10px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.25);border-radius:6px;" onmouseover="this.style.background='rgba(255,61,113,0.16)'" onmouseout="this.style.background='rgba(255,61,113,0.08)'">📤 Submit</a></td>`
             : `<td style="color:var(--text-muted);font-size:0.78rem;">—</td>`;
         const suppBadge = sub?.suppId ? `<span class="supp-badge" style="font-size:0.65rem;padding:2px 6px;margin-left:5px;">SUPP</span>` : '';
+        const viewAnswersTd = sub?.submittedAt
+          ? `<td style="text-align:center;"><a href="taketest.html?month=${m}" style="display:inline-flex;align-items:center;gap:4px;font-size:0.78rem;font-weight:600;color:var(--gold);text-decoration:none;padding:4px 10px;background:rgba(255,215,0,0.08);border:1px solid rgba(255,215,0,0.2);border-radius:6px;" onmouseover="this.style.background='rgba(255,215,0,0.16)'" onmouseout="this.style.background='rgba(255,215,0,0.08)'">📋 View</a></td>`
+          : `<td style="text-align:center;color:var(--text-muted);font-size:0.78rem;">—</td>`;
         return `<tr>
           <td style="font-weight:700;color:var(--gold)">${fmtMonth(m)}${suppBadge}</td>
           <td style="font-size:0.78rem;color:var(--text-muted)">${cfg?fmtDT(startD)+' →<br>'+fmtDT(endD):'—'}</td>
@@ -4069,6 +4072,7 @@ function renderTraineeHistory() {
           <td style="color:${fc>0?'var(--danger)':'var(--success)'};font-weight:700;">${sc?fc:'—'}</td>
           <td style="font-size:0.8rem;color:var(--text-secondary)">${rsTxt}</td>
           ${driveTd}
+          ${viewAnswersTd}
         </tr>`;
       }).join('')}
     </tbody></table></div>`;
