@@ -203,8 +203,12 @@ function _resolveMonthState() {
     if (!_suppSchedule) return false;
     _currentMonth = _suppSchedule.targetMonth;
     _currentCfg   = cfgs[_currentMonth] || null;
+  } else if (urlMonth) {
+    // Always honour the requested month — config may be gone but submission still exists
+    _currentMonth = urlMonth;
+    _currentCfg   = cfgs[urlMonth] || null;
   } else {
-    _currentMonth = urlMonth && cfgs[urlMonth] ? urlMonth : findActiveMonth(cfgs);
+    _currentMonth = findActiveMonth(cfgs);
     if (!_currentMonth) {
       const sorted = Object.keys(cfgs).sort().reverse();
       for (const m of sorted) {
