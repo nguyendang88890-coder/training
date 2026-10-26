@@ -548,6 +548,13 @@ function getSidebarHTML(activeModule) {
         <span class="nav-icon">📊</span> User Tracker
         <span class="nav-badge" style="background:rgba(100,150,255,0.15);color:#6496ff;">MOD</span>
       </a>` : ''}
+      <div class="nav-section-title">Resources</div>
+      <a href="https://wemastertrade-my.sharepoint.com/:w:/p/dylan_le/IQA72LO7U730TL_RuhWAAoVJAfsqcqTlV5PQ_BjJ0nGiDhI?e=2bbQVb"
+         target="_blank" rel="noopener"
+         class="nav-item">
+        <span class="nav-icon">📄</span> <span>BD &amp; Sales Onboarding</span>
+        <span class="nav-badge" style="background:rgba(43,92,230,0.15);color:#6496ff;">↗</span>
+      </a>
     </nav>
     <div class="sidebar-footer">
       <button class="logout-btn" onclick="doLogout()">🚪 Sign Out</button>
