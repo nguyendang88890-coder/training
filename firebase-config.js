@@ -89,7 +89,7 @@ function _fbPath(key) {
 // Writes to localStorage synchronously and fires to Firebase in the background.
 // value must be a JSON string (same as what you'd pass to localStorage.setItem).
 window.dbWrite = function(key, value) {
-  localStorage.setItem(key, value);
+  _lsSet(key, value);
   if (window.FDB) {
     try {
       const parsed = JSON.parse(value);
@@ -109,6 +109,26 @@ window.dbRemove = function(key) {
       .catch(err => console.warn(`[Firebase] remove failed (${key}):`, err.message));
   }
 };
+
+// ── Safe localStorage write — frees old gentest/draft cache if quota is hit ──
+function _lsSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch(e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      // Free up space: remove old gentest caches and test drafts, then retry once
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith('wmt_gentest_') || k.startsWith('wmt_test_draft_'))) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+      try { localStorage.setItem(key, value); } catch(e2) {
+        console.warn('[localStorage] quota still exceeded after cleanup:', key);
+      }
+    }
+  }
+}
 
 // ── Sync from Firebase → localStorage ─────────────────────────────────────
 // Call `await syncFromFirebase()` on page load so every device gets fresh data.
@@ -140,18 +160,27 @@ async function _syncCore() {
     await Promise.all(globalKeys.map(async ({ fb, ls }) => {
       try {
         const snap = await window.FDB.ref(fb).once('value');
-        if (snap.exists()) localStorage.setItem(ls, JSON.stringify(snap.val()));
+        if (snap.exists()) _lsSet(ls, JSON.stringify(snap.val()));
       } catch (e) {
         console.warn(`[Firebase] sync failed (${fb}):`, e.message);
       }
     }));
 
-    // ── Per-user data — reuse users already fetched above ──
-    const allUsers = Object.keys(JSON.parse(localStorage.getItem('wmt_users_db') || '{}'));
+    // ── Per-user data ──
+    // Admin/Mod sync all users; regular trainees only sync their own data to avoid
+    // filling localStorage (quota ~5 MB) with every other user's submissions/quiz/progress.
+    const usersDB   = JSON.parse(localStorage.getItem('wmt_users_db') || '{}');
+    const allUsers  = Object.keys(usersDB);
     if (!allUsers.length) return;
 
+    const curUser   = localStorage.getItem('wmt_user') || '';
+    const curRole   = usersDB[curUser]?.role || '';
+    const isPriv    = curRole === 'admin' || curRole === 'mod';
+    // Privileged users sync everyone; trainees sync only themselves
+    const syncUsers = isPriv ? allUsers : (curUser ? [curUser] : []);
+
     const perUserPaths = [];
-    allUsers.forEach(u => {
+    syncUsers.forEach(u => {
       perUserPaths.push({ fb: `progress/${u}`,        ls: `wmt_progress_${u}`,              clearable: false });
       perUserPaths.push({ fb: `exam/${u}`,             ls: `wmt_exam_${u}`,                  clearable: true  });
       perUserPaths.push({ fb: `interview/${u}`,        ls: `wmt_interview_${u}`,             clearable: true  });
@@ -164,7 +193,7 @@ async function _syncCore() {
       try {
         const snap = await window.FDB.ref(fb).once('value');
         if (snap.exists()) {
-          localStorage.setItem(ls, JSON.stringify(snap.val()));
+          _lsSet(ls, JSON.stringify(snap.val()));
         } else if (clearable) {
           localStorage.removeItem(ls);
         }
@@ -174,13 +203,13 @@ async function _syncCore() {
     }));
 
     // ── Quiz results: quiz/{user} ──
-    await Promise.all(allUsers.map(async u => {
+    await Promise.all(syncUsers.map(async u => {
       try {
         const snap = await window.FDB.ref(`quiz/${u}`).once('value');
         for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
         if (snap.exists()) {
           Object.keys(snap.val()).forEach(mKey => {
-            localStorage.setItem(`wmt_quiz_${u}_m${mKey.replace('m','')}`, JSON.stringify(snap.val()[mKey]));
+            _lsSet(`wmt_quiz_${u}_m${mKey.replace('m','')}`, JSON.stringify(snap.val()[mKey]));
           });
         }
       } catch (e) {
@@ -188,13 +217,14 @@ async function _syncCore() {
       }
     }));
 
-    // ── Submissions: submissions/{user} ──
-    await Promise.all(allUsers.map(async u => {
+    // ── Submissions: only current user's (admins get all via real-time listeners) ──
+    const subUsers = isPriv ? allUsers : (curUser ? [curUser] : []);
+    await Promise.all(subUsers.map(async u => {
       try {
         const snap = await window.FDB.ref(`submissions/${u}`).once('value');
         if (snap.exists()) {
           Object.entries(snap.val()).forEach(([month, sub]) => {
-            localStorage.setItem(`wmt_sub_${u}_${month}`, JSON.stringify(sub));
+            _lsSet(`wmt_sub_${u}_${month}`, JSON.stringify(sub));
           });
         }
       } catch (e) {
@@ -208,7 +238,7 @@ async function _syncCore() {
         const snap = await window.FDB.ref(`gentest/${g}`).once('value');
         if (snap.exists()) {
           Object.entries(snap.val()).forEach(([month, data]) => {
-            localStorage.setItem(`wmt_gentest_${g}_${month}`, JSON.stringify(data));
+            _lsSet(`wmt_gentest_${g}_${month}`, JSON.stringify(data));
           });
         }
       } catch (e) {
