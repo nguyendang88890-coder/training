@@ -113,11 +113,18 @@ window.dbRemove = function(key) {
 // ── Sync from Firebase → localStorage ─────────────────────────────────────
 // Call `await syncFromFirebase()` on page load so every device gets fresh data.
 // After this resolves, all reads can use localStorage as normal (fast + sync).
+// Has a 10-second hard timeout so a slow/unresponsive Firebase never blocks render.
 window.syncFromFirebase = async function() {
   if (!window.FDB) return; // no-op in localStorage-only mode
+  await Promise.race([
+    _syncCore(),
+    new Promise(r => setTimeout(r, 10000)) // 10 s hard timeout
+  ]);
+};
 
+async function _syncCore() {
   try {
-    // ── Global data ──
+    // ── Global data (all fetched in parallel) ──
     const globalKeys = [
       { fb: 'users',            ls: 'wmt_users_db' },
       { fb: 'exam_qbank',       ls: 'wmt_exam_qbank' },
@@ -133,111 +140,83 @@ window.syncFromFirebase = async function() {
     await Promise.all(globalKeys.map(async ({ fb, ls }) => {
       try {
         const snap = await window.FDB.ref(fb).once('value');
+        if (snap.exists()) localStorage.setItem(ls, JSON.stringify(snap.val()));
+      } catch (e) {
+        console.warn(`[Firebase] sync failed (${fb}):`, e.message);
+      }
+    }));
+
+    // ── Per-user data — reuse users already fetched above ──
+    const allUsers = Object.keys(JSON.parse(localStorage.getItem('wmt_users_db') || '{}'));
+    if (!allUsers.length) return;
+
+    const perUserPaths = [];
+    allUsers.forEach(u => {
+      perUserPaths.push({ fb: `progress/${u}`,        ls: `wmt_progress_${u}`,              clearable: false });
+      perUserPaths.push({ fb: `exam/${u}`,             ls: `wmt_exam_${u}`,                  clearable: true  });
+      perUserPaths.push({ fb: `interview/${u}`,        ls: `wmt_interview_${u}`,             clearable: true  });
+      perUserPaths.push({ fb: `reschedule/${u}`,       ls: `wmt_monthly_reschedule_${u}`,    clearable: true  });
+      perUserPaths.push({ fb: `supp_reschedule/${u}`,  ls: `wmt_supp_reschedule_${u}`,       clearable: true  });
+      perUserPaths.push({ fb: `evaluations/${u}`,      ls: `wmt_eval_${u}`,                  clearable: false });
+    });
+
+    await Promise.all(perUserPaths.map(async ({ fb, ls, clearable }) => {
+      try {
+        const snap = await window.FDB.ref(fb).once('value');
         if (snap.exists()) {
           localStorage.setItem(ls, JSON.stringify(snap.val()));
+        } else if (clearable) {
+          localStorage.removeItem(ls);
         }
       } catch (e) {
         console.warn(`[Firebase] sync failed (${fb}):`, e.message);
       }
     }));
 
-    // ── Per-user data — discover all users first ──
-    try {
-      const usersSnap = await window.FDB.ref('users').once('value');
-      if (!usersSnap.exists()) return;
-
-      const allUsers = Object.keys(usersSnap.val());
-      const perUserPaths = [];
-
-      // Paths that are SAFE to clear from localStorage when Firebase doesn't have them
-      // (admin may have explicitly deleted these — e.g. exam reset, interview reset).
-      const clearableKeys = new Set();
-
-      allUsers.forEach(u => {
-        // progress: only update, never clear — user might have offline data not yet synced
-        perUserPaths.push({ fb: `progress/${u}`,  ls: `wmt_progress_${u}`,  clearable: false });
-        // exam/interview/reschedule: admin can delete these, so clear when missing
-        perUserPaths.push({ fb: `exam/${u}`,       ls: `wmt_exam_${u}`,       clearable: true  });
-        perUserPaths.push({ fb: `interview/${u}`,  ls: `wmt_interview_${u}`,  clearable: true  });
-        perUserPaths.push({ fb: `reschedule/${u}`,      ls: `wmt_monthly_reschedule_${u}`, clearable: true });
-        perUserPaths.push({ fb: `supp_reschedule/${u}`, ls: `wmt_supp_reschedule_${u}`,    clearable: true });
-        perUserPaths.push({ fb: `evaluations/${u}`,     ls: `wmt_eval_${u}`,               clearable: false });
-      });
-
-      await Promise.all(perUserPaths.map(async ({ fb, ls, clearable }) => {
-        try {
-          const snap = await window.FDB.ref(fb).once('value');
-          if (snap.exists()) {
-            localStorage.setItem(ls, JSON.stringify(snap.val()));
-          } else if (clearable) {
-            // Firebase is the source of truth for this key type —
-            // if it was deleted (e.g. admin reset exam), clear the stale localStorage copy.
-            localStorage.removeItem(ls);
-          }
-        } catch (e) {
-          console.warn(`[Firebase] sync failed (${fb}):`, e.message);
-        }
-      }));
-
-      // Quiz results: quiz/{user}/m{1-7}
-      // Clear existing quiz localStorage entries FIRST so that admin resets propagate correctly.
-      await Promise.all(allUsers.map(async u => {
-        try {
-          const snap = await window.FDB.ref(`quiz/${u}`).once('value');
-          // Always clear all 7 slots for this user first, then repopulate from Firebase.
-          // This ensures that if admin deleted a quiz entry it is also removed from localStorage.
-          for (let m = 1; m <= 8; m++) {
-            localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
-          }
-          if (snap.exists()) {
-            const quizData = snap.val();
-            Object.keys(quizData).forEach(mKey => {
-              // mKey = "m1", "m2", …
-              const num = mKey.replace('m', '');
-              localStorage.setItem(`wmt_quiz_${u}_m${num}`, JSON.stringify(quizData[mKey]));
-            });
-          }
-        } catch (e) {
-          console.warn(`[Firebase] quiz sync failed (${u}):`, e.message);
-        }
-      }));
-
-      // Submissions: submissions/{user}/{month}
-      await Promise.all(allUsers.map(async u => {
-        try {
-          const snap = await window.FDB.ref(`submissions/${u}`).once('value');
-          if (snap.exists()) {
-            const subs = snap.val();
-            Object.keys(subs).forEach(month => {
-              localStorage.setItem(`wmt_sub_${u}_${month}`, JSON.stringify(subs[month]));
-            });
-          }
-        } catch (e) {
-          console.warn(`[Firebase] submissions sync failed (${u}):`, e.message);
-        }
-      }));
-
-    } catch (e) {
-      console.warn('[Firebase] per-user sync failed:', e.message);
-    }
-
-    // ── Generated tests: gentest/{group}/{month} ──
-    try {
-      const groups = ['bdcs', 'others'];
-      await Promise.all(groups.map(async g => {
-        const snap = await window.FDB.ref(`gentest/${g}`).once('value');
+    // ── Quiz results: quiz/{user} ──
+    await Promise.all(allUsers.map(async u => {
+      try {
+        const snap = await window.FDB.ref(`quiz/${u}`).once('value');
+        for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
         if (snap.exists()) {
-          const months = snap.val();
-          Object.keys(months).forEach(month => {
-            localStorage.setItem(`wmt_gentest_${g}_${month}`, JSON.stringify(months[month]));
+          Object.keys(snap.val()).forEach(mKey => {
+            localStorage.setItem(`wmt_quiz_${u}_m${mKey.replace('m','')}`, JSON.stringify(snap.val()[mKey]));
           });
         }
-      }));
-    } catch (e) {
-      console.warn('[Firebase] gentest sync failed:', e.message);
-    }
+      } catch (e) {
+        console.warn(`[Firebase] quiz sync failed (${u}):`, e.message);
+      }
+    }));
+
+    // ── Submissions: submissions/{user} ──
+    await Promise.all(allUsers.map(async u => {
+      try {
+        const snap = await window.FDB.ref(`submissions/${u}`).once('value');
+        if (snap.exists()) {
+          Object.entries(snap.val()).forEach(([month, sub]) => {
+            localStorage.setItem(`wmt_sub_${u}_${month}`, JSON.stringify(sub));
+          });
+        }
+      } catch (e) {
+        console.warn(`[Firebase] submissions sync failed (${u}):`, e.message);
+      }
+    }));
+
+    // ── Generated tests: gentest/{group} ──
+    await Promise.all(['bdcs', 'others'].map(async g => {
+      try {
+        const snap = await window.FDB.ref(`gentest/${g}`).once('value');
+        if (snap.exists()) {
+          Object.entries(snap.val()).forEach(([month, data]) => {
+            localStorage.setItem(`wmt_gentest_${g}_${month}`, JSON.stringify(data));
+          });
+        }
+      } catch (e) {
+        console.warn(`[Firebase] gentest sync failed (${g}):`, e.message);
+      }
+    }));
 
   } catch (e) {
     console.warn('[Firebase] syncFromFirebase error:', e.message);
   }
-};
+}
