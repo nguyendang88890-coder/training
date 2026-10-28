@@ -736,6 +736,7 @@ function submitTest() {
 async function doSubmit(auto) {
   clearInterval(_timer);
 
+  try {
   // Re-fetch the latest gentest from Firebase before grading (5 s timeout so submit never hangs).
   if (window.FDB) {
     try {
@@ -743,6 +744,10 @@ async function doSubmit(auto) {
         FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value').then(snap => {
           if (snap.exists()) {
             const fresh = snap.val();
+            // Convert Firebase object back to array if needed (Firebase may return objects for arrays)
+            if (fresh && fresh.questions && !Array.isArray(fresh.questions)) {
+              fresh.questions = Object.values(fresh.questions);
+            }
             localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
             _qbank = fresh;
           }
@@ -752,8 +757,13 @@ async function doSubmit(auto) {
     } catch(e) { /* keep existing _qbank on network error */ }
   }
 
+  if (!_qbank || !_qbank.questions) {
+    alert('Lỗi: Không tìm thấy đề thi. Vui lòng tải lại trang và thử lại.');
+    return;
+  }
+
   const qs = _qbank.questions;
-  const mc = _currentCfg;
+  const mc = _currentCfg || {};
 
   // Grade MCQ
   let mcqScore = 0, lietWrong = 0;
@@ -833,6 +843,11 @@ async function doSubmit(auto) {
   }
 
   renderResult(submission, mc);
+
+  } catch(submitErr) {
+    console.error('[doSubmit] error:', submitErr);
+    alert('Lỗi khi nộp bài: ' + submitErr.message + '\n\nVui lòng chụp màn hình lỗi này và liên hệ admin.');
+  }
 }
 
 // ===== RESULT SCREEN =====
