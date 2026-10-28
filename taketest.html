@@ -720,17 +720,26 @@ function autoSubmit() {
 }
 
 function submitTest() {
-  const qs  = _qbank.questions;
-  const mcq = qs.filter(q=>q.type==='MCQ');
-  const unansweredMCQ = mcq.filter(q=>!_answers[q.id]);
+  try {
+    if (!_qbank || !_qbank.questions) {
+      alert('Lỗi: Không tải được đề thi. Vui lòng tải lại trang (F5) và thử lại.');
+      return;
+    }
+    const qs  = _qbank.questions;
+    const mcq = qs.filter(q=>q.type==='MCQ');
+    const unansweredMCQ = mcq.filter(q=>!_answers[q.id]);
 
-  if (unansweredMCQ.length > 0) {
-    const proceed = confirm(`You have ${unansweredMCQ.length} unanswered multiple-choice questions.\n\nDo you want to submit?`);
-    if (!proceed) return;
-  } else {
-    if (!confirm('Confirm submission? You will not be able to edit after submitting.')) return;
+    if (unansweredMCQ.length > 0) {
+      const proceed = confirm(`You have ${unansweredMCQ.length} unanswered multiple-choice questions.\n\nDo you want to submit?`);
+      if (!proceed) return;
+    } else {
+      if (!confirm('Confirm submission? You will not be able to edit after submitting.')) return;
+    }
+    doSubmit(false);
+  } catch(e) {
+    console.error('[submitTest] error:', e);
+    alert('Lỗi khi nộp bài: ' + e.message + '\n\nVui lòng tải lại trang (F5) và thử lại.');
   }
-  doSubmit(false);
 }
 
 async function doSubmit(auto) {

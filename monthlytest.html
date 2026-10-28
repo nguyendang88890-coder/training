@@ -1530,7 +1530,7 @@ window.addEventListener('load', async function() {
         const allSubs = snap.val();
         Object.entries(allSubs).forEach(([un, months]) => {
           Object.entries(months || {}).forEach(([m, sub]) => {
-            localStorage.setItem(`wmt_sub_${un}_${m}`, JSON.stringify(sub));
+            try { localStorage.setItem(`wmt_sub_${un}_${m}`, JSON.stringify(sub)); } catch(e) {}
           });
         });
         if (!document.getElementById('adminScoresTab')?.classList.contains('hidden')) {
@@ -1540,7 +1540,7 @@ window.addEventListener('load', async function() {
     } else if (!IS_MOD) {
       // Trainee: watch own supp reschedule so admin approval shows immediately
       FDB.ref(`supp_reschedule/${CUR_USER}`).on('value', snap => {
-        localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(snap.val() || {}));
+        try { localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(snap.val() || {})); } catch(e) {}
         renderSuppCard();
       });
     }
