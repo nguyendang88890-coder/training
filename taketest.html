@@ -172,6 +172,38 @@ let _currentCfg   = null;
 let _qbank        = null;
 let _startedAt    = null;
 let _effectiveDeadline = null;
+
+function _draftKey() { return `wmt_test_draft_${CUR_USER}_${_currentMonth}`; }
+function _saveDraft() {
+  try { localStorage.setItem(_draftKey(), JSON.stringify({ answers: _answers, startedAt: _startedAt })); } catch(e) {}
+}
+function _clearDraft() { try { localStorage.removeItem(_draftKey()); } catch(e) {} }
+function _restoreDraft() {
+  try {
+    const raw = localStorage.getItem(_draftKey());
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    if (draft.startedAt) _startedAt = draft.startedAt;
+    if (!draft.answers) return;
+    Object.entries(draft.answers).forEach(([qid, val]) => {
+      _answers[qid] = val;
+      const q = _qbank?.questions?.find(q => String(q.id) === String(qid));
+      if (!q) return;
+      if (q.type === 'MCQ') {
+        // Visually mark the selected option
+        Object.keys(q.opts || {}).forEach(l => {
+          document.getElementById(`opt_${qid}_${l}`)?.classList.toggle('selected', l === val);
+        });
+        document.getElementById(`qcard_${qid}`)?.classList.add('answered');
+      } else {
+        const el = document.getElementById(`ans_${qid}`);
+        if (el) { el.value = val; }
+        document.getElementById(`qcard_${qid}`)?.classList.toggle('answered', val.trim().length > 0);
+      }
+    });
+    updateProgress();
+  } catch(e) {}
+}
 let _suppSchedule = null;   // set when entering via ?supp=
 
 // Parse URL params
@@ -577,6 +609,7 @@ function renderTest(deadlineTs) {
 
   document.getElementById('pageContent').innerHTML = html;
   _startedAt = new Date().toISOString();
+  _restoreDraft(); // restore saved answers (overrides _startedAt if draft has one)
   startTimer(deadlineTs);
   updateProgress();
 }
@@ -631,6 +664,7 @@ function selectOpt(qid, letter) {
   });
   document.getElementById(`qcard_${qid}`)?.classList.add('answered');
   updateProgress();
+  _saveDraft();
 }
 
 function onEssayInput(qid, val) {
@@ -638,6 +672,7 @@ function onEssayInput(qid, val) {
   const card = document.getElementById(`qcard_${qid}`);
   if (card) card.classList.toggle('answered', val.trim().length > 0);
   updateProgress();
+  _saveDraft();
 }
 
 function updateProgress() {
@@ -701,17 +736,19 @@ function submitTest() {
 async function doSubmit(auto) {
   clearInterval(_timer);
 
-  // Re-fetch the latest gentest from Firebase before grading.
-  // This ensures admin edits to correct answers (made after the user loaded the page)
-  // are applied to this submission, not the stale cached version.
+  // Re-fetch the latest gentest from Firebase before grading (5 s timeout so submit never hangs).
   if (window.FDB) {
     try {
-      const snap = await FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value');
-      if (snap.exists()) {
-        const fresh = snap.val();
-        localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
-        _qbank = fresh;
-      }
+      await Promise.race([
+        FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value').then(snap => {
+          if (snap.exists()) {
+            const fresh = snap.val();
+            localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
+            _qbank = fresh;
+          }
+        }),
+        new Promise(r => setTimeout(r, 5000))
+      ]);
     } catch(e) { /* keep existing _qbank on network error */ }
   }
 
@@ -771,6 +808,7 @@ async function doSubmit(auto) {
     ..._suppSchedule ? { suppId: _suppSchedule.id, suppNote: _suppSchedule.note } : {}
   };
   saveSubmission(CUR_USER, _currentMonth, submission);
+  _clearDraft(); // remove in-progress draft now that submission is saved
 
   // Auto-populate MCQ score in monthly scores (Others only, BD/CS waits for essay)
   // Uses a targeted Firebase path write to avoid overwriting other users' scores.
