@@ -175,7 +175,7 @@ let _effectiveDeadline = null;
 
 function _draftKey() { return `wmt_test_draft_${CUR_USER}_${_currentMonth}`; }
 function _saveDraft() {
-  try { localStorage.setItem(_draftKey(), JSON.stringify({ answers: _answers, startedAt: _startedAt })); } catch(e) {}
+  _lsSet(_draftKey(), JSON.stringify({ answers: _answers, startedAt: _startedAt }));
 }
 function _clearDraft() { try { localStorage.removeItem(_draftKey()); } catch(e) {} }
 function _restoreDraft() {
@@ -271,6 +271,7 @@ function _backfillSnapshot(sub) {
 document.addEventListener('DOMContentLoaded', async function() {
   if (!CUR_USER) { location.href = 'index.html'; return; }
   if (ALL_USERS[CUR_USER]?.role === 'admin') { location.href = 'monthlytest.html'; return; }
+  _lsClean(); // purge stale data on every page load
 
   document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
 
@@ -290,16 +291,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!s.exists()) return;
             const db = getUsersDB();
             db[CUR_USER] = { ...db[CUR_USER], ...s.val() };
-            localStorage.setItem('wmt_users_db', JSON.stringify(db));
+            _lsSet('wmt_users_db', JSON.stringify(db));
             USER_DATA = db[CUR_USER]; IS_BDCS = isBDCS(USER_DATA); MY_GROUP = IS_BDCS ? 'bdcs' : 'others';
           }).catch(() => {}),
           FDB.ref('monthly_config').once('value').then(s => {
-            if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
+            if (s.exists()) _lsSet('wmt_monthly_config', JSON.stringify(s.val()));
           }).catch(() => {}),
           FDB.ref(`submissions/${CUR_USER}`).once('value').then(s => {
             const fbData = s.exists() ? s.val() : {};
             Object.entries(fbData).forEach(([m, d]) =>
-              localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
+              _lsSet(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
             // If Firebase is missing this month's submission, re-push from localStorage
             if (!fbData[_currentMonth]) {
               const localSub = getSubmission(CUR_USER, _currentMonth);
@@ -310,16 +311,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
           }).catch(() => {}),
           FDB.ref(`gentest/${MY_GROUP}/${_currentMonth}`).once('value').then(s => {
-            if (s.exists()) localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(s.val()));
+            if (s.exists()) _lsSet(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(s.val()));
           }).catch(() => {}),
           FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
-            if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+            if (s.exists()) _lsSet(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
           }).catch(() => {}),
           FDB.ref('supp_schedules').once('value').then(s => {
-            if (s.exists()) localStorage.setItem('wmt_supp_schedules', JSON.stringify(s.val()));
+            if (s.exists()) _lsSet('wmt_supp_schedules', JSON.stringify(s.val()));
           }).catch(() => {}),
           FDB.ref(`supp_reschedule/${CUR_USER}`).once('value').then(s => {
-            if (s.exists()) localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+            if (s.exists()) _lsSet(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
           }).catch(() => {}),
         ]).then(() => {
           // Re-render with fresh data (catches grading updates, answer reveals)
@@ -349,7 +350,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!s.exists()) return;
         const db = getUsersDB();
         db[CUR_USER] = { ...db[CUR_USER], ...s.val() };
-        localStorage.setItem('wmt_users_db', JSON.stringify(db));
+        _lsSet('wmt_users_db', JSON.stringify(db));
         USER_DATA = db[CUR_USER];
         IS_BDCS   = isBDCS(USER_DATA);
         MY_GROUP  = IS_BDCS ? 'bdcs' : 'others';
@@ -358,37 +359,47 @@ document.addEventListener('DOMContentLoaded', async function() {
       // Step 2: now fetch gentest with the correct (possibly updated) group
       await fbCall(Promise.all([
         FDB.ref('monthly_config').once('value').then(s => {
-          if (s.exists()) localStorage.setItem('wmt_monthly_config', JSON.stringify(s.val()));
+          if (s.exists()) _lsSet('wmt_monthly_config', JSON.stringify(s.val()));
         }).catch(()=>{}),
         FDB.ref(`submissions/${CUR_USER}`).once('value').then(s => {
           if (s.exists()) Object.entries(s.val()).forEach(([m,d]) =>
-            localStorage.setItem(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
+            _lsSet(`wmt_sub_${CUR_USER}_${m}`, JSON.stringify(d)));
         }).catch(()=>{}),
-        // For supp: fetch gentest for targetMonth; for regular: fetch by urlMonth or all
+        // For supp: fetch gentest for targetMonth; for regular: fetch by urlMonth or active month only
         (() => {
           const suppData = urlSupp ? getSS()[urlSupp] : null;
-          const fetchMonth = suppData ? suppData.targetMonth : urlMonth;
+          // Use specific month when available; fall back to already-resolved _currentMonth so we
+          // never download the entire gentest collection (saves localStorage quota).
+          const fetchMonth = suppData ? suppData.targetMonth : (urlMonth || _currentMonth);
           return FDB.ref(fetchMonth
             ? `gentest/${MY_GROUP}/${fetchMonth}`
             : `gentest/${MY_GROUP}`
           ).once('value').then(s => {
             if (!s.exists()) return;
             if (fetchMonth) {
-              localStorage.setItem(`wmt_gentest_${MY_GROUP}_${fetchMonth}`, JSON.stringify(s.val()));
+              _lsSet(`wmt_gentest_${MY_GROUP}_${fetchMonth}`, JSON.stringify(s.val()));
             } else {
-              Object.entries(s.val()).forEach(([m, d]) =>
-                localStorage.setItem(`wmt_gentest_${MY_GROUP}_${m}`, JSON.stringify(d)));
+              // Last-resort fallback: only write current & previous month
+              const now = new Date();
+              const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+              const keep = new Set([
+                `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,
+                `${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`,
+              ]);
+              Object.entries(s.val()).forEach(([m, d]) => {
+                if (keep.has(m)) _lsSet(`wmt_gentest_${MY_GROUP}_${m}`, JSON.stringify(d));
+              });
             }
           });
         })().catch(()=>{}),
         FDB.ref(`reschedule/${CUR_USER}`).once('value').then(s => {
-          if (s.exists()) localStorage.setItem(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+          if (s.exists()) _lsSet(`wmt_monthly_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
         }).catch(()=>{}),
         FDB.ref('supp_schedules').once('value').then(s => {
-          if (s.exists()) localStorage.setItem('wmt_supp_schedules', JSON.stringify(s.val()));
+          if (s.exists()) _lsSet('wmt_supp_schedules', JSON.stringify(s.val()));
         }).catch(()=>{}),
         FDB.ref(`supp_reschedule/${CUR_USER}`).once('value').then(s => {
-          if (s.exists()) localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
+          if (s.exists()) _lsSet(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(s.val()));
         }).catch(()=>{}),
       ]));
     } catch(e) { console.warn('[taketest] sync:', e.message); }
@@ -502,7 +513,7 @@ function startGentestListener() {
     // Skip if nothing actually changed
     if (JSON.stringify(fresh) === JSON.stringify(_qbank)) return;
 
-    localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
+    _lsSet(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
     _qbank = fresh;
 
     // Update each question card in-place — preserves scroll position and answers
@@ -757,7 +768,7 @@ async function doSubmit(auto) {
             if (fresh && fresh.questions && !Array.isArray(fresh.questions)) {
               fresh.questions = Object.values(fresh.questions);
             }
-            localStorage.setItem(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
+            _lsSet(`wmt_gentest_${MY_GROUP}_${_currentMonth}`, JSON.stringify(fresh));
             _qbank = fresh;
           }
         }),
@@ -843,7 +854,7 @@ async function doSubmit(auto) {
     const allScores = getMS();
     if (!allScores[_currentMonth]) allScores[_currentMonth] = {};
     allScores[_currentMonth][CUR_USER] = scoreEntry;
-    localStorage.setItem('wmt_monthly_scores', JSON.stringify(allScores));
+    _lsSet('wmt_monthly_scores', JSON.stringify(allScores));
     // Write only this user's entry to Firebase — no risk of overwriting others
     if (window.FDB) {
       window.FDB.ref(`monthly_scores/${_currentMonth}/${CUR_USER}`).set(scoreEntry)
