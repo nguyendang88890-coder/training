@@ -182,7 +182,7 @@ function saveProfileModal() {
   users[user].email    = email;
   users[user].fullName = fullName;
   // Per-user update — never overwrites other users' data
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSafe('wmt_users_db', JSON.stringify(users));
   if (window.FDB) {
     window.FDB.ref('users/' + user).update({ email, fullName })
       .catch(e => console.warn('[WMT] saveProfileModal Firebase error:', e.message));
@@ -776,7 +776,7 @@ function submitModProposal(pageInfo) {
   if (typeof dbWrite === 'function') {
     dbWrite('wmt_proposals', JSON.stringify(proposals));
   } else {
-    localStorage.setItem('wmt_proposals', JSON.stringify(proposals));
+    _lsSafe('wmt_proposals', JSON.stringify(proposals));
   }
 
   document.getElementById('modProposalModal')?.remove();

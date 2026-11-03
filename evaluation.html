@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -423,13 +423,13 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (window.FDB && CUR_USER) {
     await Promise.all([
       FDB.ref(`exam/${CUR_USER}`).once('value').then(s => {
-        if (s.exists()) localStorage.setItem('wmt_exam_' + CUR_USER, JSON.stringify(s.val()));
+        if (s.exists()) _lsSet('wmt_exam_' + CUR_USER, JSON.stringify(s.val()));
       }).catch(() => {}),
       FDB.ref(`interview/${CUR_USER}`).once('value').then(s => {
-        if (s.exists()) localStorage.setItem('wmt_interview_' + CUR_USER, JSON.stringify(s.val()));
+        if (s.exists()) _lsSet('wmt_interview_' + CUR_USER, JSON.stringify(s.val()));
       }).catch(() => {}),
       FDB.ref(`evaluations/${CUR_USER}`).once('value').then(s => {
-        if (s.exists()) localStorage.setItem('wmt_eval_' + CUR_USER, JSON.stringify(s.val()));
+        if (s.exists()) _lsSet('wmt_eval_' + CUR_USER, JSON.stringify(s.val()));
       }).catch(() => {}),
     ]).catch(() => {});
   }

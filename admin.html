@@ -901,7 +901,7 @@ async function runAutoUpgrade() {
   }
   if (!upgraded.length) return;
 
-  localStorage.setItem('wmt_users_db', JSON.stringify(allUsers));
+  _lsSet('wmt_users_db', JSON.stringify(allUsers));
 
   if (window.FDB) {
     await Promise.all(upgraded.map(({ uname }) =>
@@ -1150,7 +1150,7 @@ function saveGeminiKey() {
   }
   const val = input.value.trim();
   if (!val) { alert('Please enter a valid API key.'); return; }
-  localStorage.setItem('wmt_gemini_key', val);
+  _lsSet('wmt_gemini_key', val);
   input.dataset.loaded = '1';
   input.value = '•'.repeat(20);
   showMsg();
@@ -1298,7 +1298,7 @@ async function fixAllDepartments() {
     return;
   }
 
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
 
   if (window.FDB) {
     await Promise.all(changed.map(({ uname, fixed }) =>
@@ -1583,7 +1583,7 @@ function toggleModRole(uname) {
   if (!confirm(`${action} cho "${uname}"?`)) return;
   const newRole = isMod ? 'trainee' : 'mod';
   users[uname].role = newRole;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
   renderAdminPanel();
 }
@@ -1600,7 +1600,7 @@ function toggleAdminRole(uname) {
   if (!confirm(`${action} for account "${uname}"?\n\n${isAdmin ? 'This account will become a trainee and lose admin access.' : 'This account will have full admin privileges.'}`)) return;
   const newRole = isAdmin ? 'trainee' : 'admin';
   users[uname].role = newRole;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update({ role: newRole });
   renderAdminPanel();
 }
@@ -1632,7 +1632,7 @@ async function migrateLeaderNames() {
 
   // Apply to localStorage
   for (const { uname, newVal } of updates) users[uname].leaderName = newVal;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
 
   // Apply to Firebase (per-user update — safe)
   if (window.FDB) {
@@ -1893,7 +1893,7 @@ function deleteUser(uname) {
   if (!confirm(`Delete user "${uname}"?\n\nThis will permanently remove their account and all data.`)) return;
   const users = getUsersDB();
   delete users[uname];
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).remove();
   ['wmt_progress_','wmt_exam_','wmt_interview_'].forEach(k => dbRemove(k + uname));
   for (let i = 1; i <= 7; i++) dbRemove(`wmt_quiz_${uname}_m${i}`);
@@ -2404,7 +2404,7 @@ function saveEditUser() {
   if (newPw) patch.password = newPw;
 
   Object.assign(users[uname], patch);
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update(patch);
   closeEditUser();
   renderAdminPanel();
@@ -2593,7 +2593,7 @@ function saveResetPw() {
   const users = getUsersDB();
   if (!users[uname]) { err.textContent = 'User not found.'; return; }
   users[uname].password = nw;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + uname).update({ password: nw })
     .catch(e => console.warn('[WMT] resetPw Firebase error:', e.message));
   closeResetPwModal();
@@ -2773,7 +2773,7 @@ function adminCreateAccount() {
   };
 
   users[u] = newUser;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) {
     window.FDB.ref('users/' + u).set(newUser)
       .catch(e => console.warn('[WMT] create account Firebase error:', e.message));

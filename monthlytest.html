@@ -340,7 +340,7 @@ function saveScoreEntry(month, un, entry) {
   const all = getMS();
   if (!all[month]) all[month] = {};
   all[month][un] = entry;
-  localStorage.setItem(MS_KEY, JSON.stringify(all));
+  _lsSet(MS_KEY, JSON.stringify(all));
   if (window.FDB) {
     window.FDB.ref(`monthly_scores/${month}/${un}`).set(entry)
       .catch(err => console.warn('[Firebase] saveScoreEntry failed:', err.message));
@@ -352,7 +352,7 @@ function deleteScoreEntry(month, un) {
   const all = getMS();
   if (all[month]?.[un]) {
     delete all[month][un];
-    localStorage.setItem(MS_KEY, JSON.stringify(all));
+    _lsSet(MS_KEY, JSON.stringify(all));
   }
   if (window.FDB) {
     window.FDB.ref(`monthly_scores/${month}/${un}`).remove()
@@ -365,7 +365,7 @@ function saveMonthScores(month, entries) {
   const all = getMS();
   if (!all[month]) all[month] = {};
   Object.assign(all[month], entries);
-  localStorage.setItem(MS_KEY, JSON.stringify(all));
+  _lsSet(MS_KEY, JSON.stringify(all));
   if (window.FDB) {
     window.FDB.ref(`monthly_scores/${month}`).update(entries)
       .catch(err => console.warn('[Firebase] saveMonthScores failed:', err.message));
@@ -1243,7 +1243,7 @@ function getNotifPrefs(u) {
 }
 
 function saveNotifPrefs(u, prefs) {
-  localStorage.setItem(NOTIF_PREFS_KEY(u), JSON.stringify(prefs));
+  _lsSet(NOTIF_PREFS_KEY(u), JSON.stringify(prefs));
   if (window.FDB) window.FDB.ref('notif_prefs/' + u).set(prefs)
     .catch(e => console.warn('[WMT] notifPrefs sync error:', e.message));
 }
@@ -1512,7 +1512,7 @@ window.addEventListener('load', async function() {
   if (window.FDB && CUR_USER) {
     // supp_schedules: propagate eligible-user list and date changes to all open pages
     FDB.ref('supp_schedules').on('value', snap => {
-      localStorage.setItem('wmt_supp_schedules', JSON.stringify(snap.val() || {}));
+      _lsSet('wmt_supp_schedules', JSON.stringify(snap.val() || {}));
       if (!IS_ADMIN && !IS_MOD) renderSuppCard();
     });
 
@@ -1521,7 +1521,7 @@ window.addEventListener('load', async function() {
       FDB.ref('supp_reschedule').on('value', snap => {
         if (snap.exists()) {
           Object.entries(snap.val()).forEach(([un, d]) => {
-            localStorage.setItem(`wmt_supp_reschedule_${un}`, JSON.stringify(d));
+            _lsSet(`wmt_supp_reschedule_${un}`, JSON.stringify(d));
           });
         }
         updateRsBadge();
@@ -1532,7 +1532,7 @@ window.addEventListener('load', async function() {
       // Keep monthly_scores live; also re-render Scores tab if it's visible so new
       // submissions appear without needing to switch tabs.
       FDB.ref('monthly_scores').on('value', snap => {
-        if (snap.exists()) localStorage.setItem('wmt_monthly_scores', JSON.stringify(snap.val()));
+        if (snap.exists()) _lsSet('wmt_monthly_scores', JSON.stringify(snap.val()));
         if (!document.getElementById('adminScoresTab')?.classList.contains('hidden')) {
           renderScoresTables();
         }
@@ -1544,7 +1544,7 @@ window.addEventListener('load', async function() {
         const allSubs = snap.val();
         Object.entries(allSubs).forEach(([un, months]) => {
           Object.entries(months || {}).forEach(([m, sub]) => {
-            try { localStorage.setItem(`wmt_sub_${un}_${m}`, JSON.stringify(sub)); } catch(e) {}
+            try { _lsSet(`wmt_sub_${un}_${m}`, JSON.stringify(sub)); } catch(e) {}
           });
         });
         if (!document.getElementById('adminScoresTab')?.classList.contains('hidden')) {
@@ -1554,7 +1554,7 @@ window.addEventListener('load', async function() {
     } else if (!IS_MOD) {
       // Trainee: watch own supp reschedule so admin approval shows immediately
       FDB.ref(`supp_reschedule/${CUR_USER}`).on('value', snap => {
-        try { localStorage.setItem(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(snap.val() || {})); } catch(e) {}
+        try { _lsSet(`wmt_supp_reschedule_${CUR_USER}`, JSON.stringify(snap.val() || {})); } catch(e) {}
         renderSuppCard();
       });
     }
@@ -2310,7 +2310,7 @@ function saveEssayTemplate() {
   }
   if (!Object.keys(scores).length) { alert('Enter at least one score before saving as template.'); return; }
   _essayTemplate = { month: ctx.month, scores };
-  localStorage.setItem('wmt_essay_template', JSON.stringify(_essayTemplate));
+  _lsSet('wmt_essay_template', JSON.stringify(_essayTemplate));
   const btn = document.getElementById('essTemplateSaveBtn');
   if (btn) { btn.textContent = '✅ Saved!'; setTimeout(() => { btn.textContent = '📋 Save as Template'; }, 2000); }
 }

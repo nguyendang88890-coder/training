@@ -421,11 +421,11 @@ function getUsersDB() {
       admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    _lsSet('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    _lsSet('wmt_users_db', JSON.stringify(users));
   }
   return users;
 }
@@ -470,7 +470,7 @@ async function doLogin() {
   const users = getUsersDB();
 
   if (users[u] && users[u].password === p) {
-    localStorage.setItem('wmt_user', u);
+    _lsSet('wmt_user', u);
     err.textContent = '';
     document.getElementById('loginPage').classList.add('hidden');
     document.getElementById('dashboardPage').classList.remove('hidden');
@@ -541,14 +541,14 @@ function doRegister() {
   };
   users[u] = newUser;
   // Per-user set — only writes the new user, never touches other accounts
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) {
     window.FDB.ref('users/' + u).set(newUser)
       .catch(e => console.warn('[WMT] register Firebase error:', e.message));
   }
 
   // Auto-login
-  localStorage.setItem('wmt_user', u);
+  _lsSet('wmt_user', u);
   ok.textContent = '✓ Account created! Signing you in…';
   setTimeout(() => {
     document.getElementById('loginPage').classList.add('hidden');
@@ -603,7 +603,7 @@ function saveDashboardProfile() {
   users[user].email    = email;
   users[user].fullName = fullName;
   // Per-user update — never overwrites other users' data
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) {
     window.FDB.ref('users/' + user).update({ email, fullName })
       .catch(e => console.warn('[WMT] saveDashboardProfile Firebase error:', e.message));
@@ -654,7 +654,7 @@ function saveChangePw() {
   if (nw.length < 6) { err.textContent = 'New password must be at least 6 characters.'; return; }
   if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
   users[user].password = nw;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + user).update({ password: nw })
     .catch(e => console.warn('[WMT] changePw Firebase error:', e.message));
   document.getElementById('cpSuccess').style.display = 'block';
@@ -716,7 +716,7 @@ function forgotSave() {
   if (nw !== cf)     { err.textContent = 'Passwords do not match.'; return; }
   const users = getUsersDB();
   users[un].password = nw;
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSet('wmt_users_db', JSON.stringify(users));
   if (window.FDB) window.FDB.ref('users/' + un).update({ password: nw })
     .catch(e => console.warn('[WMT] forgotPw Firebase error:', e.message));
   document.getElementById('fpStep2').style.display   = 'none';
@@ -952,7 +952,7 @@ function _getNotifPrefs(u) {
   return Object.assign({}, def, JSON.parse(localStorage.getItem('wmt_notif_prefs_' + u) || 'null') || {});
 }
 function _saveNotifPrefs(u, p) {
-  localStorage.setItem('wmt_notif_prefs_' + u, JSON.stringify(p));
+  _lsSet('wmt_notif_prefs_' + u, JSON.stringify(p));
   if (window.FDB) window.FDB.ref('notif_prefs/' + u).set(p).catch(() => {});
 }
 function _fmtLocalTime(iso, tz) {
@@ -1211,7 +1211,7 @@ async function autoUpgradeCheck(loginUser) {
   }
   if (!upgraded.length) return;
 
-  localStorage.setItem('wmt_users_db', JSON.stringify(allUsers));
+  _lsSet('wmt_users_db', JSON.stringify(allUsers));
 
   if (window.FDB) {
     await Promise.all(upgraded.map(({ uname }) =>
