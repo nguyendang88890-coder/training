@@ -218,14 +218,14 @@ function renderResults() {
   }
 }
 
-// Sync from Firebase first so admin resets are reflected immediately, then render
 (async function() {
-  if (typeof syncFromFirebase === 'function') {
-    document.getElementById('resultContent').innerHTML =
-      '<div class="result-msg" style="color:var(--text-muted);">⏳ Loading…</div>';
-    await syncFromFirebase();
-  }
+  // Fast render from cache
   renderResults();
+  // Background sync then re-render to pick up any admin resets
+  if (typeof syncFromFirebase === 'function') {
+    await syncFromFirebase();
+    renderResults();
+  }
 })();
 </script>
 </body>

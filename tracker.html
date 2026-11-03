@@ -165,6 +165,17 @@
 const CUR_USER = localStorage.getItem('wmt_user') || '';
 
 window.addEventListener('load', async function () {
+  // Fast render from cache
+  const _cacheUsers = getUsersDB();
+  const _cacheMe = _cacheUsers[CUR_USER];
+  if (_cacheMe && (_cacheMe.role === 'admin' || _cacheMe.role === 'mod')) {
+    document.getElementById('sidebar').innerHTML = getSidebarHTML('tracker');
+    if (typeof updateSidebarProgress === 'function') updateSidebarProgress();
+    buildMonthSelector();
+    renderTracker();
+  }
+
+  // Background sync then re-render
   if (typeof syncFromFirebase === 'function') await syncFromFirebase();
 
   const users = getUsersDB();

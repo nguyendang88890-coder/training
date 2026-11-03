@@ -1476,11 +1476,7 @@ function initNotifications() {
   }, true);
 }
 
-// ===== INIT =====
-window.addEventListener('load', async function() {
-  await syncFromFirebase();
-  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
-  updateSidebarProgress();
+function _renderMonthlyContent() {
   if (IS_ADMIN) {
     document.getElementById('adminView').classList.remove('hidden');
     renderSetupTab();
@@ -1492,6 +1488,24 @@ window.addEventListener('load', async function() {
     document.getElementById('traineeView').classList.remove('hidden');
     renderTraineeView();
   }
+}
+
+// ===== INIT =====
+window.addEventListener('load', async function() {
+  // Fast render from cache
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
+  updateSidebarProgress();
+  _renderMonthlyContent();
+
+  // Background sync then re-render
+  await syncFromFirebase();
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('monthlytest');
+  updateSidebarProgress();
+  // Reset views before re-render
+  document.getElementById('adminView').classList.add('hidden');
+  document.getElementById('modView').classList.add('hidden');
+  document.getElementById('traineeView').classList.add('hidden');
+  _renderMonthlyContent();
   initNotifications();
 
   // Real-time Firebase listeners — keep supp data live without full page reload

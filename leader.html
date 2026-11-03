@@ -231,9 +231,18 @@ let _currentUser = '';
   const user = localStorage.getItem('wmt_user');
   if (!user) { window.location.href = 'index.html'; return; }
 
-  document.querySelector('.page-content').innerHTML =
-    '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">⏳ Loading data…</div>';
+  // ── Fast render from cache ──
+  const _cacheUsers = getUsersDB();
+  if (_cacheUsers[user] && (_cacheUsers[user].isLeader || _cacheUsers[user].role === 'admin')) {
+    _currentUser = user;
+    _isAdmin = _cacheUsers[user].role === 'admin';
+    _buildLeaderPage();
+  } else {
+    document.querySelector('.page-content').innerHTML =
+      '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);">⏳ Loading data…</div>';
+  }
 
+  // ── Background sync ──
   if (typeof syncFromFirebase === 'function') await syncFromFirebase();
 
   const users = getUsersDB();
@@ -251,7 +260,10 @@ let _currentUser = '';
     adminPushUserMigration();
   }
 
-  // Restore page HTML
+  _buildLeaderPage();
+})();
+
+function _buildLeaderPage() {
   document.querySelector('.page-content').innerHTML = `
     <div class="module-header">
       <div class="module-header-num" style="background:linear-gradient(135deg,#ffaa33,#e6850a);color:#000;">👥</div>
@@ -315,7 +327,7 @@ let _currentUser = '';
   document.getElementById('sidebar').innerHTML = getSidebarHTML('leader');
   updateSidebarProgress();
   renderLeaderPage();
-})();
+}
 
 // ===== HELPERS =====
 // Normalize a string: lowercase + trim (handles mixed-case, extra spaces).
