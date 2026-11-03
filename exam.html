@@ -528,6 +528,11 @@ function submitExamProposal(idx, isNew) {
 
 // ===== INIT =====
 window.addEventListener('load', async function() {
+  // Fast render from cache
+  document.getElementById('sidebar').innerHTML = getSidebarHTML(0);
+  updateSidebarProgress();
+
+  // Background sync then re-render sidebar
   await syncFromFirebase();
   document.getElementById('sidebar').innerHTML = getSidebarHTML(0);
   updateSidebarProgress();

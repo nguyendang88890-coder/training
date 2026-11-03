@@ -805,24 +805,43 @@ const CUR_ADMIN = localStorage.getItem('wmt_user') || '';
 let CUR_IS_MOD = false;
 
 window.addEventListener('load', async function() {
+  // ── Fast render: show panel immediately from localStorage cache ──
+  // This makes the page interactive right away instead of waiting up to 10 s for Firebase.
+  const _cacheUsers = getUsersDB();
+  const _cacheRole  = _cacheUsers[CUR_ADMIN]?.role;
+  const _cacheOk    = CUR_ADMIN && _cacheUsers[CUR_ADMIN] &&
+                      (_cacheRole === 'admin' || _cacheRole === 'mod');
+  if (_cacheOk) {
+    CUR_IS_MOD = (_cacheRole === 'mod');
+    document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
+    updateSidebarProgress();
+    if (CUR_IS_MOD) {
+      applyModPermissions();
+      renderEvaluationsTab();
+    } else {
+      renderAdminPanel();
+      renderInterviewsTable();
+      updateRsBadge();
+    }
+  }
+
+  // ── Background sync: refresh data from Firebase, then re-render ──
   await syncFromFirebase();
 
-  // Re-check role from freshly-synced data
+  // Re-check role from freshly-synced data (catches new promotions / demotions)
   const _guardUsers = getUsersDB();
-  const _curRole = _guardUsers[CUR_ADMIN]?.role;
+  const _curRole    = _guardUsers[CUR_ADMIN]?.role;
   if (!CUR_ADMIN || !_guardUsers[CUR_ADMIN] || (_curRole !== 'admin' && _curRole !== 'mod')) {
     window.location.href = 'index.html';
     return;
   }
 
   CUR_IS_MOD = (_curRole === 'mod');
-
   document.getElementById('sidebar').innerHTML = getSidebarHTML('admin');
   updateSidebarProgress();
 
   if (CUR_IS_MOD) {
-    // Moderators: show Evaluations tab only
-    applyModPermissions();
+    if (!_cacheOk) applyModPermissions();
     await syncFromFirebase();
     renderEvaluationsTab();
   } else {

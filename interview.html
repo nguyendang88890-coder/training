@@ -314,6 +314,12 @@ tomorrow.setDate(tomorrow.getDate() + 1);
 document.getElementById('iDate').min = tomorrow.toISOString().split('T')[0];
 
 window.addEventListener('load', async function() {
+  // Fast render from cache
+  document.getElementById('sidebar').innerHTML = getSidebarHTML('interview');
+  updateSidebarProgress();
+  initPage();
+
+  // Background sync then refresh
   await syncFromFirebase();
   document.getElementById('sidebar').innerHTML = getSidebarHTML('interview');
   updateSidebarProgress();
