@@ -162,6 +162,9 @@ function _lsClean(force) {
       }
     }
 
+    // Admins/mods: remove ALL gentest (they use qbank, not gentest)
+    if (isPriv && /^wmt_gentest_/.test(k)) { remove.push(k); continue; }
+
     // Everyone: remove gentest and test drafts older than 2 months
     const genM   = k.match(/^wmt_gentest_\w+_(\d{4}-\d{2})$/);
     const draftM = k.match(/^wmt_test_draft_[^_]+_(\d{4}-\d{2})$/);
@@ -280,22 +283,26 @@ async function _syncCore() {
       } catch(e) { console.warn(`[Firebase] submissions sync failed (${u}):`, e.message); }
     }));
 
-    // ── Step 6: gentest — only current + previous month ──
-    const now      = new Date();
-    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const months   = [
-      `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,
-      `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`,
-    ];
-
-    await Promise.all(['bdcs','others'].flatMap(g =>
-      months.map(async m => {
-        try {
-          const snap = await window.FDB.ref(`gentest/${g}/${m}`).once('value');
-          if (snap.exists()) _lsSet(`wmt_gentest_${g}_${m}`, JSON.stringify(snap.val()));
-        } catch(e) { console.warn(`[Firebase] gentest sync failed (${g}/${m}):`, e.message); }
-      })
-    ));
+    // ── Step 6: gentest — trainees only, current + previous month ──
+    // Admins/mods use qbank (full question bank), not gentest — skip to save space.
+    if (!isPriv) {
+      const now      = new Date();
+      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const months   = [
+        `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`,
+        `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`,
+      ];
+      const myGroup = (JSON.parse(localStorage.getItem('wmt_users_db') || '{}')?.[curUser]?.testGroup) || 'others';
+      const groups  = myGroup === 'bdcs' ? ['bdcs'] : ['others'];
+      await Promise.all(groups.flatMap(g =>
+        months.map(async m => {
+          try {
+            const snap = await window.FDB.ref(`gentest/${g}/${m}`).once('value');
+            if (snap.exists()) _lsSet(`wmt_gentest_${g}_${m}`, JSON.stringify(snap.val()));
+          } catch(e) { console.warn(`[Firebase] gentest sync failed (${g}/${m}):`, e.message); }
+        })
+      ));
+    }
 
   } catch(e) { console.warn('[Firebase] syncFromFirebase error:', e.message); }
 }

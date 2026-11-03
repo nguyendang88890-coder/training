@@ -1,5 +1,23 @@
 ﻿// ===== SHARED MODULE LOGIC =====
 
+function _lsSafe(key, value) {
+  try { localStorage.setItem(key, value); } catch(e) {
+    if (e.name === 'QuotaExceededError' || e.code === 22) {
+      // Try to free space: remove old gentest and draft entries
+      const rem = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k) continue;
+        if (/^wmt_gentest_/.test(k) || /^wmt_test_draft_/.test(k)) rem.push(k);
+      }
+      rem.forEach(k => localStorage.removeItem(k));
+      try { localStorage.setItem(key, value); } catch(e2) {
+        console.warn('[localStorage] quota exceeded, skipping:', key);
+      }
+    }
+  }
+}
+
 function getUsersDB() {
   let users = JSON.parse(localStorage.getItem('wmt_users_db') || 'null');
   if (!users) {
@@ -8,28 +26,22 @@ function getUsersDB() {
       admin:   { password: 'wmt2026',  role: 'admin',   createdAt: new Date().toISOString() },
       trainee: { password: 'train123', role: 'trainee', createdAt: new Date().toISOString() }
     };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    _lsSafe('wmt_users_db', JSON.stringify(users));
   }
   if (!users.admin) {
     users.admin = { password: 'wmt2026', role: 'admin', createdAt: new Date().toISOString() };
-    localStorage.setItem('wmt_users_db', JSON.stringify(users));
+    _lsSafe('wmt_users_db', JSON.stringify(users));
   }
 
   // ── Field migration: add new fields to existing accounts (local only) ───────
-  // Only updates localStorage. Firebase push is handled separately by
-  // adminPushUserMigration() which is called by admin after syncFromFirebase().
-  const FIELD_DEFAULTS = {
-    isLeader:   false,
-    leaderName: '',
-    testGroup:  'auto',
-  };
+  const FIELD_DEFAULTS = { isLeader: false, leaderName: '', testGroup: 'auto' };
   let migrated = false;
   Object.values(users).forEach(u => {
     Object.entries(FIELD_DEFAULTS).forEach(([field, def]) => {
       if (!(field in u)) { u[field] = def; migrated = true; }
     });
   });
-  if (migrated) localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  if (migrated) _lsSafe('wmt_users_db', JSON.stringify(users));
 
   return users;
 }
@@ -57,7 +69,7 @@ function adminPushUserMigration() {
   });
 
   // Reflect patched defaults in localStorage as well
-  localStorage.setItem('wmt_users_db', JSON.stringify(users));
+  _lsSafe('wmt_users_db', JSON.stringify(users));
   console.info('[WMT] adminPushUserMigration: patched missing fields via per-user update().');
 }
 
