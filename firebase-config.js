@@ -298,6 +298,11 @@ async function _syncCore() {
     ]);
     await Promise.all(syncUsers.map(async u => {
       try {
+        // Remove ALL existing submission keys for this user first to free space
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(`wmt_sub_${u}_`)) localStorage.removeItem(k);
+        }
         const snap = await window.FDB.ref(`submissions/${u}`).once('value');
         if (!snap.exists()) return;
         Object.entries(snap.val()).forEach(([month, sub]) => {
