@@ -165,6 +165,10 @@ function _lsClean(force) {
     // Admins/mods: remove ALL gentest (they use qbank, not gentest)
     if (isPriv && /^wmt_gentest_/.test(k)) { remove.push(k); continue; }
 
+    // Admins/mods: remove submissions older than 2 months (huge data, not needed)
+    const subM = k.match(/^wmt_sub_[^_]+_(\d{4}-\d{2})$/);
+    if (isPriv && subM && subM[1] < cut) { remove.push(k); continue; }
+
     // Everyone: remove gentest and test drafts older than 2 months
     const genM   = k.match(/^wmt_gentest_\w+_(\d{4}-\d{2})$/);
     const draftM = k.match(/^wmt_test_draft_[^_]+_(\d{4}-\d{2})$/);
@@ -268,15 +272,23 @@ async function _syncCore() {
     }));
 
     // ── Step 5: submissions ──
-    // Admin/mod: strip questionSnapshot (saves ~70 % — they only need scores/results).
-    // Trainees: keep full submission (need questionSnapshot to review answers offline).
+    // Admin/mod: only current + previous month, strip questionSnapshot + essayAnswers
+    //   (they only need scores/grading data, not the full answer snapshots).
+    // Trainees: only their own current + previous month, keep full submission.
+    const _subNow  = new Date();
+    const _subPrev = new Date(_subNow.getFullYear(), _subNow.getMonth() - 1, 1);
+    const _subKeep = new Set([
+      `${_subNow.getFullYear()}-${String(_subNow.getMonth()+1).padStart(2,'0')}`,
+      `${_subPrev.getFullYear()}-${String(_subPrev.getMonth()+1).padStart(2,'0')}`,
+    ]);
     await Promise.all(syncUsers.map(async u => {
       try {
         const snap = await window.FDB.ref(`submissions/${u}`).once('value');
         if (!snap.exists()) return;
         Object.entries(snap.val()).forEach(([month, sub]) => {
-          const toStore = (isPriv && sub.questionSnapshot)
-            ? { ...sub, questionSnapshot: undefined }
+          if (!_subKeep.has(month)) return; // skip old months
+          const toStore = isPriv
+            ? { ...sub, questionSnapshot: undefined, essayAnswers: undefined }
             : sub;
           _lsSet(`wmt_sub_${u}_${month}`, JSON.stringify(toStore));
         });
