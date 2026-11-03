@@ -214,10 +214,10 @@ async function _syncCore() {
     const isPriv   = curRole === 'admin' || curRole === 'mod';
 
     // ── Step 2: global data ──
+    // monthly_scores handled separately below (trimmed to 6 months for admins)
     const globalKeys = [
       { fb: 'exam_qbank',      ls: 'wmt_exam_qbank' },
       { fb: 'monthly_config',  ls: 'wmt_monthly_config' },
-      { fb: 'monthly_scores',  ls: 'wmt_monthly_scores' },
       { fb: 'supp_schedules',  ls: 'wmt_supp_schedules' },
       { fb: 'proposals',       ls: 'wmt_proposals' },
       { fb: 'interviews_list', ls: 'wmt_interviews_list' },
@@ -234,6 +234,21 @@ async function _syncCore() {
         if (snap.exists()) _lsSet(ls, JSON.stringify(snap.val()));
       } catch(e) { console.warn(`[Firebase] sync failed (${fb}):`, e.message); }
     }));
+
+    // ── monthly_scores: fetch and trim to last 6 months to cap size ──
+    try {
+      const msSnap = await window.FDB.ref('monthly_scores').once('value');
+      if (msSnap.exists()) {
+        const msAll = msSnap.val();
+        const msNow = new Date();
+        const msCut = new Date(msNow.getFullYear(), msNow.getMonth() - 5, 1)
+                        .toISOString().slice(0, 7); // keep 6 months
+        const msTrimmed = Object.fromEntries(
+          Object.entries(msAll).filter(([m]) => m >= msCut)
+        );
+        _lsSet('wmt_monthly_scores', JSON.stringify(msTrimmed));
+      }
+    } catch(e) { console.warn('[Firebase] monthly_scores sync failed:', e.message); }
 
     if (!allUsers.length) return;
 
