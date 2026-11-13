@@ -113,7 +113,7 @@ function markModuleComplete(moduleId) {
     return;
   }
   if (score < 60) {
-    alert(`⚠️ You need to score at least 60% on the quiz to complete this module.\nYour score: ${score}%\n\nPlease contact admin to retake the quiz.`);
+    alert(`⚠️ You need to score at least 60% on the quiz to complete this module.\nYour score: ${score}%\n\nPlease contact Admin web - Ralph (Training Dept) to retake the quiz.`);
     return;
   }
 
@@ -276,19 +276,19 @@ class ModuleQuiz {
     scoreEl.className   = `result-score ${score >= 60 ? 'pass' : 'fail'}`;
     document.getElementById('quizResultMsg').textContent = score >= 60
       ? '🎉 Great job! Module marked as complete.'
-      : '📚 Review the material. Contact admin to retake the quiz.';
+      : '📚 Review the material. Contact Admin web - Ralph (Training Dept) to retake the quiz.';
   }
 
   showLockedResult(saved) {
     document.getElementById('quizContainer').innerHTML =
-      this._lockBanner(`Submitted at: ${new Date(saved.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp; Contact admin to retake this quiz.`) +
+      this._lockBanner(`Submitted at: ${new Date(saved.submittedAt).toLocaleString('en-GB')} &nbsp;·&nbsp; Contact Admin web - Ralph (Training Dept) to retake this quiz.`) +
       this.buildReviewHTML();
     this._showResult(saved.score, `${saved.correct}/${saved.total} — ${saved.score}%`);
   }
 
   showLockedLegacy(score) {
     document.getElementById('quizContainer').innerHTML =
-      this._lockBanner('Contact admin to retake this quiz.');
+      this._lockBanner('Contact Admin web - Ralph (Training Dept) to retake this quiz.');
     this._showResult(score, `${score}%`);
   }
 
@@ -402,7 +402,7 @@ class ModuleQuiz {
 
     document.getElementById('quizResultMsg').textContent = passed
       ? '🎉 Great job! Module marked as complete.'
-      : `⚠️ You scored ${score}%. You need at least 60% to complete this module. Contact admin to retake the quiz.`;
+      : `⚠️ You scored ${score}%. You need at least 60% to complete this module. Contact Admin web - Ralph (Training Dept) to retake the quiz.`;
 
     const btn = document.getElementById('markCompleteBtn');
     const chk = document.getElementById('completedCheck');

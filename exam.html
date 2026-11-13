@@ -109,8 +109,8 @@
               <div class="exam-stat-label">Questions</div>
             </div>
             <div class="exam-stat">
-              <div class="exam-stat-value">60%</div>
-              <div class="exam-stat-label">Pass Score (Attempt 1)</div>
+              <div class="exam-stat-value">70%</div>
+              <div class="exam-stat-label">Pass Score</div>
             </div>
             <div class="exam-stat">
               <div class="exam-stat-value">2</div>
@@ -127,8 +127,8 @@
           <h3>📋 Before You Start</h3>
           <ul>
             <li>30 questions will be selected randomly from a large question bank</li>
-            <li><strong>Attempt 1</strong> — Minimum pass score: <strong>60%</strong> (18 out of 30 correct)</li>
-            <li><strong>Attempt 2</strong> — Minimum pass score: <strong>80%</strong> (24 out of 30 correct)</li>
+            <li><strong>Attempt 1</strong> — Minimum pass score: <strong>70%</strong> (21 out of 30 correct)</li>
+            <li><strong>Attempt 2</strong> — Minimum pass score: <strong>70%</strong> (21 out of 30 correct)</li>
             <li>You have <strong>2 attempts</strong> total</li>
             <li>If you fail attempt 1, you must wait <strong>3 days</strong> before retrying</li>
             <li>If you fail attempt 2, you will be <strong>permanently disqualified</strong></li>
@@ -699,7 +699,7 @@ function submitExam() {
   const es = getExamState();
   const now = new Date().toISOString();
   const attemptNumber = (es.attempts || 0) + 1;
-  const passThreshold = attemptNumber === 1 ? 60 : 80;
+  const passThreshold = 70;
   const passed = score >= passThreshold;
 
   const rawCorrect = examAnswers.filter(function(a,i){ return a === _ans(examQuestions[i]); }).length;

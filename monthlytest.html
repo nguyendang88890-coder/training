@@ -3252,6 +3252,7 @@ function buildRsCard({un,ud,m,req}, stB) {
         Requested: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> &nbsp;·&nbsp; Submitted: ${fmtDT(req.requestedAt)}
         ${req.rsDeadline?`<br>Approved window: <strong>${fmtDT(req.rsStart||req.newDate+'T'+(req.newTime||'09:00'))}</strong> → <strong>${fmtDT(req.rsDeadline)}</strong>`:''}
         ${req.reason?`<br>Reason: ${req.reason}`:''}
+        ${req.approvedBy?`<br><span style="color:var(--success);font-size:0.8rem;">✓ Approved by: <strong>${req.approvedBy}</strong></span>`:''}
         ${req.rejectReason?`<br><span style="color:var(--danger)">Rejection note: ${req.rejectReason}</span>`:''}
       </div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
@@ -3324,8 +3325,9 @@ function confirmApproveRs(un, m) {
   const start = rs[m].rsStart || new Date(`${rs[m].newDate}T${rs[m].newTime||'09:00'}`).toISOString();
   if (new Date(deadline) <= new Date(start)) { err.textContent = 'Deadline must be after the start time.'; return; }
   rs[m].status = 'approved';
-  rs[m].rsDeadline = new Date(deadline).toISOString(); // store as UTC ISO
+  rs[m].rsDeadline = new Date(deadline).toISOString();
   rs[m].processedAt = new Date().toISOString();
+  rs[m].approvedBy = CUR_ADMIN || '';
   saveRS(un, rs);
   document.getElementById('approveRsModal').remove();
   updateRsBadge(); renderRescheduleTab();
@@ -3983,8 +3985,8 @@ function renderTraineeReschedule() {
             <div class="form-group"><label>New Date</label><input type="date" id="rsDate" min="${minDate}" max="${maxDate}"></div>
             <div class="form-group"><label>New Time <span style="color:var(--text-muted);font-weight:400">(optional)</span></label><input type="time" id="rsTime"></div>
           </div>
-          <div class="form-group"><label>Reason <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-            <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment"></div>
+          <div class="form-group"><label>Reason <span style="color:var(--danger);font-weight:600;">*</span></label>
+            <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment" required></div>
           <div class="error-msg" id="rsErr"></div>
           <button class="btn btn-primary" onclick="submitReschedule('${m}','${minDate}','${maxDate}')">Submit Request</button>
         </div>`;
@@ -4020,8 +4022,8 @@ function renderTraineeReschedule() {
         <div class="form-group"><label>New Date</label><input type="date" id="rsDate" min="${minDate}" max="${maxDate}"></div>
         <div class="form-group"><label>New Time <span style="color:var(--text-muted);font-weight:400">(optional)</span></label><input type="time" id="rsTime"></div>
       </div>
-      <div class="form-group"><label>Reason <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
-        <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment"></div>
+      <div class="form-group"><label>Reason <span style="color:var(--danger);font-weight:600;">*</span></label>
+        <input type="text" id="rsReason" placeholder="e.g. Work conflict, personal appointment" required></div>
       <div class="error-msg" id="rsErr"></div>
       <button class="btn btn-primary" onclick="submitReschedule('${m}','${minDate}','${maxDate}')">Submit Request</button>
     </div>`;
@@ -4033,10 +4035,23 @@ function submitReschedule(m, minDate, maxDate) {
         reason=document.getElementById('rsReason').value.trim(),
         err=document.getElementById('rsErr');
   err.textContent='';
+  if (!reason) { err.textContent='Please provide a reason for the reschedule request.'; return; }
   if (!date) { err.textContent='Please select a new date.'; return; }
   if (date<minDate||date>maxDate) { err.textContent=`Date must be within ${fmtMonth(m)}.`; return; }
+  // Block requests after the test day has ended (end of deadline day)
+  const cfg=getMC()[m]||{};
+  const isUserBDCS = isBDCS(ALL_USERS[CUR_USER]||{});
+  const deadlineStr = isUserBDCS ? cfg.deadlineBDCS : cfg.deadlineOthers;
+  if (deadlineStr) {
+    const deadlineEnd = new Date(deadlineStr);
+    deadlineEnd.setHours(23,59,59,999);
+    if (new Date() > deadlineEnd) {
+      err.textContent='The test period has ended. Reschedule requests are no longer accepted for this month.';
+      return;
+    }
+  }
   const rs=getRS(CUR_USER);
-  const rsStart = new Date(`${date}T${time}`).toISOString(); // store as UTC ISO
+  const rsStart = new Date(`${date}T${time}`).toISOString();
   rs[m]={ rsStart, newDate:date, newTime:time, reason, requestedAt:new Date().toISOString(), status:'pending', processedAt:null };
   saveRS(CUR_USER,rs);
   renderTraineeReschedule();
