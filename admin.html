@@ -1003,7 +1003,7 @@ async function switchTab(tab) {
   if (tab === 'quiz') {
     document.getElementById('quizTableBody').innerHTML =
       '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted);">⏳ Loading data…</td></tr>';
-    await syncFromFirebase();
+    await (window.syncQuizOnly ? syncQuizOnly() : syncFromFirebase());
     renderQuizTab();
   }
   if (tab === 'proposals')    renderProposalsTab();

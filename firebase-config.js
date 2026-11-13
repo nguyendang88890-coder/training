@@ -165,6 +165,9 @@ function _lsClean(force) {
     // Admins/mods: remove ALL gentest (they use qbank, not gentest)
     if (isPriv && /^wmt_gentest_/.test(k)) { remove.push(k); continue; }
 
+    // Admins/mods: remove all quiz data (fetched on-demand via syncQuizOnly)
+    if (isPriv && /^wmt_quiz_/.test(k)) { remove.push(k); continue; }
+
     // Admins/mods: remove submissions older than 2 months (huge data, not needed)
     const subM = k.match(/^wmt_sub_[^_]+_(\d{4}-\d{2})$/);
     if (isPriv && subM && subM[1] < cut) { remove.push(k); continue; }
@@ -189,13 +192,47 @@ function _lsClean(force) {
 //  • Global  : users, config, scores, schedules — all roles
 //  • qbanks  : admin/mod only (large; trainees use gentest subset)
 //  • Per-user: trainees → only themselves; admin/mod → all users
+//  • Quiz    : trainees only in global sync; admin uses syncQuizOnly() on demand
 //  • Gentest : only current + previous month (not the full history)
 //  • Submissions for admin: strip questionSnapshot (saves ~70 % space)
 // Hard 10-second timeout so a slow Firebase never blocks page render.
+// Throttle: skip re-sync if last sync was < 3 minutes ago (prevents redundant
+// syncs on tab switches in admin panel).
+let _lastSyncAt = 0;
+
 window.syncFromFirebase = async function() {
   if (!window.FDB) return;
+  const _now = Date.now();
+  if (_lastSyncAt > 0 && (_now - _lastSyncAt) < 3 * 60 * 1000) {
+    console.info('[Firebase] sync throttled — skipping (< 3 min since last sync)');
+    return;
+  }
+  _lastSyncAt = _now;
   _lsClean();   // purge stale data before syncing fresh
   await Promise.race([_syncCore(), new Promise(r => setTimeout(r, 10000))]);
+};
+
+// Admin-only: fetch quiz results for all users on demand (called by quiz tab).
+// Kept separate so the global sync stays under 5 MB localStorage quota.
+window.syncQuizOnly = async function() {
+  if (!window.FDB) return;
+  const usersDB  = JSON.parse(localStorage.getItem('wmt_users_db') || '{}');
+  const allUsers = Object.keys(usersDB);
+  if (!allUsers.length) return;
+  await Promise.race([
+    Promise.all(allUsers.map(async u => {
+      try {
+        const snap = await window.FDB.ref(`quiz/${u}`).once('value');
+        for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
+        if (snap.exists()) {
+          Object.keys(snap.val()).forEach(mk => {
+            _lsSet(`wmt_quiz_${u}_m${mk.replace('m','')}`, JSON.stringify(snap.val()[mk]));
+          });
+        }
+      } catch(e) { console.warn(`[Firebase] quiz sync failed (${u}):`, e.message); }
+    })),
+    new Promise(r => setTimeout(r, 10000))
+  ]);
 };
 
 async function _syncCore() {
@@ -273,18 +310,22 @@ async function _syncCore() {
       } catch(e) { console.warn(`[Firebase] sync failed (${fb}):`, e.message); }
     }));
 
-    // ── Step 4: quiz results ──
-    await Promise.all(syncUsers.map(async u => {
-      try {
-        const snap = await window.FDB.ref(`quiz/${u}`).once('value');
-        for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
-        if (snap.exists()) {
-          Object.keys(snap.val()).forEach(mk => {
-            _lsSet(`wmt_quiz_${u}_m${mk.replace('m','')}`, JSON.stringify(snap.val()[mk]));
-          });
-        }
-      } catch(e) { console.warn(`[Firebase] quiz sync failed (${u}):`, e.message); }
-    }));
+    // ── Step 4: quiz results (trainees only) ──
+    // Admin/mod skips this step — quiz data for 100+ users can be ~1 MB.
+    // Admin quiz tab calls syncQuizOnly() instead to fetch on demand.
+    if (!isPriv) {
+      await Promise.all(syncUsers.map(async u => {
+        try {
+          const snap = await window.FDB.ref(`quiz/${u}`).once('value');
+          for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
+          if (snap.exists()) {
+            Object.keys(snap.val()).forEach(mk => {
+              _lsSet(`wmt_quiz_${u}_m${mk.replace('m','')}`, JSON.stringify(snap.val()[mk]));
+            });
+          }
+        } catch(e) { console.warn(`[Firebase] quiz sync failed (${u}):`, e.message); }
+      }));
+    }
 
     // ── Step 5: submissions ──
     // Admin/mod: only current + previous month, strip questionSnapshot + essayAnswers
