@@ -116,6 +116,13 @@
         <h3>⚡ 1.2 Instant Funding</h3>
         <p>Instant Funding gives traders <strong>immediate access to a live trading account</strong> — no evaluation phase required. Perfect for experienced traders who want to start trading right away. All plans support Scale-up to <strong>$1,000,000</strong> and cost <strong>starting from $70</strong>.</p>
 
+        <div class="callout success">
+          <span class="callout-icon">💻</span>
+          <div class="callout-content">
+            <strong>Available on MT5 &amp; cTrader</strong>
+            <p>All WeMasterTrade plans are available on both <strong>MetaTrader 5 (MT5)</strong> and <strong>cTrader</strong> with identical conditions. Clients choose their preferred platform at the time of purchase.</p>
+          </div>
+        </div>
         <div class="callout gold">
           <span class="callout-icon">⭐</span>
           <div class="callout-content">
@@ -214,6 +221,16 @@
         <!-- 510Zero Detail -->
         <h4>510Zero Plan — Pricing</h4>
         <p>No profit target — withdraw anytime. First reward after <strong>1 day</strong>. Profit share depends on withdrawal amount relative to threshold.</p>
+        <div class="callout info" style="margin-top:10px;">
+          <span class="callout-icon">📋</span>
+          <div class="callout-content">
+            <strong>510Zero — Important Rules</strong>
+            <ul style="margin:4px 0 0;padding-left:18px;line-height:1.9;">
+              <li><strong>Profit Consistency (PC) applies</strong> — all 510Zero accounts are subject to the Profit Consistency Rule</li>
+              <li><strong>Minimum 5 trading days after each payout</strong> — traders must trade at least 5 more days before the next withdrawal</li>
+            </ul>
+          </div>
+        </div>
         <div class="callout info">
           <span class="callout-icon">ℹ️</span>
           <div class="callout-content">
@@ -345,7 +362,7 @@ const questions = [
     q: "Which Instant Funding plan has NO Profit Target?",
     opts: ["51010", "510Zero", "Customized", "XAU247"],
     _c: "MQ==",
-    explain: "510Zero has no profit target — traders can withdraw anytime, making it the most flexible Instant Funding option. All other plans (51010, XAU247, Customized, NOPC-EU) require a profit target."
+    explain: "510Zero has no profit target — traders can withdraw anytime, making it the most flexible Instant Funding option. All other plans (51010, XAU247, NOPC, Customized) require a profit target."
   },
   {
     q: "What is the Forex trading leverage for the 510Zero plan?",
@@ -366,10 +383,10 @@ const questions = [
     explain: "The Customized plan allows a Daily Loss Limit between 2% and 5%, and a Max Loss between 4% and 10% — fully adjustable to suit each trader."
   },
   {
-    q: "How long must a 510Zero trader wait before their FIRST payout?",
-    opts: ["3 days", "1 day", "0 days — immediate", "7 days"],
+    q: "What is the Risk Consistency (RC) limit for the NOPC Instant Funding plan?",
+    opts: ["0.5% of initial balance", "1% of initial balance", "2% of initial balance", "No RC limit"],
     _c: "MQ==",
-    explain: "510Zero requires a 1-day minimum before the first payout — same as other Instant Funding plans. All plans have a 1-day first reward wait."
+    explain: "The NOPC plan has a Risk Consistency limit of 1% of the initial account balance per trade idea. This replaced the NOPC-EU plan. The 51010 and 510Zero plans have a 2% RC limit, while Challenge accounts have no RC requirement."
   },
   {
     q: "Which Instant Funding plan does NOT apply the Profit Consistency Rule (PCR)?",
