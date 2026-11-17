@@ -26,7 +26,7 @@
         <div class="module-header-info">
           <h2>Trading Rules</h2>
           <p>Master all trading rules that traders must follow to maintain their funded accounts</p>
-          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🕒 Cập nhật lần cuối: 13/11/2026</p>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🕒 Cập nhật lần cuối: 17/11/2026</p>
         </div>
       </div>
 
@@ -59,9 +59,12 @@
             <p>
               Total profit earned: $6,000<br>
               Best single day profit: $1,000<br>
-              PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit)<br><br>
-              If best day was $1,500:<br>
-              PCR = $1,500 ÷ $6,000 × 100 = <strong>25%</strong> ✗ (exceeds 20% limit — not qualified for payout)
+              PCR = $1,000 ÷ $6,000 × 100 = <strong>16.7%</strong> ✓ (within 20% limit — full payout)<br><br>
+              If best day was $1,500 (PCR = 25%, between 20–30%):<br>
+              → Profit share reduced to <strong>10%</strong> for accounts ≤ $100K<br>
+              → Accounts above $100K: <strong>not qualified for payout</strong><br><br>
+              If best day was $2,100 (PCR = 35%, above 30%):<br>
+              → <strong>Not qualified for payout</strong> (all account sizes)
             </p>
           </div>
         </div>
@@ -78,9 +81,9 @@
               <tr><th>Account Type</th><th>Max Risk Per Trade Idea</th></tr>
             </thead>
             <tbody>
-              <tr><td>51010 (Instant Funded)</td><td>2% of account balance</td></tr>
-              <tr><td>510Zero (Instant Funded)</td><td>2% of account balance</td></tr>
-              <tr class="highlight-row"><td>Funded Account</td><td>1% of account balance</td></tr>
+              <tr><td>51010 (Instant Funded)</td><td>2% of initial account balance</td></tr>
+              <tr><td>510Zero (Instant Funded)</td><td>2% of initial account balance</td></tr>
+              <tr class="highlight-row"><td>Funded Account (NOPC)</td><td>1% of initial account balance</td></tr>
             </tbody>
           </table>
         </div>
@@ -89,7 +92,8 @@
           <span class="callout-icon">⚠️</span>
           <div class="callout-content">
             <strong>Trade Idea Definition</strong>
-            <p>A "trade idea" can span multiple positions, instruments, or accounts. If a trader opens correlated positions as part of the same directional view, the combined risk counts toward the 2% (or 1%) limit.</p>
+            <p>A "trade idea" refers to orders on the <strong>same symbol</strong>, in the <strong>same direction</strong>, and <strong>closed at the same time</strong>. The combined risk of all such orders counts toward the RCR limit. Correlated positions on different symbols or accounts are assessed separately and do not combine into a single trade idea.</p>
+            <p style="margin-top:6px;">RCR is calculated on the <strong>initial account balance</strong> and includes floating P&amp;L, swap, commissions, and fees in the risk exposure.</p>
           </div>
         </div>
 
@@ -97,7 +101,7 @@
           <span class="callout-icon">📢</span>
           <div class="callout-content">
             <strong>Update: Risk Consistency Rule Removed from Challenge Phase 2</strong>
-            <p>The Risk Consistency Rule no longer applies to <strong>Challenge Phase 2</strong>. RCR remains in effect for <strong>51010</strong>, <strong>510Zero</strong>, and <strong>Funded</strong> accounts.</p>
+            <p>The Risk Consistency Rule no longer applies to <strong>Challenge Phase 2</strong>. RCR remains in effect for <strong>51010</strong>, <strong>510Zero</strong>, and <strong>Funded/NOPC</strong> accounts. Violating RCR on a Funded account results in <strong>immediate termination</strong>.</p>
           </div>
         </div>
       </div>
@@ -174,21 +178,201 @@
       <!-- Trading Interval Restriction -->
       <div class="content-section">
         <h3>⏱️ Trading Interval Restriction</h3>
+        <p>The Trading Interval Rule has two components: an <strong>open-position restriction</strong> and a <strong>post-close wait</strong>.</p>
 
         <div class="callout danger">
           <span class="callout-icon">🚫</span>
           <div class="callout-content">
-            <strong>1-Hour Wait Rule</strong>
-            <p>After closing a <strong>losing position</strong> on a specific symbol, the trader must wait <strong>1 hour</strong> before opening another trade on the same symbol — across ALL their accounts.</p>
+            <strong>Interval Open: Active Losing Position Block</strong>
+            <p>If you have an <strong>open losing position</strong> on a symbol, you cannot open a new position on the <strong>same symbol</strong> on any of your other accounts (including Tournament accounts), regardless of time elapsed.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⏳</span>
+          <div class="callout-content">
+            <strong>Interval Close: 1-Hour Wait After Closing a Loss</strong>
+            <p>After <strong>closing</strong> a losing position on a specific symbol, you must wait <strong>at least 1 hour</strong> before opening a new position on that same symbol on your other accounts.</p>
           </div>
         </div>
 
         <ul>
-          <li>Applies across all accounts owned by the same trader</li>
-          <li>Only triggered by <strong>losing positions</strong> — winning trades don't activate the wait</li>
-          <li>Symbol-specific: closing a losing EUR/USD trade triggers a 1hr wait on EUR/USD only</li>
-          <li>Designed to prevent emotional revenge trading</li>
+          <li>Applies across all accounts owned by the same trader (including Tournament accounts)</li>
+          <li>Only triggered by <strong>losing positions</strong> — winning trades don't activate either restriction</li>
+          <li>Symbol-specific: a losing EUR/USD position only restricts EUR/USD on other accounts</li>
+          <li>Designed to prevent emotional revenge trading and cross-account manipulation</li>
         </ul>
+
+        <div class="callout gold">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Violation Consequences</strong>
+            <ul style="margin:6px 0 0;padding-left:18px;line-height:1.9;">
+              <li><strong>1st violation:</strong> Account reset or reactivation; profit share reduced to <strong>25%</strong> on the next payout</li>
+              <li><strong>2nd violation:</strong> Account <strong>terminated</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tick Scalping -->
+      <div class="content-section">
+        <h3>⚡ Tick Scalping</h3>
+        <p>Tick scalping — opening and closing positions within seconds to exploit quote latency — is a <strong>restricted practice</strong>, not an outright prohibition. Casual scalping strategies are permitted.</p>
+        <div class="callout info">
+          <span class="callout-icon">📋</span>
+          <div class="callout-content">
+            <strong>When It Becomes an Issue</strong>
+            <p>If the Risk Team determines that <strong>all or most</strong> of a trader's activity consists of scalping with <strong>abnormal frequency or unusual regularity</strong>, the account will be reviewed. See Module 7 for violation consequences.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hedging Rules -->
+      <div class="content-section">
+        <h3>🔄 Hedging Rules</h3>
+
+        <div class="callout success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>Hedging Within a Single Account: Allowed</strong>
+            <p>Traders may place opposing positions within the <strong>same account</strong> as a legitimate risk management strategy.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-content">
+            <strong>Cross-Account Hedging: Prohibited</strong>
+            <p>Hedging between <strong>two or more WMT accounts</strong> (including accounts under the same profile) or against positions at <strong>other prop firms</strong> is strictly prohibited.</p>
+          </div>
+        </div>
+
+        <div class="callout danger">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Hedge Stacking: Prohibited</strong>
+            <p>Placing a continuous series of opposing positions <strong>solely for the purpose of risk control</strong> within a single account — rather than as a legitimate trade idea — is also prohibited (per WMT FAQ).</p>
+          </div>
+        </div>
+
+        <div class="callout gold">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-content">
+            <strong>Violation Consequences</strong>
+            <ul style="margin:6px 0 0;padding-left:18px;line-height:1.9;">
+              <li><strong>1st violation:</strong> Account reset; profit share reduced to <strong>10%</strong> on the next payout</li>
+              <li><strong>2nd violation:</strong> Account <strong>terminated</strong></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Device Policy -->
+      <div class="content-section">
+        <h3>💻 Device Sharing Policy</h3>
+        <div class="callout success">
+          <span class="callout-icon">✅</span>
+          <div class="callout-content">
+            <strong>Multiple Personal Devices: Allowed</strong>
+            <p>Traders may use <strong>multiple devices that belong to them</strong> to access their accounts (e.g., personal laptop, home desktop, mobile).</p>
+          </div>
+        </div>
+        <div class="callout danger">
+          <span class="callout-icon">🚫</span>
+          <div class="callout-content">
+            <strong>Shared Devices: Prohibited</strong>
+            <p>Using a device that does <strong>not belong to you</strong>, or <strong>sharing a device</strong> with another trader — regardless of your relationship — is prohibited (per WMT FAQ).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profit Consistency Manipulation -->
+      <div class="content-section">
+        <h3>🚫 Profit Consistency Manipulation</h3>
+        <p>Intentionally manipulating trading activity to control the Profit Consistency ratio is prohibited. Examples include (per WMT FAQ):</p>
+        <ul>
+          <li>Splitting trade closures to shift profits into future periods</li>
+          <li>Closing the majority of positions while leaving a small portion open to close later</li>
+          <li>Placing unusual losing orders <strong>the day after a large profit day</strong> to reduce the PCR ratio</li>
+        </ul>
+        <div class="callout danger">
+          <span class="callout-icon">⛔</span>
+          <div class="callout-content">
+            <strong>These are Prohibited Activities</strong>
+            <p>If the Risk Team identifies intentional PC manipulation, the account may be terminated. Trade naturally — do not engineer your Profit Consistency ratio.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profit Share Reduction Summary -->
+      <div class="content-section">
+        <h3>📉 When Is Profit Share Reduced?</h3>
+        <p>Profit share can be reduced in the following situations:</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Situation</th><th>Profit Share Impact</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Hit Risk Consistency limit → account reset or reactivated</td><td>No PS reduction (reset only)</td></tr>
+              <tr><td>Trading Interval violation (1st offence)</td><td>Reduced to <strong>25%</strong> on next payout</td></tr>
+              <tr><td>Tick Scalping violation (1st offence, account profitable)</td><td>Reduced to <strong>25%</strong> on next payout</td></tr>
+              <tr><td>Hedging violation (1st offence)</td><td>Reduced to <strong>10%</strong> on next payout</td></tr>
+              <tr><td>Other trading rule violations (1st offence)</td><td>Reduced to <strong>10%</strong> on next payout</td></tr>
+              <tr><td>PCR between 20–30% (accounts ≤ $100K)</td><td>Reduced to <strong>10%</strong> for that payout</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Prohibited Trading Practices -->
+      <div class="content-section">
+        <h3>🚫 Prohibited Trading Practices</h3>
+        <p>The following practices exploit platform vulnerabilities rather than demonstrating real trading skill. They result in immediate or escalated disciplinary action.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Practice</th><th>Description</th><th>1st Violation</th><th>2nd Violation</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Tick Scalping</strong></td>
+                <td>Abnormal frequency of scalping trades exploiting quote latency</td>
+                <td>If profitable: refuse payout + reset, PS → 25% next. If at loss: no action</td>
+                <td>Terminate</td>
+              </tr>
+              <tr>
+                <td><strong>Cross-Account Hedging</strong></td>
+                <td>Opposing positions across 2+ WMT accounts or vs other prop firms</td>
+                <td>Reset, PS → 10% next</td>
+                <td>Terminate</td>
+              </tr>
+              <tr>
+                <td><strong>Trading Interval Violation</strong></td>
+                <td>Trading same symbol on other account while losing position open / within 1hr of closing loss</td>
+                <td>Reset or reactivate, PS → 25% next</td>
+                <td>Terminate</td>
+              </tr>
+              <tr>
+                <td><strong>Arbitrage</strong></td>
+                <td>Exploiting price differences between brokers or data feeds</td>
+                <td colspan="2" style="text-align:center;">Immediate termination</td>
+              </tr>
+              <tr>
+                <td><strong>Challenge Passing Services</strong></td>
+                <td>Using any third-party service guaranteeing evaluation pass</td>
+                <td colspan="2" style="text-align:center;">Immediate termination</td>
+              </tr>
+              <tr>
+                <td><strong>Account Sharing</strong></td>
+                <td>Allowing others to trade the funded account</td>
+                <td colspan="2" style="text-align:center;">Immediate termination</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Scale-Up Plan -->

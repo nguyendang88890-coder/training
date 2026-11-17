@@ -26,7 +26,7 @@
         <div class="module-header-info">
           <h2>Compliance & Risk</h2>
           <p>Restricted countries, KYC requirements, prohibited trading practices, and special rules</p>
-          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🕒 Cập nhật lần cuối: 13/11/2026</p>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🕒 Cập nhật lần cuối: 17/11/2026</p>
         </div>
       </div>
 
@@ -139,31 +139,33 @@
         <div class="callout danger">
           <span class="callout-icon">⛔</span>
           <div class="callout-content">
-            <strong>These Practices = Immediate Account Termination</strong>
-            <p>If detected, the trader's account will be closed immediately with no refund and no appeal. There are NO warnings for most of these violations.</p>
+            <strong>Prohibited Practices — Escalating Consequences</strong>
+            <p>Violations are handled on a first/second-offence basis. Some practices result in immediate termination; others follow a warning-then-terminate structure. See the table in Module 2 for the full breakdown.</p>
           </div>
         </div>
 
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Prohibited Practice</th><th>Description</th><th>Consequence</th></tr>
+              <tr><th>Prohibited Practice</th><th>Description</th><th>1st Violation</th><th>2nd Violation</th></tr>
             </thead>
             <tbody>
               <tr>
                 <td><strong>Tick Scalping</strong></td>
-                <td>Opening and closing trades in seconds to exploit quote latency</td>
-                <td>Account reset without reducing profit sharing ratio</td>
+                <td>Abnormal frequency of scalping trades exploiting quote latency</td>
+                <td>If account profitable: refuse payout + reset, PS → 25% next. If at loss: no action taken</td>
+                <td>Terminate</td>
               </tr>
               <tr>
-                <td><strong>Large Hedging</strong></td>
-                <td>Placing opposite positions across multiple accounts to guarantee profit</td>
-                <td>Immediate termination</td>
+                <td><strong>Cross-Account Hedging</strong></td>
+                <td>Opposing positions across 2+ WMT accounts or vs other prop firms</td>
+                <td>Reset; PS → 10% on next payout</td>
+                <td>Terminate</td>
               </tr>
               <tr>
                 <td><strong>Arbitrage</strong></td>
                 <td>Exploiting price differences between brokers/feeds</td>
-                <td>Immediate termination</td>
+                <td colspan="2" style="text-align:center;">Immediate termination</td>
               </tr>
             </tbody>
           </table>
@@ -178,23 +180,22 @@
         </ul>
       </div>
 
-      <!-- Special Country Rules -->
+      <!-- Indonesia & Thailand -->
       <div class="content-section">
-        <h3>⚡ Special Rules: Indonesia & Thailand</h3>
+        <h3>🌏 Indonesia &amp; Thailand — Specific Thresholds</h3>
 
-        <div class="callout danger">
-          <span class="callout-icon">🚨</span>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
           <div class="callout-content">
-            <strong>Zero Tolerance: First Violation = Termination</strong>
-            <p>For clients in <strong>Indonesia</strong> and <strong>Thailand</strong>, the first violation of any trading rule results in immediate account termination. There are NO second chances or warnings for these regions.</p>
+            <strong>Treated the Same as Other Countries — Different Thresholds Only</strong>
+            <p>Clients from Indonesia and Thailand are subject to the same violation consequences as all other clients. The key difference is that certain <strong>violation thresholds are adjusted</strong> for these regions (e.g., profit withdrawal thresholds for the 510Zero plan).</p>
           </div>
         </div>
 
         <ul>
-          <li>This applies to all rule violations, not just prohibited practices</li>
-          <li>Applies to Challenge, Instant Funding, and Funded accounts</li>
-          <li>When onboarding Indonesian or Thai clients, emphasize this zero-tolerance policy</li>
-          <li>Ensure these clients fully understand ALL rules before they start trading</li>
+          <li>Indonesia and Thailand clients follow the same 1st/2nd violation structure as all clients</li>
+          <li>Specific thresholds that differ: 510Zero profit share reduction applies at &lt;8% profit (vs &lt;6% for other regions)</li>
+          <li>When onboarding clients from these regions, clearly explain the applicable thresholds</li>
         </ul>
       </div>
 
@@ -215,7 +216,7 @@
           <li><strong>Communicate the refund policy</strong> clearly before purchase</li>
           <li><strong>Explain prohibited practices</strong> — don't assume clients know</li>
           <li><strong>Emphasize KYC</strong> — early verification prevents payout delays</li>
-          <li><strong>Indonesia/Thailand clients</strong> — provide extra briefing on zero-tolerance rules</li>
+          <li><strong>Indonesia/Thailand clients</strong> — explain the specific thresholds that apply to their region</li>
           <li><strong>Never promise</strong> guaranteed profits or specific results</li>
           <li><strong>Report suspicious behavior</strong> to the compliance team immediately</li>
         </ul>
@@ -282,10 +283,15 @@ const questions = [
     explain: "Tick scalping is strictly prohibited because it's a mechanical strategy that profits from system delays rather than genuine trading analysis. WeMasterTrade resets such accounts without reducing the profit sharing ratio to maintain platform integrity."
   },
   {
-    q: "For clients in Indonesia and Thailand, how many rule violations are allowed before termination?",
-    opts: ["3 violations", "2 violations", "1 violation — immediate termination", "Depends on severity"],
-    _c: "Mg==",
-    explain: "Clients in Indonesia and Thailand operate under stricter local compliance rules: the very first rule violation results in immediate termination, with no second chances."
+    q: "How are Indonesia and Thailand clients different from clients in other countries?",
+    opts: [
+      "They are exempt from the Risk Consistency Rule",
+      "They have different violation thresholds (e.g. 510Zero PS reduction at <8% vs <6%)",
+      "They face immediate termination on the first violation",
+      "They are not eligible for Scale-Up"
+    ],
+    _c: "MQ==",
+    explain: "Indonesia and Thailand clients are treated the same as clients in other countries for violation consequences. The difference is in certain thresholds — for example, the 510Zero profit share reduction applies when profit is below 8% (vs below 6% for other regions)."
   },
   {
     q: "Which of these is a PROHIBITED trading practice?",
