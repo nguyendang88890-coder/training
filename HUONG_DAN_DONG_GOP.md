@@ -1,190 +1,167 @@
-# Hướng Dẫn Chỉnh Sửa & Deploy Web Training WMT
+# Hướng Dẫn Chỉnh Sửa Web Training WMT Qua Claude
 
-> Dành cho cộng tác viên có quyền push lên GitHub.
-
----
-
-## 1. Cài Đặt Môi Trường
-
-### 1.1 Phần mềm cần có
-
-| Phần mềm | Link tải | Ghi chú |
-|----------|----------|---------|
-| **Git** | https://git-scm.com/downloads | Chọn Windows 64-bit |
-| **Node.js** | https://nodejs.org | Tải bản LTS |
-| **Claude Code** | https://claude.ai/download | Desktop app (tab Code) |
-| **VS Code** (tùy chọn) | https://code.visualstudio.com | Dùng để xem file nếu cần |
-
-### 1.2 Cài Claude Code
-
-1. Tải và cài **Claude Code desktop app** từ link trên
-2. Đăng nhập bằng tài khoản Claude (tạo tại claude.ai nếu chưa có)
-3. Mở app → chọn tab **Code** (góc trên cùng)
+> Không cần biết lập trình hay Git — chỉ cần chat với Claude.
 
 ---
 
-## 2. Lấy Code Về Máy (Lần Đầu)
+## Bước 1 — Cài Claude Code
 
-Mở **Terminal** (CMD hoặc PowerShell) và chạy:
-
-```bash
-git clone https://github.com/nguyendang88890-coder/training.git
-cd training
-```
-
-> Thư mục `training` sẽ được tạo tại vị trí bạn chạy lệnh. Ví dụ nếu chạy từ Desktop thì code sẽ ở `C:\Users\TênMáy\Desktop\training`.
+1. Truy cập **https://claude.ai/download**
+2. Tải về và cài đặt **Claude desktop app**
+3. Mở app → đăng nhập bằng tài khoản Claude của bạn
+4. Click tab **Code** ở thanh trên cùng
 
 ---
 
-## 3. Mở Project Trong Claude Code
+## Bước 2 — Mở Project
 
-1. Mở **Claude Code desktop app**
-2. Click **Open Folder** (hoặc kéo thả thư mục `training` vào cửa sổ app)
-3. Chọn thư mục `training` vừa clone về
-4. Claude Code sẽ load project — bạn có thể bắt đầu chat với Claude ngay trong cửa sổ này
+Trong cửa sổ Claude Code, gõ đúng câu này:
+
+```
+Clone repo này về máy và mở cho tôi làm việc:
+https://github.com/nguyendang88890-coder/training
+```
+
+Claude sẽ tự clone code về máy và sẵn sàng để bạn làm việc.
+
+> **Chỉ làm bước này lần đầu tiên.** Từ lần sau, mở app → chọn lại session cũ hoặc nói:  
+> *"Mở lại project training tôi đã clone trước đó"*
 
 ---
 
-## 4. Chỉnh Sửa Nội Dung Qua Claude
+## Bước 3 — Yêu Cầu Claude Sửa Nội Dung
 
-Thay vì tự sửa file HTML, hãy **nhờ Claude sửa giúp**. Ví dụ:
+Chỉ cần gõ nội dung cần sửa bằng tiếng Việt. Claude sẽ tự tìm đúng file và sửa.
 
-### Ví dụ câu lệnh cho Claude:
+### Ví dụ:
 
+**Sửa thông tin trong module:**
 ```
-Sửa module1.html: đổi leverage của 51010 từ 1:100 thành 1:200
-```
-
-```
-Thêm section mới vào module3.html về chính sách hoàn tiền, nội dung như sau: ...
+Trong module1.html, đổi leverage của 51010 từ 1:100 thành 1:200
 ```
 
+**Thêm nội dung mới:**
 ```
-Trong exam.html, câu hỏi số 5 cần đổi đáp án đúng thành lựa chọn thứ 2
+Thêm vào module3.html một section mới về chính sách hoàn tiền:
+- Hoàn tiền 100% nếu chưa đặt lệnh nào
+- Không hoàn tiền sau khi đã giao dịch
 ```
 
+**Sửa câu hỏi quiz:**
 ```
-Xem lại module2.html và dịch các heading còn tiếng Việt sang tiếng Anh
+Trong module2.html, sửa câu hỏi quiz số 3: đổi đáp án đúng thành lựa chọn thứ 2
 ```
 
-### Lưu ý quan trọng:
-- Claude sẽ **tự động sửa file** — bạn không cần mở file thủ công
-- Chỉ sửa các file trong thư mục `C:\...\training\` (không phải thư mục khác)
-- Nếu không chắc Claude sửa đúng chưa, hỏi thêm: *"Bạn vừa sửa gì trong file đó?"*
-
----
-
-## 5. Kiểm Tra Thay Đổi Trước Khi Push
-
-Trước khi push, kiểm tra lại những gì đã sửa:
-
-```bash
-git status
+**Sửa nhiều thứ cùng lúc:**
 ```
-→ Xem danh sách file đã thay đổi
-
-```bash
-git diff module1.html
-```
-→ Xem chi tiết thay đổi trong file cụ thể (nhấn `q` để thoát)
-
-Hoặc nhờ Claude kiểm tra:
-```
-Kiểm tra lại những thay đổi vừa thực hiện và tóm tắt cho tôi
+Sửa trong module7.html:
+1. Đổi hậu quả của Tick Scalping thành: lần 1 reset tài khoản, lần 2 terminate
+2. Xóa phần "Special Rules Indonesia" đi
+3. Cập nhật ngày sửa cuối thành hôm nay
 ```
 
 ---
 
-## 6. Commit & Push Lên GitHub
+## Bước 4 — Kiểm Tra Trước Khi Lưu
 
-Sau khi đã kiểm tra xong, nhờ Claude commit và push:
+Sau khi Claude sửa xong, hỏi lại:
 
 ```
-Commit và push các thay đổi vừa thực hiện lên GitHub
+Bạn vừa sửa những gì? Tóm tắt cho tôi
 ```
 
-Hoặc tự làm thủ công:
-
-```bash
-git add .
-git commit -m "mô tả ngắn về thay đổi"
-git push origin main
+Nếu cần xem trực tiếp trên trình duyệt, nói:
 ```
-
-> ✅ Sau khi push thành công, code đã lên GitHub tại:
-> https://github.com/nguyendang88890-coder/training
-
----
-
-## 7. Deploy Lên Website (VPS)
-
-Sau khi push lên GitHub, cần chạy thêm bước deploy để cập nhật lên web thật.
-
-Nhờ Claude deploy:
-```
-Deploy các file vừa thay đổi lên VPS
-```
-
-> Claude sẽ dùng script deploy có sẵn trong session để kéo code mới từ GitHub về VPS.
-
-**Hoặc nếu muốn tự deploy:**
-- Nhận file `deploy_vps.js` từ chủ repo (file này chứa thông tin kết nối VPS, không public)
-- Chạy: `node deploy_vps.js`
-
----
-
-## 8. Cập Nhật Code Mới Nhất Từ GitHub
-
-Trước khi bắt đầu làm việc mỗi lần, luôn pull code mới nhất về:
-
-```bash
-git pull origin main
-```
-
-Hoặc nhờ Claude:
-```
-Pull code mới nhất từ GitHub về
+Mở file module1.html lên trình duyệt cho tôi xem thử
 ```
 
 ---
 
-## 9. Quy Trình Làm Việc Tóm Tắt
+## Bước 5 — Lưu & Đẩy Lên GitHub
+
+Khi đã hài lòng với nội dung, nói:
+
+```
+Commit và push lên GitHub giúp tôi
+```
+
+Claude sẽ tự đặt tên commit mô tả những gì vừa sửa và push lên.
+
+> ✅ Xong bước này là code đã được lưu trên GitHub.
+
+---
+
+## Bước 6 — Cập Nhật Lên Website Thật (VPS)
+
+Để thay đổi hiển thị trên web thật, nói thêm:
+
+```
+Deploy lên VPS giúp tôi
+```
+
+> **Lưu ý:** Bước deploy cần có thông tin kết nối VPS. Liên hệ chủ repo để được cấp quyền deploy, hoặc nhờ chủ repo deploy sau khi bạn đã push lên GitHub.
+
+---
+
+## Quy Trình Mỗi Lần Làm Việc
 
 ```
 Mở Claude Code
     ↓
-git pull (lấy code mới nhất)
+"Lấy code mới nhất về"  ← luôn làm bước này đầu tiên
     ↓
-Nhờ Claude sửa nội dung
+Nói cho Claude biết cần sửa gì
     ↓
-Kiểm tra lại thay đổi
+Hỏi lại: "Bạn vừa sửa gì?"
     ↓
-Commit & push lên GitHub
+"Commit và push lên GitHub"
     ↓
-Deploy lên VPS
+"Deploy lên VPS"  (nếu có quyền)
 ```
 
 ---
 
-## 10. Danh Sách File HTML Chính
+## Mẹo Hữu Ích
 
-| File | Nội dung |
-|------|----------|
-| `module1.html` | Module 1 — Sản phẩm & Gói tài khoản |
-| `module2.html` | Module 2 — Quy tắc giao dịch |
-| `module3.html` | Module 3 — Payout & Profit Share |
-| `module4.html` | Module 4 — Cổng thanh toán |
-| `module5.html` | Module 5 — Đòn bẩy |
-| `module6.html` | Module 6 — Chương trình IP |
-| `module7.html` | Module 7 — Tuân thủ & Quy định |
-| `exam.html` | Bài kiểm tra cuối khoá |
-| `admin.html` | Trang quản trị (chỉ admin) |
-| `index.html` | Trang chủ / Dashboard |
+**Lấy code mới nhất trước khi làm:**
+```
+Pull code mới nhất từ GitHub về
+```
+
+**Nếu Claude sửa sai, có thể hoàn tác:**
+```
+Hoàn tác thay đổi vừa rồi trong module1.html
+```
+
+**Xem danh sách file trong project:**
+```
+Liệt kê các file HTML trong project này
+```
+
+**Muốn sửa nhiều file cùng lúc:**
+```
+Trong tất cả các file module, đổi chữ "NOPC-EU" thành "NOPC"
+```
 
 ---
 
-## 11. Hỗ Trợ
+## Danh Sách File Chính
 
-Nếu gặp lỗi hoặc không chắc cách làm:
-- Hỏi trực tiếp Claude trong session đang mở
-- Liên hệ chủ repo: ralph.nguyen@wemastertrade.com
+| File | Nội dung |
+|------|----------|
+| `module1.html` | Sản phẩm & Gói tài khoản |
+| `module2.html` | Quy tắc giao dịch |
+| `module3.html` | Payout & Profit Share |
+| `module4.html` | Cổng thanh toán |
+| `module5.html` | Đòn bẩy |
+| `module6.html` | Chương trình IP |
+| `module7.html` | Tuân thủ & Quy định |
+| `exam.html` | Bài kiểm tra cuối khoá |
+| `index.html` | Trang chủ |
+| `admin.html` | Trang quản trị *(chỉ admin)* |
+
+---
+
+## Liên Hệ Hỗ Trợ
+
+Nếu gặp vấn đề: **ralph.nguyen@wemastertrade.com**
