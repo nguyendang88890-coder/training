@@ -446,13 +446,11 @@ const questions = [
       "Best Day × Total Profit ÷ 100",
       "Daily Loss ÷ Balance × 100"
     ],
-    _c: "MQ==",
     explain: "PCR = (Best Day Profit ÷ Total Profit) × 100. If this exceeds 20%, one day dominated your results — violating the consistency rule. The goal is balanced, steady trading."
   },
   {
     q: "What is the maximum risk per trade for Funded accounts?",
     opts: ["2%", "5%", "1%", "3%"],
-    _c: "Mg==",
     explain: "Funded accounts have a stricter 1% max risk per trade. 51010 and 510Zero Instant Funding accounts apply a 2% RCR. Note: Challenge Phase 2 no longer applies the Risk Consistency Rule."
   },
   {
@@ -463,7 +461,6 @@ const questions = [
       "The HIGHER of starting day's equity or starting day's balance",
       "The LOWER of balance or equity"
     ],
-    _c: "Mg==",
     explain: "The baseline uses the HIGHER of starting day's equity or starting day's balance. This ensures the daily loss ceiling is fixed at the start of each trading day, preventing traders from risking beyond that day's opening position."
   },
   {
@@ -474,13 +471,11 @@ const questions = [
       "The account is auto-liquidated and cannot resume — it is a rule violation requiring a new package",
       "The challenge is paused for 24 hours"
     ],
-    _c: "Mg==",
     explain: "Hitting the DLL triggers automatic liquidation of all open positions. This is a rule violation — trading cannot resume and you must purchase a new package to start again."
   },
   {
     q: "How long must a trader wait before re-trading the same symbol on a different account after a losing position?",
     opts: ["30 minutes", "1 hour", "4 hours", "24 hours"],
-    _c: "MQ==",
     explain: "After a losing trade, traders must wait 1 hour before re-entering the same symbol on a different account. Note: re-trading the same symbol on the same account is not a violation — only re-trading on a different account is restricted. This cooling-off rule prevents emotional revenge trading across accounts."
   }
 ];

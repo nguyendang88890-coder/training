@@ -222,8 +222,18 @@ function updateSidebarProgress() {
   }
 }
 
-// ===== ANSWER DECODER =====
-function _ans(q) { return parseInt(atob(q._c)); }
+// ===== GRADING API =====
+const WMT_GRADER = 'http://45.77.182.74:3001';
+
+async function gradeModule(moduleId, answers) {
+  const r = await fetch(`${WMT_GRADER}/api/grade/module`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ moduleId, answers })
+  });
+  if (!r.ok) throw new Error('grader error ' + r.status);
+  return r.json();
+}
 
 // ===== QUIZ ENGINE =====
 class ModuleQuiz {
@@ -232,7 +242,8 @@ class ModuleQuiz {
     this.questions = questions;
     this.current = 0;
     this.answers = new Array(questions.length).fill(null);
-    this.locked = false;
+    this._correctness = null;  // set after server grades
+    this._correctAnswers = null;
     this.p = getProgress();
   }
 
@@ -241,10 +252,11 @@ class ModuleQuiz {
     const saved = getQuizResult(user, this.moduleId);
     if (saved) {
       this.answers = saved.answers;
+      this._correctness = saved.correctness || null;
+      this._correctAnswers = saved.correctAnswers || null;
       this.showLockedResult(saved);
       return;
     }
-    // Fallback: quiz submitted before lock feature existed — check progress data
     const p = getProgress();
     if (p[`module${this.moduleId}_done`]) {
       this.showLockedLegacy(p[`module${this.moduleId}_score`] ?? 0);
@@ -293,21 +305,24 @@ class ModuleQuiz {
   }
 
   buildReviewHTML() {
+    const correctness = this._correctness;
+    const correctAnswers = this._correctAnswers;
     return `<div class="review-section">
       <h3 class="review-title">📋 Answer Review</h3>
       ${this.questions.map((q, i) => {
         const userAns   = this.answers[i];
-        const isCorrect = userAns === _ans(q);
+        const isCorrect = correctness ? correctness[i] : false;
+        const correctIdx = correctAnswers ? correctAnswers[i] : -1;
         return `<div class="review-item ${isCorrect ? 'correct' : 'wrong'}">
           <div class="review-q">Q${i+1}. ${q.q}</div>
           <ul class="review-opts">
             ${q.opts.map((opt, oi) => {
               let cls = '';
-              if (oi === _ans(q)) cls = 'review-correct';
+              if (correctIdx >= 0 && oi === correctIdx) cls = 'review-correct';
               else if (oi === userAns && !isCorrect) cls = 'review-wrong';
               return `<li class="review-opt ${cls}">
                 <span class="review-letter">${String.fromCharCode(65+oi)}</span>
-                ${opt}${oi === _ans(q) ? ' ✓' : (oi === userAns && !isCorrect ? ' ✗' : '')}
+                ${opt}${(correctIdx >= 0 && oi === correctIdx) ? ' ✓' : (oi === userAns && !isCorrect ? ' ✗' : '')}
               </li>`;
             }).join('')}
           </ul>
@@ -321,42 +336,36 @@ class ModuleQuiz {
     this.current = idx;
     const q = this.questions[idx];
     const container = document.getElementById('quizContainer');
-    const answered = this.answers[idx] !== null;
+    const selected = this.answers[idx];
 
     container.innerHTML = `
       <div class="quiz-question animate-in">
         <div class="question-text">Q${idx+1}. ${q.q}</div>
         <ul class="options-list">
           ${q.opts.map((opt, oi) => {
-            let cls = '';
-            if (answered) {
-              if (oi === _ans(q)) cls = 'correct';
-              else if (oi === this.answers[idx]) cls = 'wrong';
-            } else if (oi === this.answers[idx]) cls = 'selected';
-            return `<li class="option-item ${cls}" onclick="${answered ? '' : `quiz.select(${oi})`}">
+            const cls = oi === selected ? 'selected' : '';
+            return `<li class="option-item ${cls}" onclick="quiz.select(${oi})">
               <span class="option-letter">${String.fromCharCode(65+oi)}</span>
               ${opt}
             </li>`;
           }).join('')}
         </ul>
-        ${answered ? `<div class="feedback-box show ${this.answers[idx] === _ans(q) ? 'correct' : 'wrong'}">
-          ${this.answers[idx] === _ans(q) ? '✓ Correct! Well done.' : `✗ Incorrect. The correct answer is: ${q.opts[_ans(q)]}`}
-          ${q.explain ? `<div class="explain-text">💡 ${q.explain}</div>` : ''}
+        ${selected !== null ? `<div class="feedback-box show" style="background:rgba(43,92,230,0.07);border-color:rgba(43,92,230,0.3);color:var(--text-secondary);">
+          ✓ Answer selected — submit the quiz when you've answered all questions.
         </div>` : ''}
       </div>
       <div class="quiz-nav">
         <button class="btn btn-secondary" onclick="quiz.prev()" ${idx === 0 ? 'disabled' : ''}>← Prev</button>
         <span class="quiz-counter">${idx+1} / ${this.questions.length}</span>
         ${idx < this.questions.length - 1
-          ? `<button class="btn btn-secondary" onclick="quiz.next()" ${this.answers[idx] === null ? 'disabled' : ''}>Next →</button>`
-          : `<button class="btn btn-primary" onclick="quiz.submit()" ${this.answers.includes(null) ? 'disabled' : ''}>Submit Quiz</button>`
+          ? `<button class="btn btn-secondary" onclick="quiz.next()" ${selected === null ? 'disabled' : ''}>Next →</button>`
+          : `<button class="btn btn-primary" id="quizSubmitBtn" onclick="quiz.submit()" ${this.answers.includes(null) ? 'disabled' : ''}>Submit Quiz</button>`
         }
       </div>`;
     this.renderDots();
   }
 
   select(optIdx) {
-    if (this.answers[this.current] !== null) return;
     this.answers[this.current] = optIdx;
     this.renderQuestion(this.current);
   }
@@ -369,26 +378,41 @@ class ModuleQuiz {
     if (!dots) return;
     dots.innerHTML = this.questions.map((q, i) => {
       let cls = i === this.current ? 'current' : '';
-      if (this.answers[i] !== null) {
-        cls = this.answers[i] === _ans(q) ? 'correct' : 'wrong';
+      if (this._correctness) {
+        cls = this._correctness[i] ? 'correct' : 'wrong';
+      } else if (this.answers[i] !== null) {
+        cls = 'answered';
       }
       return `<div class="q-dot ${cls}"></div>`;
     }).join('');
   }
 
-  submit() {
-    let correct = 0;
-    this.answers.forEach((a, i) => { if (a === _ans(this.questions[i])) correct++; });
-    const score = Math.round((correct / this.questions.length) * 100);
+  async submit() {
+    const btn = document.getElementById('quizSubmitBtn');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Grading…'; }
+
+    let gradeResult;
+    try {
+      gradeResult = await gradeModule(this.moduleId, this.answers);
+    } catch(e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Quiz'; }
+      alert('⚠️ Could not reach grading server. Please check your connection and try again.');
+      return;
+    }
+
+    const { correct: correctness, correctAnswers, correctCount, total, score, pass: passed } = gradeResult;
+    this._correctness = correctness;
+    this._correctAnswers = correctAnswers;
 
     const user = localStorage.getItem('wmt_user') || '';
     saveQuizResult(user, this.moduleId, {
       submittedAt: new Date().toISOString(),
-      score, correct, total: this.questions.length,
-      answers: this.answers
+      score, correct: correctCount, total,
+      answers: this.answers,
+      correctness,
+      correctAnswers
     });
 
-    const passed = score >= 60;
     const p = getProgress();
     p[`module${this.moduleId}_score`] = score;
     if (passed) p[`module${this.moduleId}_done`] = true;
@@ -397,21 +421,22 @@ class ModuleQuiz {
     const result  = document.getElementById('quizResult');
     const scoreEl = document.getElementById('quizScore');
     result.classList.add('show');
-    scoreEl.textContent = `${correct}/${this.questions.length} — ${score}%`;
+    scoreEl.textContent = `${correctCount}/${total} — ${score}%`;
     scoreEl.className   = `result-score ${passed ? 'pass' : 'fail'}`;
 
     document.getElementById('quizResultMsg').textContent = passed
       ? '🎉 Great job! Module marked as complete.'
       : `⚠️ You scored ${score}%. You need at least 60% to complete this module. Contact Admin web - Ralph (Training Dept) to retake the quiz.`;
 
-    const btn = document.getElementById('markCompleteBtn');
+    const markBtn = document.getElementById('markCompleteBtn');
     const chk = document.getElementById('completedCheck');
     if (passed) {
-      if (btn) btn.style.display = 'none';
+      if (markBtn) markBtn.style.display = 'none';
       if (chk) chk.style.display = 'flex';
     }
 
     updateSidebarProgress();
+    this.renderDots();
     document.getElementById('quizContainer').innerHTML = this.buildReviewHTML();
     document.getElementById('quizNavBottom').innerHTML = '';
   }

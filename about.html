@@ -275,6 +275,14 @@
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML('about');
 updateSidebarProgress();
+// Auto-mark About WMT as read on visit (tracked for BD/CS progress)
+(function() {
+  const p = getProgress();
+  if (!p['moduleABT_done']) {
+    p['moduleABT_done'] = true;
+    saveProgress(p);
+  }
+})();
 </script>
 </body>
 </html>

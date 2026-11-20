@@ -1000,6 +1000,7 @@ tbody td:first-child {
 .q-dot.correct { border-color: var(--success); background: var(--success); }
 .q-dot.wrong { border-color: var(--danger); background: var(--danger); }
 .q-dot.current { border-color: var(--gold); }
+.q-dot.answered { border-color: var(--primary); background: rgba(43,92,230,0.35); }
 
 /* ======= MARK COMPLETE ======= */
 .mark-complete-bar {

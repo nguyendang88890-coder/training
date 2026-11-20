@@ -330,7 +330,7 @@
             </div>
             <div class="stat-item">
               <span class="stat-value" id="statTotal">7</span>
-              <span class="stat-label">Total Modules</span>
+              <span class="stat-label" id="statTotalLabel">Total Modules</span>
             </div>
             <div class="stat-item">
               <span class="stat-value" id="statAvgScore">—</span>
@@ -761,8 +761,25 @@ function initDashboard(user) {
   const isLeader = udata.isLeader === true;
 
   document.getElementById('sidebarUserName').textContent = user;
-  document.getElementById('sidebarUserRole').textContent =
-    isAdmin ? 'Administrator' : isMod ? 'Moderator' : isLeader ? 'Team Leader' : 'Sales Trainee';
+  let _sidebarRole;
+  if (isAdmin) {
+    _sidebarRole = 'Administrator';
+  } else if (isMod && isLeader) {
+    _sidebarRole = '🛡️ Moderator · 🏆 Leader';
+  } else if (isMod) {
+    _sidebarRole = '🛡️ Moderator';
+  } else if (isLeader) {
+    const _ldDept = udata.department || '';
+    _sidebarRole = _ldDept ? `🏆 Leader · ${_ldDept}` : '🏆 Team Leader';
+  } else {
+    const _trDept = udata.department || '';
+    const _trPos  = udata.position   || '';
+    const _trOld  = (udata.employeeType || 'new') === 'old';
+    const _trParts = [_trDept, _trPos].filter(Boolean);
+    if (!_trOld) _trParts.push('Trainee');
+    _sidebarRole = _trParts.length ? _trParts.join(' · ') : (_trOld ? 'Existed Employee' : 'Trainee');
+  }
+  document.getElementById('sidebarUserRole').textContent = _sidebarRole;
   document.getElementById('welcomeName').textContent = udata.fullName || user;
   document.getElementById('userAvatar').textContent = user[0].toUpperCase();
 
@@ -792,6 +809,8 @@ function initDashboard(user) {
   const showHubspot = udata.testGroup === 'bdcs' ? true
                     : udata.testGroup === 'others' ? false
                     : (_deptBDCS || isAdmin || isMod);
+  // BD/CS trainees get extended progress tracking (About WMT + HubSpot count toward total)
+  const isRegularBDCS = showHubspot && !isAdmin && !isMod;
   if (showHubspot) {
     document.getElementById('hubspotNavSection').classList.remove('hidden');
     const hsDone = getProgress()['moduleHS_done'];
@@ -858,15 +877,56 @@ function initDashboard(user) {
       </a>`;
   });
 
-  const pct = Math.round((completedCount / 7) * 100);
+  // BD/CS trainees: add HubSpot card to the grid + count About WMT and HubSpot in total steps
+  const moduleCompletedCount = completedCount; // Module-only count — used for exam unlock
+  let totalSteps = 7;
+  if (isRegularBDCS) {
+    totalSteps = 9; // 7 modules + About WMT + HubSpot
+
+    // About WMT card
+    const abtDone = !!progress['moduleABT_done'];
+    grid.innerHTML += `
+      <a href="about.html" class="module-card ${abtDone ? 'completed' : ''}">
+        <div class="module-card-header">
+          <div class="module-number" style="font-size:1rem;">${abtDone ? '✓' : '🏢'}</div>
+          <div>
+            <div class="module-title">About WMT <span style="font-size:0.6rem;font-weight:700;background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.25);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">REQUIRED</span></div>
+            <div class="module-meta">
+              <span class="status-badge ${abtDone ? 'completed' : 'pending'}">${abtDone ? '✓ Read' : '○ Not Read'}</span>
+            </div>
+          </div>
+        </div>
+      </a>`;
+    if (abtDone) completedCount++;
+
+    // HubSpot card
+    const hsDone = !!progress['moduleHS_done'];
+    grid.innerHTML += `
+      <a href="hubspot.html" class="module-card ${hsDone ? 'completed' : ''}">
+        <div class="module-card-header">
+          <div class="module-number" style="font-size:0.75rem;letter-spacing:-0.5px;">${hsDone ? '✓' : 'HS'}</div>
+          <div>
+            <div class="module-title">HubSpot Training <span style="font-size:0.6rem;font-weight:700;background:rgba(255,122,89,0.12);color:#ff7a59;border:1px solid rgba(255,122,89,0.25);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">BD/CS</span></div>
+            <div class="module-meta">
+              <span class="status-badge ${hsDone ? 'completed' : 'pending'}">${hsDone ? '✓ Completed' : '○ Not Started'}</span>
+            </div>
+          </div>
+        </div>
+      </a>`;
+    if (hsDone) completedCount++;
+  }
+
+  const pct = Math.round((completedCount / totalSteps) * 100);
   document.getElementById('statCompleted').textContent = completedCount;
+  document.getElementById('statTotal').textContent = totalSteps;
+  if (isRegularBDCS) document.getElementById('statTotalLabel').textContent = 'Total Steps';
   document.getElementById('statPercent').textContent = pct + '%';
   document.getElementById('overallProgressBar').style.width = pct + '%';
-  document.getElementById('topProgressPill').textContent = `${completedCount} / 7 Modules`;
+  document.getElementById('topProgressPill').textContent = `${completedCount} / ${totalSteps} ${totalSteps === 7 ? 'Modules' : 'Steps'}`;
   document.getElementById('statAvgScore').textContent = scoredModules > 0
     ? Math.round(totalScore / scoredModules) + '%' : '—';
 
-  if (completedCount === 7) {
+  if (moduleCompletedCount === 7) {
     document.getElementById('examLockMsg').textContent = '🎉 All modules complete! You can now take the final exam.';
     document.getElementById('examBtn').style.display = 'inline-flex';
   }
