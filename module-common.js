@@ -223,7 +223,7 @@ function updateSidebarProgress() {
 }
 
 // ===== GRADING API =====
-const WMT_GRADER = 'http://45.77.182.74:3001';
+const WMT_GRADER = '';
 
 async function gradeModule(moduleId, answers) {
   const r = await fetch(`${WMT_GRADER}/api/grade/module`, {

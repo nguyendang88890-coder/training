@@ -699,7 +699,7 @@ async function submitExam() {
 
   let gradeResult;
   try {
-    const r = await fetch('http://45.77.182.74:3001/api/grade/exam', {
+    const r = await fetch('/api/grade/exam', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ questionIndices, answers: examAnswers, attemptNumber })
