@@ -435,75 +435,82 @@
   };
 
   // ---- Google Translate — full content translation ----
-  // Our _VI dictionary handles UI strings instantly.
-  // Google Translate handles all remaining content (paragraphs, headings, etc.).
+  // Our _VI dictionary handles UI strings instantly (zero network).
+  // Google Translate handles all remaining page content automatically.
   let _gtLoaded = false;
-  let _gtWidgetReady = false;
+  let _gtReady  = false;
 
-  const _GT_HIDE_CSS =
-    '.goog-te-banner-frame{display:none!important}' +
-    'body{top:0!important;margin-top:0!important}' +
-    '#_wmtGTEl{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}';
+  function _gtHideBanner() {
+    // GT injects an iframe toolbar + pushes body down — undo both
+    document.body.style.top = '0px';
+    const f = document.querySelector('.goog-te-banner-frame');
+    if (f) f.style.display = 'none';
+  }
 
-  function _gtTrigger() {
-    const sel = document.querySelector('.goog-te-combo');
-    if (!sel) { setTimeout(_gtTrigger, 300); return; }
-    const target = _getLang() === 'vi' ? 'vi' : '';
-    if (sel.value !== target) {
-      sel.value = target;
-      sel.dispatchEvent(new Event('change'));
-    }
+  function _gtPick(lang) {
+    // Find the language <select> GT injects and set it
+    const sel = document.querySelector('#google_translate_element select') ||
+                document.querySelector('.goog-te-combo');
+    if (!sel) { setTimeout(function () { _gtPick(lang); }, 400); return; }
+    sel.value = lang === 'vi' ? 'vi' : '';
+    sel.dispatchEvent(new Event('change'));
+    // GT may push body down with an inline style — override it
+    setTimeout(_gtHideBanner, 600);
+    setTimeout(_gtHideBanner, 1500); // second pass for slow loads
   }
 
   function _gtApply(lang) {
     if (lang === 'en') {
-      // If GT has translated the page, reload to restore English
+      // If GT is currently active, clear its cookie and hard-reload to restore EN
       if (document.documentElement.classList.contains('translated-ltr') ||
           document.documentElement.classList.contains('translated-rtl')) {
-        // Clear GT cookie so reload shows English
-        ['', '.' + location.hostname].forEach(function (d) {
-          document.cookie = 'googtrans=;expires=Thu,01 Jan 1970 00:00:00 GMT;path=/;domain=' + (d || location.hostname);
-        });
+        const exp = 'expires=Thu,01 Jan 1970 00:00:00 GMT;path=/;domain=';
+        document.cookie = 'googtrans=;' + exp + location.hostname;
+        document.cookie = 'googtrans=;' + exp + '.' + location.hostname;
         window.location.reload();
       }
       return;
     }
 
-    // lang === 'vi': load GT if first time, then trigger
-    if (!_gtLoaded) {
-      _gtLoaded = true;
+    // lang === 'vi'
+    if (_gtReady) { _gtPick('vi'); return; }
+    if (_gtLoaded) return; // script loading, _gtPick will fire from init callback
+    _gtLoaded = true;
 
-      // Add CSS to hide GT toolbar
-      if (!document.getElementById('_wmtGTCSS')) {
-        const st = document.createElement('style');
-        st.id = '_wmtGTCSS';
-        st.textContent = _GT_HIDE_CSS;
-        document.head.appendChild(st);
-      }
-
-      // Hidden container for the GT widget
-      if (!document.getElementById('_wmtGTEl')) {
-        const el = document.createElement('div');
-        el.id = '_wmtGTEl';
-        document.body.appendChild(el);
-      }
-
-      window.googleTranslateElementInit = function () {
-        new google.translate.TranslateElement({
-          pageLanguage: 'en',
-          includedLanguages: 'vi',
-          autoDisplay: false
-        }, '_wmtGTEl');
-        _gtWidgetReady = true;
-        _gtTrigger();
-      };
-
-      const sc = document.createElement('script');
-      sc.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-      document.head.appendChild(sc);
-    } else if (_gtWidgetReady) {
-      _gtTrigger();
+    // Global CSS: hide GT toolbar iframe + prevent body shift
+    if (!document.getElementById('_wmtGTCSS')) {
+      const st = document.createElement('style');
+      st.id = '_wmtGTCSS';
+      st.textContent =
+        '.goog-te-banner-frame{display:none!important}' +
+        '#goog-gt-tt,#goog-gt-{display:none!important}' +
+        '.skiptranslate>iframe{display:none!important}' +
+        'body{top:0!important;margin-top:0!important}';
+      document.head.appendChild(st);
     }
+
+    // Container for the GT widget — off-screen, properly sized so GT can render
+    if (!document.getElementById('google_translate_element')) {
+      const el = document.createElement('div');
+      el.id = 'google_translate_element';
+      el.style.cssText = 'position:absolute;top:0;left:-9999px;';
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+
+    window.googleTranslateElementInit = function () {
+      /* global google */
+      new google.translate.TranslateElement(
+        { pageLanguage: 'en', includedLanguages: 'vi', autoDisplay: false },
+        'google_translate_element'
+      );
+      _gtReady = true;
+      _gtPick('vi');
+    };
+
+    const sc = document.createElement('script');
+    sc.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+    sc.async = true;
+    document.body.appendChild(sc);
   }
 
   // ---- Init ----
