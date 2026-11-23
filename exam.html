@@ -298,8 +298,31 @@ const QUESTION_BANK = [
   { q: "What is different about Indonesia and Thailand clients vs other countries?", opts: ["Immediate termination on first violation","Specific violation thresholds (e.g. 510Zero PS at <8% vs <6%)","Exempt from Profit Consistency Rule","Not eligible for Scale-Up"], module: 7 },
   { q: "Which of these is a prohibited trading practice?", opts: ["Using stop losses","Hedging across accounts for guaranteed profit","Trading Gold","Using MT5 EAs"], module: 7 },
   { q: "When must KYC be completed?", opts: ["Before first trade","Within 7 days of signup","Before first payout request","KYC is optional"], module: 7 },
-  { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], module: 7 }
+  { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], module: 7 },
+
+  // MODULE 8 — HubSpot (BD & CS only)
+  { q: "What is the correct closing status for a resolved email ticket in HubSpot?", opts: ["Resolved","Closed","Done","Completed"], module: 8, _c: btoa('0') },
+  { q: "Which HubSpot pipeline handles live chat conversations from the WeGolden website?", opts: ["Helpdesk Chat","Support Pipeline","Email Tickets","Project Task"], module: 8, _c: btoa('0') },
+  { q: "Which pipeline does CS use to escalate internal backend checks to the Operation team?", opts: ["Project Task","Email Tickets","Support Pipeline","Helpdesk Chat"], module: 8, _c: btoa('0') },
+  { q: "Which three Project Task stages is CS responsible for acting on?", opts: ["NEEDS INFORMATION, WAITING CLIENT RESPONSE, RESULTS","TO DO, RESULTS, COMPLETED","REQUIREMENTS COMPLETED, RISK TEAM TO REVIEW, RESULTS","All stages"], module: 8, _c: btoa('0') },
+  { q: "How are HubSpot tickets automatically routed to the correct regional team?", opts: ["Based on the customer's country via a workflow","Randomly assigned by the system","CS Local picks them up manually","AI assigns all tickets"], module: 8, _c: btoa('0') },
+  { q: "Where can CS find a customer's trading accounts inside a HubSpot Contact record?", opts: ["In the Deals block of the right column","In the Activities tab","Under More > Reporting","In the Marketing section"], module: 8, _c: btoa('0') },
+  { q: "What does the AI agent do when a customer first starts a live chat on the WeGolden website?", opts: ["Attempts to answer simple questions before handing to a human","Immediately transfers to CS","Creates a ticket in the Email Tickets pipeline","Sends an auto-reply email to support@wegolden.com"], module: 8, _c: btoa('0') },
+  { q: "When creating a Project Task ticket, what must CS put in the Ticket description?", opts: ["Account ID and the details to check","Only the customer's name","The same text as the ticket name","A summary of past chat history"], module: 8, _c: btoa('0') },
+  { q: "In the AI Agent performance reports, which metric shows chats resolved by AI with no human involvement?", opts: ["Deflections","Resolution rate","Human handoffs","Conversations handled"], module: 8, _c: btoa('0') },
+  { q: "CS Local wants to escalate a customer account issue to the Operation team. Who should they contact to create the Project Task ticket?", opts: ["CS Global","The Operation team directly","Their regional team lead","HubSpot Admin"], module: 8, _c: btoa('0') }
 ];
+
+// ===== DEPT CHECK =====
+function _isBDCS() {
+  const user = getUser();
+  const users = getUsersDB();
+  const udata = users[user] || {};
+  const dept  = (udata.department || '').toLowerCase();
+  if (udata.testGroup === 'bdcs')   return true;
+  if (udata.testGroup === 'others') return false;
+  return dept === 'bd' || dept === 'cs' || dept.includes('business dev') || dept.includes('customer serv');
+}
 
 // ===== EXAM STATE =====
 let examQuestions = [];
@@ -354,7 +377,7 @@ function _ansQ(q) {
 }
 
 // ===== ADMIN EXAM MANAGEMENT =====
-const EQ_MODULE_NAMES = ['About WMT','Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk'];
+const EQ_MODULE_NAMES = ['About WMT','Products','Trading Rules','Profit & Payouts','Payment Methods','Financial Products','Introducing Partner','Compliance & Risk','HubSpot (CS/BD only)'];
 function getExamQBank() {
   const stored = JSON.parse(localStorage.getItem('wmt_exam_qbank_v2') || 'null');
   if (!stored) return null;
@@ -574,14 +597,21 @@ window.addEventListener('load', async function() {
   for (let i = 1; i <= 7; i++) {
     if (p[`module${i}_done`]) doneCnt++;
   }
-  if (doneCnt < 7) {
+  const _bdcs = _isBDCS();
+  if (_bdcs && p['moduleHS_done']) doneCnt++; // BD/CS must also complete HubSpot module
+  const requiredModules = _bdcs ? 8 : 7;
+  if (doneCnt < requiredModules) {
     document.getElementById('moduleWarning').classList.remove('hidden');
     const btn = document.getElementById('startExamBtn');
     btn.disabled = true;
     btn.style.opacity = '0.4';
     btn.style.cursor  = 'not-allowed';
     btn.onclick       = null;
-    btn.textContent   = `🔒 Locked (${doneCnt}/7 modules done)`;
+    btn.textContent   = `🔒 Locked (${doneCnt}/${requiredModules} modules done)`;
+    if (_bdcs && !p['moduleHS_done']) {
+      document.getElementById('moduleWarning').innerHTML =
+        '🔒 <strong>BD & CS: You must also complete the HubSpot Training module.</strong><br><span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all 7 core modules + HubSpot Training before taking the Final Exam.</span>';
+    }
     return; // stop here — don't process exam state while modules incomplete
   }
 
@@ -674,17 +704,34 @@ function startExam() {
   const _p = getProgress();
   let _done = 0;
   for (let i = 1; i <= 7; i++) { if (_p[`module${i}_done`]) _done++; }
-  if (_done < 7) {
-    alert('⚠️ You must complete all 7 Training Modules before taking the Final Exam.');
+  const _isBD = _isBDCS();
+  if (_isBD && _p['moduleHS_done']) _done++;
+  const _req = _isBD ? 8 : 7;
+  if (_done < _req) {
+    alert(_isBD
+      ? '⚠️ BD & CS must complete all 7 core modules + HubSpot Training before taking the Final Exam.'
+      : '⚠️ You must complete all 7 Training Modules before taking the Final Exam.');
     return;
   }
 
-  // Select 30 random questions from active bank, tracking bank indices for server grading
+  // Select questions from active bank: BD/CS get 25 core + 5 HubSpot; others get 30 core
   const fullBank = getActiveQBank();
-  const shuffledIndices = shuffle(fullBank.map((_, i) => i)).slice(0, 30);
-  examQuestionIndices = shuffledIndices;
-  examQuestions = shuffledIndices.map(i => fullBank[i]);
-  examAnswers = new Array(30).fill(null);
+  const isBDCS = _isBDCS();
+  const regularIdx = fullBank.map((q, i) => (q.module || 0) !== 8 ? i : null).filter(i => i !== null);
+  const hsIdx      = fullBank.map((q, i) => (q.module || 0) === 8 ? i : null).filter(i => i !== null);
+
+  let selectedIndices;
+  if (isBDCS && hsIdx.length > 0) {
+    const reg = shuffle(regularIdx).slice(0, 25);
+    const hs  = shuffle(hsIdx).slice(0, Math.min(5, hsIdx.length));
+    selectedIndices = shuffle([...reg, ...hs]); // mix HubSpot Qs into the 30
+  } else {
+    selectedIndices = shuffle(regularIdx).slice(0, 30);
+  }
+
+  examQuestionIndices = selectedIndices;
+  examQuestions = selectedIndices.map(i => fullBank[i]);
+  examAnswers = new Array(selectedIndices.length).fill(null);
   examCurrent = 0;
 
   document.getElementById('attemptLabel').textContent = `Attempt ${examAttempt}/2`;
