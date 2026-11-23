@@ -600,14 +600,18 @@ function _fixHubspotTerms() {
   let n;
   while ((n = walker.nextNode())) nodes.push(n);
   nodes.forEach(function(node) {
-    const t = node.textContent;
+    let t = node.textContent;
+    let changed = false;
     if (/[Vv]é/.test(t)) {
-      node.textContent = t
-        .replace(/\bVé\b/g,  'Ticket')
-        .replace(/\bvé\b/g,  'ticket')
-        .replace(/\bVés\b/g, 'Tickets')
-        .replace(/\bvés\b/g, 'tickets');
+      t = t.replace(/\bVés\b/g, 'Tickets').replace(/\bvés\b/g, 'tickets')
+           .replace(/\bVé\b/g,  'Ticket') .replace(/\bvé\b/g,  'ticket');
+      changed = true;
     }
+    if (/[Ss]ân khấu/.test(t)) {
+      t = t.replace(/Sân khấu/g, 'Giai đoạn').replace(/sân khấu/g, 'giai đoạn');
+      changed = true;
+    }
+    if (changed) node.textContent = t;
   });
 }
 // Run twice after GT has had time to translate (1.5 s and 3.5 s)
