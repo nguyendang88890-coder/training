@@ -262,6 +262,57 @@ class ModuleQuiz {
       this.showLockedLegacy(p[`module${this.moduleId}_score`] ?? 0);
       return;
     }
+    if (p[`retake_m${this.moduleId}`]) {
+      this._showRetakeContactPrompt(user);
+      return;
+    }
+    this.renderQuestion(0);
+    this.renderDots();
+  }
+
+  _showRetakeContactPrompt(user) {
+    const overlay = document.createElement('div');
+    overlay.id = 'retakeOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;';
+    overlay.innerHTML = `
+      <div style="background:var(--bg-card,#1e2535);border-radius:14px;padding:32px 28px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);border:1px solid rgba(100,150,255,0.2);">
+        <div style="font-size:1.6rem;margin-bottom:10px;">🔄</div>
+        <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary,#fff);margin-bottom:8px;">Quiz Retake Approved</div>
+        <div style="font-size:0.85rem;color:var(--text-muted,#aaa);margin-bottom:20px;line-height:1.5;">
+          This quiz has been reset for you. Please enter the name of the person you contacted to get approval:
+        </div>
+        <input id="retakeContactInput" type="text" placeholder="e.g. Ralph Nguyen" autocomplete="off"
+          style="width:100%;box-sizing:border-box;padding:10px 14px;border-radius:8px;border:1.5px solid var(--border,rgba(255,255,255,0.1));background:var(--bg-secondary,#151c2c);color:var(--text-primary,#fff);font-size:0.9rem;outline:none;margin-bottom:16px;">
+        <button id="retakeContactBtn"
+          style="width:100%;padding:11px;border-radius:8px;border:none;background:var(--primary,#2b5ce6);color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;">
+          Start Retake →
+        </button>
+      </div>`;
+    document.body.appendChild(overlay);
+    const input = document.getElementById('retakeContactInput');
+    const btn   = document.getElementById('retakeContactBtn');
+    const submit = () => this._submitRetakeContact(user);
+    btn.addEventListener('click', submit);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => input.focus(), 80);
+  }
+
+  _submitRetakeContact(user) {
+    const input = document.getElementById('retakeContactInput');
+    const name  = (input?.value || '').trim();
+    if (!name) {
+      if (input) {
+        input.style.borderColor = 'var(--danger,#e64b4b)';
+        input.placeholder = 'Please enter a contact name';
+        input.focus();
+      }
+      return;
+    }
+    this._retakeContact = name;
+    const p = getProgress();
+    delete p[`retake_m${this.moduleId}`];
+    saveProgress(p);
+    document.getElementById('retakeOverlay')?.remove();
     this.renderQuestion(0);
     this.renderDots();
   }
@@ -405,13 +456,15 @@ class ModuleQuiz {
     this._correctAnswers = correctAnswers;
 
     const user = localStorage.getItem('wmt_user') || '';
-    saveQuizResult(user, this.moduleId, {
+    const _resultData = {
       submittedAt: new Date().toISOString(),
       score, correct: correctCount, total,
       answers: this.answers,
       correctness,
       correctAnswers
-    });
+    };
+    if (this._retakeContact) _resultData.retakeContact = this._retakeContact;
+    saveQuizResult(user, this.moduleId, _resultData);
 
     const p = getProgress();
     p[`module${this.moduleId}_score`] = score;

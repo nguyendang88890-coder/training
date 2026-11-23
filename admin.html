@@ -352,6 +352,10 @@
       <span class="top-bar-title">Admin Panel</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+        <div id="_wmtLangSwitcher" class="lang-switcher">
+          <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+          <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+        </div>
       </div>
     </div>
 
@@ -796,6 +800,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script>
 // Admin guard — runs AFTER syncFromFirebase so newly promoted admins
 // are recognised on their first visit without needing an extra navigation.
@@ -1816,9 +1821,13 @@ function renderQuizTab() {
 
       if (result && result.score !== undefined) {
         const color = result.score >= 60 ? 'var(--success)' : 'var(--danger)';
+        const contactLine = result.retakeContact
+          ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;" title="Retake contact">📞 ${result.retakeContact}</div>`
+          : '';
         return `<td style="text-align:center;">
           <div style="font-weight:700;color:${color};font-size:0.88rem;">${result.score}%</div>
           <div style="font-size:0.7rem;color:var(--text-muted);">${result.correct}/${result.total}</div>
+          ${contactLine}
           <button class="btn-xs reset" style="margin-top:4px;font-size:0.7rem;" onclick="resetQuiz('${uname}',${mid})">↺ Reset</button>
         </td>`;
       }
@@ -1859,10 +1868,11 @@ function resetQuiz(uname, moduleId) {
   if (!confirm(`Reset Module ${moduleId} (${MODULE_LABELS[moduleId-1]}) quiz for "${uname}"?\nTrainee will be able to retake this quiz.`)) return;
   // Remove quiz result from Firebase + localStorage
   dbRemove(`wmt_quiz_${uname}_m${moduleId}`);
-  // Remove module done/score from progress so trainee can re-mark complete
+  // Remove module done/score from progress; set retake flag so trainee must record contact
   const p = getUserProgress(uname);
   delete p[`module${moduleId}_done`];
   delete p[`module${moduleId}_score`];
+  p[`retake_m${moduleId}`] = true;
   dbWrite('wmt_progress_' + uname, JSON.stringify(p));
   // Also remove the "mark complete" flag locally (for immediate UI update)
   localStorage.removeItem(`wmt_quiz_${uname}_m${moduleId}`);
@@ -1877,6 +1887,7 @@ function resetAllQuizzes(uname) {
     dbRemove(`wmt_quiz_${uname}_m${i}`);
     delete p[`module${i}_done`];
     delete p[`module${i}_score`];
+    p[`retake_m${i}`] = true;
   }
   dbWrite('wmt_progress_' + uname, JSON.stringify(p));
   renderQuizTab();

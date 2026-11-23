@@ -36,6 +36,10 @@
       <span class="top-bar-title">Final Exam</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+        <div id="_wmtLangSwitcher" class="lang-switcher">
+          <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+          <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+        </div>
       </div>
     </div>
 
@@ -117,7 +121,7 @@
               <div class="exam-stat-label">Max Attempts</div>
             </div>
             <div class="exam-stat">
-              <div class="exam-stat-value">No</div>
+              <div class="exam-stat-value">45 min</div>
               <div class="exam-stat-label">Time Limit</div>
             </div>
           </div>
@@ -132,6 +136,7 @@
             <li>You have <strong>2 attempts</strong> total</li>
             <li>If you fail attempt 1, you must wait <strong>3 days</strong> before retrying</li>
             <li>If you fail attempt 2, you will be <strong>permanently disqualified</strong></li>
+            <li>You have <strong>45 minutes</strong> to complete the exam — it will auto-submit when time runs out</li>
             <li>Make sure you have completed all 7 modules before taking this exam</li>
           </ul>
           <div class="callout gold" style="margin-top:16px;">
@@ -162,9 +167,15 @@
               <h2 style="font-size:1.3rem;">Final Exam in Progress</h2>
               <p style="font-size:0.85rem;">Answer all questions, then submit.</p>
             </div>
-            <div class="exam-stat">
-              <div class="exam-stat-value" id="attemptLabel">Attempt 1</div>
-              <div class="exam-stat-label">Current</div>
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+              <div class="exam-stat">
+                <div class="exam-stat-value" id="attemptLabel">Attempt 1</div>
+                <div class="exam-stat-label">Current</div>
+              </div>
+              <div class="exam-stat" style="min-width:80px;">
+                <div class="exam-stat-value" id="examTimerDisplay" style="color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:0.04em;">45:00</div>
+                <div class="exam-stat-label">Time Left</div>
+              </div>
             </div>
           </div>
           <div class="exam-progress-bar" style="margin-top:16px;">
@@ -201,6 +212,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script>
 // ===== QUESTION BANK (55 questions) =====
 const QUESTION_BANK = [
@@ -295,6 +307,10 @@ let examQuestionIndices = []; // Bank indices of selected questions (for server 
 let examAnswers = [];
 let examCurrent = 0;
 let examAttempt = 0;
+
+const EXAM_TIME_LIMIT_MINUTES = 45;
+let _examTimerInterval = null;
+let _examTimeRemaining  = 0;
 
 function getUser() {
   return localStorage.getItem('wmt_user') || 'trainee';
@@ -566,6 +582,7 @@ window.addEventListener('load', async function() {
     btn.style.cursor  = 'not-allowed';
     btn.onclick       = null;
     btn.textContent   = `🔒 Locked (${doneCnt}/7 modules done)`;
+    return; // stop here — don't process exam state while modules incomplete
   }
 
   const es = getExamState();
@@ -618,7 +635,50 @@ function startCountdown(unlockDate) {
   setInterval(update, 1000);
 }
 
+function _startExamTimer() {
+  if (_examTimerInterval) clearInterval(_examTimerInterval);
+  _examTimeRemaining = EXAM_TIME_LIMIT_MINUTES * 60;
+  _updateTimerDisplay();
+  _examTimerInterval = setInterval(() => {
+    _examTimeRemaining--;
+    _updateTimerDisplay();
+    if (_examTimeRemaining <= 0) {
+      clearInterval(_examTimerInterval);
+      _examTimerInterval = null;
+      // Auto-submit when time is up
+      const submitBtn = document.getElementById('examSubmitBtn');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ Time\'s up — submitting…';
+      }
+      // Fill any unanswered with null, then submit ignoring the unanswered check
+      _forceSubmitExam();
+    }
+  }, 1000);
+}
+
+function _updateTimerDisplay() {
+  const el = document.getElementById('examTimerDisplay');
+  if (!el) return;
+  const m = Math.floor(_examTimeRemaining / 60);
+  const s = _examTimeRemaining % 60;
+  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  // Turn red when under 5 minutes
+  el.style.color = _examTimeRemaining <= 300 ? 'var(--danger)' : 'var(--gold)';
+}
+
+function _forceSubmitExam() { submitExam(true); }
+
 function startExam() {
+  // Guard: re-verify module completion before starting
+  const _p = getProgress();
+  let _done = 0;
+  for (let i = 1; i <= 7; i++) { if (_p[`module${i}_done`]) _done++; }
+  if (_done < 7) {
+    alert('⚠️ You must complete all 7 Training Modules before taking the Final Exam.');
+    return;
+  }
+
   // Select 30 random questions from active bank, tracking bank indices for server grading
   const fullBank = getActiveQBank();
   const shuffledIndices = shuffle(fullBank.map((_, i) => i)).slice(0, 30);
@@ -631,6 +691,7 @@ function startExam() {
   document.getElementById('introView').classList.add('hidden');
   document.getElementById('examView').classList.remove('hidden');
   renderExamQuestion(0);
+  _startExamTimer();
 }
 
 function renderExamQuestion(idx) {
@@ -680,13 +741,17 @@ function examNav(dir) {
   }
 }
 
-async function submitExam() {
-  const unanswered = examAnswers.filter(a => a === null).length;
-  if (unanswered > 0) {
-    const warn = document.getElementById('unansweredWarn');
-    warn.style.display = 'block';
-    warn.textContent = `⚠️ You have ${unanswered} unanswered question(s). Please answer all before submitting.`;
-    return;
+async function submitExam(force = false) {
+  if (_examTimerInterval) { clearInterval(_examTimerInterval); _examTimerInterval = null; }
+
+  if (!force) {
+    const unanswered = examAnswers.filter(a => a === null).length;
+    if (unanswered > 0) {
+      const warn = document.getElementById('unansweredWarn');
+      warn.style.display = 'block';
+      warn.textContent = `⚠️ You have ${unanswered} unanswered question(s). Please answer all before submitting.`;
+      return;
+    }
   }
 
   const submitBtn = document.getElementById('examSubmitBtn');

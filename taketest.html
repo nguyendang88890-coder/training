@@ -111,6 +111,10 @@
     <div class="top-bar">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="top-bar-title" id="pageTitle">Monthly Test</span>
+      <div id="_wmtLangSwitcher" class="lang-switcher" style="margin-left:auto">
+        <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+        <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+      </div>
     </div>
     <div class="page-content animate-in" id="pageContent">
       <div class="empty-state" style="padding:60px 24px;color:var(--text-muted);">Loading…</div>
@@ -122,6 +126,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script>
 // ===== DATA HELPERS =====
 function getMC()          { return JSON.parse(localStorage.getItem('wmt_monthly_config')||'{}'); }
@@ -645,12 +650,16 @@ function renderQuestion(q, idx) {
 
   // MCQ
   const opts = Object.entries(q.opts || {}).filter(([,v])=>v);
+  const _optsJson = JSON.stringify(q.opts || {}).replace(/'/g,"&#39;").replace(/"/g,"&quot;");
+  const _qTextEsc = (q.text||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$\{/g,'\\${').replace(/'/g,"&#39;");
   return `<div class="q-card" id="qcard_${q.id}">
     <div class="q-num">
       Question ${idx+1}
       <span class="q-tag mcq">Multiple Choice</span>
       ${q.isLiet ? '<span class="q-tag liet">⚠ Liet Points</span>' : ''}
       <span class="q-tag pts">${q.points}pts</span>
+      <button class="q-translate-btn" title="Xem tiếng Việt"
+        onclick="toggleQTranslation(this, \`${_qTextEsc}\`, ${_optsJson})">🌐 VI</button>
     </div>
     <div class="q-text">${q.text}</div>
     <div class="q-opts">

@@ -226,7 +226,9 @@ window.syncQuizOnly = async function() {
         for (let m = 1; m <= 8; m++) localStorage.removeItem(`wmt_quiz_${u}_m${m}`);
         if (snap.exists()) {
           Object.keys(snap.val()).forEach(mk => {
-            _lsSet(`wmt_quiz_${u}_m${mk.replace('m','')}`, JSON.stringify(snap.val()[mk]));
+            // strip correctAnswers — large array, not needed for admin display
+            const { correctAnswers: _ca, ...rest } = snap.val()[mk] || {};
+            _lsSet(`wmt_quiz_${u}_m${mk.replace('m','')}`, JSON.stringify(rest));
           });
         }
       } catch(e) { console.warn(`[Firebase] quiz sync failed (${u}):`, e.message); }
@@ -278,8 +280,8 @@ async function _syncCore() {
       if (msSnap.exists()) {
         const msAll = msSnap.val();
         const msNow = new Date();
-        const msCut = new Date(msNow.getFullYear(), msNow.getMonth() - 5, 1)
-                        .toISOString().slice(0, 7); // keep 6 months
+        const msCut = new Date(msNow.getFullYear(), msNow.getMonth() - 3, 1)
+                        .toISOString().slice(0, 7); // keep 4 months
         const msTrimmed = Object.fromEntries(
           Object.entries(msAll).filter(([m]) => m >= msCut)
         );
@@ -348,9 +350,11 @@ async function _syncCore() {
         if (!snap.exists()) return;
         Object.entries(snap.val()).forEach(([month, sub]) => {
           if (!_subKeep.has(month)) return; // skip old months
+          // strip questionSnapshot for everyone (large, re-derivable from gentest/qbank)
+          // strip essayAnswers for admin/mod (trainees may want to review their own answers)
           const toStore = isPriv
             ? { ...sub, questionSnapshot: undefined, essayAnswers: undefined }
-            : sub;
+            : { ...sub, questionSnapshot: undefined };
           _lsSet(`wmt_sub_${u}_${month}`, JSON.stringify(toStore));
         });
       } catch(e) { console.warn(`[Firebase] submissions sync failed (${u}):`, e.message); }
@@ -379,3 +383,45 @@ async function _syncCore() {
 
   } catch(e) { console.warn('[Firebase] syncFromFirebase error:', e.message); }
 }
+
+// ── Storage usage monitor ──────────────────────────────────────────────────
+// Usage: getStorageStats() in the browser console.
+window.getStorageStats = function() {
+  const cats = {
+    'Question Banks':  /^wmt_(qbank_|exam_qbank)/,
+    'Quiz Results':    /^wmt_quiz_/,
+    'Submissions':     /^wmt_sub_/,
+    'Monthly Scores':  /^wmt_monthly_scores$/,
+    'Generated Tests': /^wmt_gentest_/,
+    'Progress':        /^wmt_progress_/,
+    'Exam Results':    /^wmt_exam_(?!qbank)/,
+    'Reschedule':      /^wmt_(monthly_reschedule|supp_reschedule)_/,
+    'Config & Admin':  /^wmt_(monthly_config|supp_schedules|proposals|interviews_list)/,
+    'Users DB':        /^wmt_users_db$/,
+    'Other':           null,
+  };
+  const counts = {}, sizes = {};
+  Object.keys(cats).forEach(c => { counts[c] = 0; sizes[c] = 0; });
+  let total = 0;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    const v = localStorage.getItem(k) || '';
+    const bytes = (k.length + v.length) * 2;
+    total += bytes;
+    if (!k.startsWith('wmt_')) { sizes['Other'] += bytes; counts['Other']++; continue; }
+    let matched = false;
+    for (const [cat, re] of Object.entries(cats)) {
+      if (re && re.test(k)) { sizes[cat] += bytes; counts[cat]++; matched = true; break; }
+    }
+    if (!matched) { sizes['Other'] += bytes; counts['Other']++; }
+  }
+  const KB = n => (n / 1024).toFixed(1) + ' KB';
+  const QUOTA = 5 * 1024 * 1024;
+  console.group(`📦 localStorage — ${KB(total)} / 5120 KB (${(total/QUOTA*100).toFixed(1)}% used)`);
+  Object.entries(sizes)
+    .filter(([, b]) => b > 0)
+    .sort(([, a], [, b]) => b - a)
+    .forEach(([cat, bytes]) => console.log(`  ${cat.padEnd(20)} ${KB(bytes).padStart(9)}  (${counts[cat]} keys)`));
+  console.groupEnd();
+  return { totalKB: (total/1024).toFixed(1), pct: (total/QUOTA*100).toFixed(1) };
+};

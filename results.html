@@ -39,6 +39,10 @@ body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
 </style>
 </head>
 <body>
+<div id="_wmtLangSwitcher" class="lang-switcher" style="position:fixed;top:16px;right:16px;z-index:9999">
+  <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+  <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+</div>
 <div class="results-card" id="resultsCard">
   <div class="logo">🎓 WeMasterTrade Training</div>
   <div id="resultContent">Loading...</div>
@@ -47,6 +51,7 @@ body { background: #0a0a16; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="lang.js"></script>
 <script>
 // Auth guard
 (function() {

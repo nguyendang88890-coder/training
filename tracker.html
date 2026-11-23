@@ -100,8 +100,16 @@
 <body>
 <div id="sidebar"></div>
 <div id="main">
-  <div class="page-title">📊 Monthly New User Tracker</div>
-  <div class="page-sub">Track training progress for new hires by join month. Accessible to Admin &amp; Moderator.</div>
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0">
+    <div>
+      <div class="page-title">📊 Monthly New User Tracker</div>
+      <div class="page-sub">Track training progress for new hires by join month. Accessible to Admin &amp; Moderator.</div>
+    </div>
+    <div id="_wmtLangSwitcher" class="lang-switcher" style="margin-top:4px;flex-shrink:0">
+      <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+      <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+    </div>
+  </div>
 
   <!-- Controls -->
   <div class="top-bar no-print">
@@ -160,6 +168,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script>
 // ── Access guard + init ──────────────────────────────────────────────────────
 const CUR_USER = localStorage.getItem('wmt_user') || '';

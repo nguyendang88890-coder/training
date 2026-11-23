@@ -395,6 +395,47 @@ a:hover {
   gap: 12px;
 }
 
+/* ── Language Switcher ─────────────────────────────────────── */
+.lang-switcher {
+  display: inline-flex; align-items: center; gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 20px; overflow: hidden; height: 30px;
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+.lang-btn {
+  padding: 0 11px; height: 100%; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.4px; border: none; cursor: pointer; background: transparent;
+  color: var(--text-muted); transition: all .15s;
+}
+.lang-btn.active {
+  background: var(--gold, #FFD700); color: #0a0a16;
+  border-radius: 20px;
+}
+.lang-btn:hover:not(.active) { color: var(--text-primary); }
+
+/* Per-question translate toggle (taketest.html) */
+.q-translate-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 12px;
+  border: 1px solid rgba(100,150,255,0.35);
+  background: rgba(100,150,255,0.07); color: #8aabff;
+  font-size: 0.72rem; font-weight: 600; cursor: pointer;
+  transition: all .15s; margin-left: 8px; vertical-align: middle;
+}
+.q-translate-btn:hover { background: rgba(100,150,255,0.14); border-color: rgba(100,150,255,0.6); }
+.q-translate-btn.active { background: rgba(100,150,255,0.18); border-color: #6496ff; color: #aac4ff; }
+.q-vi-block {
+  margin-top: 10px; padding: 10px 14px;
+  background: rgba(100,150,255,0.05); border: 1px solid rgba(100,150,255,0.18);
+  border-radius: 8px; font-size: 0.88rem; color: var(--text-secondary, #bbb);
+  line-height: 1.55;
+}
+.q-vi-block .q-vi-opts { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.q-vi-block .q-vi-opt { font-size: 0.85rem; }
+.q-vi-block .q-vi-opt span { color: var(--text-muted); }
+.q-vi-na { font-size: 0.8rem; color: var(--text-muted); font-style: italic; }
+
 .progress-pill {
   background: var(--bg-card);
   border: 1px solid var(--border-gold);

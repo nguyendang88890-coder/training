@@ -17,6 +17,10 @@
       <span class="top-bar-title">Module 2 — Trading Rules</span>
       <div class="top-bar-actions">
         <a href="index.html" class="btn btn-secondary" style="padding:6px 14px;font-size:0.82rem;">← Dashboard</a>
+        <div id="_wmtLangSwitcher" class="lang-switcher">
+          <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+          <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+        </div>
       </div>
     </div>
 
@@ -432,6 +436,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script>
 document.getElementById('sidebar').innerHTML = getSidebarHTML(2);
 updateSidebarProgress();

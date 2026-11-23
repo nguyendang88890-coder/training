@@ -271,6 +271,10 @@
           <span class="notif-badge hidden" id="notifBadge">0</span>
         </button>
       </div>
+      <div id="_wmtLangSwitcher" class="lang-switcher" style="margin-left:auto">
+        <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+        <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+      </div>
     </div>
     <!-- Notification Panel -->
     <div class="notif-panel hidden" id="notifPanel"></div>
@@ -324,6 +328,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="module-common.js"></script>
+<script src="lang.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 // ===== DATA =====
@@ -1803,6 +1808,13 @@ function renderSetupTab() {
         <div class="form-group" style="margin-bottom:0"><label>Google Drive Link <span style="font-weight:400;color:var(--text-muted)">(folder to receive trainee recording files)</span></label>
           <input type="url" id="cfgDriveLink" placeholder="https://drive.google.com/drive/folders/..."></div>
       </div>
+      <div style="background:rgba(0,214,143,0.04);border:1px solid rgba(0,214,143,0.18);border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--success);margin-bottom:10px;">📋 Test Instructions <span style="font-weight:400;font-style:italic;color:var(--text-muted)">(shown to trainees on the Monthly Test page)</span></div>
+        <div class="form-group" style="margin-bottom:0">
+          <textarea id="cfgInstructions" rows="5" placeholder="e.g.&#10;Before starting the test:&#10;1. Turn on OBS Studio and start recording your screen.&#10;2. The test covers all 7 modules from your training.&#10;3. Time allowed: 60 minutes.&#10;4. Upload your recording to Google Drive after submitting.&#10;Good luck!"
+            style="width:100%;box-sizing:border-box;background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text-primary);font-size:0.84rem;resize:vertical;font-family:inherit;line-height:1.5;"></textarea>
+        </div>
+      </div>
       <div class="error-msg" id="cfgErr"></div>
       <button class="btn btn-primary" onclick="saveTestConfig()" style="margin-top:8px;">💾 Save Configuration</button>
     </div>
@@ -1865,6 +1877,7 @@ function loadCfg(m) {
   document.getElementById('cfgLinkOthers').value     = c.testLinkOthers||'';
   document.getElementById('cfgPassOthers').value     = c.passOthers!==undefined ? c.passOthers : 70;
   document.getElementById('cfgDriveLink').value      = c.driveLink||'';
+  document.getElementById('cfgInstructions').value   = c.instructions||'';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1882,6 +1895,7 @@ function saveTestConfig() {
         lietMax=parseInt(document.getElementById('cfgLietMax').value)||10,
         passOthers=parseInt(document.getElementById('cfgPassOthers').value)||70,
         driveLink=document.getElementById('cfgDriveLink').value.trim(),
+        instructions=document.getElementById('cfgInstructions').value.trim(),
         err=document.getElementById('cfgErr');
   err.textContent='';
   if (!month)           { err.textContent='Please select a month.'; return; }
@@ -1893,7 +1907,7 @@ function saveTestConfig() {
   if (new Date(deadlineOthers)<=new Date(startDateOthers)) { err.textContent='Other Departments: deadline must be after start.'; return; }
   const cfgs=getMC();
   const isNew = !cfgs[month];
-  cfgs[month]={ month, title:title||fmtMonth(month), startDateBDCS, deadlineBDCS, startDateOthers, deadlineOthers, testLinkBDCS, testLinkOthers, passBDCS, lietMax, passOthers, driveLink,
+  cfgs[month]={ month, title:title||fmtMonth(month), startDateBDCS, deadlineBDCS, startDateOthers, deadlineOthers, testLinkBDCS, testLinkOthers, passBDCS, lietMax, passOthers, driveLink, instructions,
     createdAt: cfgs[month]?.createdAt||new Date().toISOString(), updatedAt:new Date().toISOString() };
   saveMC(cfgs);
 
@@ -3835,7 +3849,8 @@ function renderCurrentTestCard() {
     <div style="margin-top:8px;"><a href="taketest.html?month=${m}" style="font-size:0.78rem;color:var(--gold);text-decoration:none;">📋 View Answers</a></div>`;
   }
 
-  const driveLink = cfg.driveLink || '';
+  const driveLink    = cfg.driveLink || '';
+  const instructions = cfg.instructions || '';
   const recIssue = existingSub?.recordingIssue;
 
   // Issue report section — shown when user has submitted but couldn't record
@@ -3910,7 +3925,12 @@ function renderCurrentTestCard() {
         <div class="countdown" id="cdBox"></div>` : ''}
       <div>${actionHTML}</div>
       ${obsHTML}
-    </div>`;
+    </div>
+    ${(instructions && (st === 'upcoming' || st === 'active')) ? `
+    <div style="margin-top:16px;background:rgba(0,214,143,0.04);border:1px solid rgba(0,214,143,0.18);border-radius:12px;padding:18px 20px;">
+      <div style="font-weight:700;font-size:0.9rem;color:var(--success);margin-bottom:10px;">📋 Test Instructions</div>
+      <div style="font-size:0.85rem;color:var(--text-secondary);white-space:pre-wrap;line-height:1.65;">${instructions.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>` : ''}`;
 
   if (_cdTimer) clearInterval(_cdTimer);
   if (st === 'upcoming' || st === 'active') {
@@ -3942,6 +3962,20 @@ function renderTraineeReschedule() {
     return;
   }
 
+  // Block reschedule form if user has already submitted the test for this month
+  const _curSub = getSubmission(CUR_USER, m);
+  if (_curSub?.submittedAt) {
+    el.innerHTML = `<div class="reschedule-card">
+      <h4>🔄 Request Test Reschedule</h4>
+      <div style="font-size:0.85rem;padding:10px 14px;background:rgba(0,214,143,0.07);border:1px solid rgba(0,214,143,0.2);border-radius:8px;color:var(--success);line-height:1.6;">
+        ✓ You have already completed the <strong>${fmtMonth(m)}</strong> test
+        ${_curSub.submittedAt ? `on <strong>${fmtDT(_curSub.submittedAt)}</strong>` : ''}.
+        <br><span style="opacity:0.75;font-size:0.78rem;">Rescheduling is not available after the test has been completed.</span>
+      </div>
+    </div>`;
+    return;
+  }
+
   // Always show the reschedule section regardless of test status (active, upcoming, expired)
   // — user can always submit a request; admin decides whether to approve.
   const existing=getRS(CUR_USER)[m];
@@ -3958,6 +3992,23 @@ function renderTraineeReschedule() {
     // If rejected OR approved window has already passed → show status note then fall through
     // to the request form so the user can submit a new request.
     if (existing.status === 'rejected' || approvedWindowExpired) {
+      // Block new request if test has already started
+      const _isBdcs0 = isBDCS(ALL_USERS[CUR_USER] || {});
+      const _startStr0 = _isBdcs0 ? cfg.startDateBDCS : cfg.startDateOthers;
+      if (_startStr0 && Date.now() >= new Date(_startStr0).getTime()) {
+        const _prevMsg0 = existing.status==='rejected'
+          ? `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:12px;color:var(--danger);">✗ Yêu cầu dời lịch trước đã bị từ chối${existing.rejectReason?' — '+existing.rejectReason:''}</div>`
+          : `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:6px;margin-bottom:12px;color:var(--warning);">⌛ Khung giờ dời lịch đã được phê duyệt kết thúc (${fmtDT(existing.rsDeadline)})</div>`;
+        el.innerHTML=`<div class="reschedule-card">
+          <h4>🔄 Request Test Reschedule</h4>
+          ${_prevMsg0}
+          <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
+            ⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr0)}</strong>.<br>
+            <span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
+          </div>
+        </div>`;
+        return;
+      }
       const prevNote = existing.status==='rejected'
         ? `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:14px;color:var(--danger);">
             ✗ Previous request rejected${existing.rejectReason?' — '+existing.rejectReason:''}<br>
@@ -4004,11 +4055,23 @@ function renderTraineeReschedule() {
     return;
   }
 
+  // Block form if test has already started
+  const _isBdcs1 = isBDCS(ALL_USERS[CUR_USER] || {});
+  const _startStr1 = _isBdcs1 ? cfg.startDateBDCS : cfg.startDateOthers;
+  if (_startStr1 && Date.now() >= new Date(_startStr1).getTime()) {
+    el.innerHTML=`<div class="reschedule-card">
+      <h4>🔄 Request Test Reschedule</h4>
+      <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
+        ⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr1)}</strong>.<br>
+        <span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
+      </div>
+    </div>`;
+    return;
+  }
+
   const testStatus = getStatus(cfg);
-  const statusNote = testStatus === 'expired'
-    ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ The test window for <strong>${fmtMonth(m)}</strong> has ended. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
-    : testStatus === 'upcoming'
-    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ The <strong>${fmtMonth(m)}</strong> test hasn't started yet. You can still submit an early reschedule request if needed.</div>`
+  const statusNote = testStatus === 'upcoming'
+    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn có thể gửi yêu cầu dời lịch ngay bây giờ.</div>`
     : '';
 
   el.innerHTML=`
@@ -4038,9 +4101,21 @@ function submitReschedule(m, minDate, maxDate) {
   if (!reason) { err.textContent='Please provide a reason for the reschedule request.'; return; }
   if (!date) { err.textContent='Please select a new date.'; return; }
   if (date<minDate||date>maxDate) { err.textContent=`Date must be within ${fmtMonth(m)}.`; return; }
+  // Block if user already submitted the test for this month
+  const _sub = getSubmission(CUR_USER, m);
+  if (_sub?.submittedAt) {
+    err.textContent = 'You have already completed the test for this month. Rescheduling is not available.';
+    return;
+  }
   // Block requests after the test day has ended (end of deadline day)
   const cfg=getMC()[m]||{};
   const isUserBDCS = isBDCS(ALL_USERS[CUR_USER]||{});
+  // Block if test has already started
+  const _startStr3 = isUserBDCS ? cfg.startDateBDCS : cfg.startDateOthers;
+  if (_startStr3 && new Date() >= new Date(_startStr3)) {
+    err.textContent = 'Kỳ thi đã bắt đầu. Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi khai mạc.';
+    return;
+  }
   const deadlineStr = isUserBDCS ? cfg.deadlineBDCS : cfg.deadlineOthers;
   if (deadlineStr) {
     const deadlineEnd = new Date(deadlineStr);

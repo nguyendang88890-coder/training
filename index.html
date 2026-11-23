@@ -314,6 +314,10 @@
         <button class="notif-bell-btn hidden" id="notifBellDash" onclick="toggleDashNotifPanel()" title="Monthly Test Notifications">
           🔔 <span class="notif-badge hidden" id="notifBadgeDash">0</span>
         </button>
+        <div id="_wmtLangSwitcher" class="lang-switcher">
+          <button class="lang-btn active" id="_langBtnEN" onclick="window._setLang&&window._setLang('en')">EN</button>
+          <button class="lang-btn" id="_langBtnVI" onclick="window._setLang&&window._setLang('vi')">VI</button>
+        </div>
       </div>
     </div>
     <div class="notif-panel hidden" id="notifPanelDash"></div>
@@ -411,6 +415,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="lang.js"></script>
 <script>
 // ===== USER DB =====
 function getUsersDB() {
