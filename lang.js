@@ -9,16 +9,12 @@
   };
   window._setLang = function (lang) {
     localStorage.setItem('wmt_lang', lang);
-    // When VI: let GT handle ALL translation — skip TreeWalker to avoid double-translate
-    // (TreeWalker → "Phương Thức Thanh Toán", then GT re-translates that → garbled)
-    if (lang === 'vi') {
-      _updateSwitcherUI('vi');
-      _gtApply('vi');
-    } else {
-      _applyLang('en');
-      _updateSwitcherUI('en');
-      _gtApply('en'); // clears cookie + reloads if GT was active
-    }
+    // TreeWalker translates dictionary strings + marks them translate="no"
+    // so Google Translate won't re-translate them (preventing garbled double-translation).
+    // GT then handles all remaining page content.
+    _applyLang(lang);
+    _updateSwitcherUI(lang);
+    _gtApply(lang);
   };
 
   // ---- Dictionary ----
@@ -297,11 +293,19 @@
     const trimmed = orig.trim();
     if (!trimmed || KEEP_EN.has(trimmed)) return;
     const vi = _VI[trimmed];
-    if (vi) node.textContent = orig.replace(trimmed, vi);
+    if (vi) {
+      node.textContent = orig.replace(trimmed, vi);
+      // Prevent Google Translate from re-translating our already-translated text
+      p.setAttribute('translate', 'no');
+    }
   }
 
   function _restoreNode(node) {
-    if (_origText.has(node)) node.textContent = _origText.get(node);
+    if (_origText.has(node)) {
+      node.textContent = _origText.get(node);
+      const p = node.parentElement;
+      if (p) p.removeAttribute('translate');
+    }
   }
 
   function _walkBody(fn) {
@@ -530,12 +534,8 @@
 
   function _applyWhenReady() {
     const lang = _getLang();
-    if (lang === 'vi') {
-      // Let GT do all translation — don't run TreeWalker first (causes double-translate)
-      _gtApply('vi');
-    } else {
-      _applyLang('en');
-    }
+    _applyLang(lang);  // dictionary strings translated immediately (UI chrome, sidebar, etc.)
+    if (lang === 'vi') _gtApply('vi');  // GT translates remaining page content
   }
 
   if (document.readyState === 'loading') {
