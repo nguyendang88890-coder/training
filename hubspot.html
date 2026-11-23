@@ -261,16 +261,16 @@
           </ol>
           <div style="overflow-x:auto;margin-top:16px;">
             <table class="data-table">
-              <thead><tr><th>Stage</th><th>Handled By</th><th>What CS Does</th></tr></thead>
+              <thead><tr><th translate="no">Stage</th><th>Handled By</th><th>What CS Does</th></tr></thead>
               <tbody>
-                <tr><td translate="no">TO DO</td><td>Operation</td><td>Wait for Operation to check</td></tr>
-                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">NEEDS INFORMATION</td><td>CS</td><td>Read Operation's Note, ask the customer for missing info, move to <span translate="no">WAITING CLIENT RESPONSE</span></td></tr>
-                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">WAITING CLIENT RESPONSE</td><td>CS</td><td>When the customer replies, add info to a Note, move to <span translate="no">REQUIREMENTS COMPLETED</span></td></tr>
-                <tr><td translate="no">REQUIREMENTS COMPLETED</td><td>Operation</td><td>Do not touch — Operation processes the request</td></tr>
-                <tr><td translate="no">RISK TEAM TO REVIEW</td><td>Risk team</td><td>Do not touch</td></tr>
-                <tr><td translate="no">CHECKING WITH 3RD PARTIES</td><td>Operation / 3rd parties</td><td>Do not touch</td></tr>
-                <tr><td translate="no">SUPER ADMIN TO REVIEW</td><td>Board of directors</td><td>Do not touch</td></tr>
-                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">RESULTS</td><td>CS</td><td>Read the result, email the customer, move to <span translate="no">COMPLETED</span></td></tr>
+                <tr><td translate="no">TO DO</td><td translate="no">Operation</td><td>Wait for Operation to check</td></tr>
+                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">NEEDS INFORMATION</td><td translate="no">CS</td><td>Read Operation's Note, ask the customer for missing info, move to <span translate="no">WAITING CLIENT RESPONSE</span></td></tr>
+                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">WAITING CLIENT RESPONSE</td><td translate="no">CS</td><td>When the customer replies, add info to a Note, move to <span translate="no">REQUIREMENTS COMPLETED</span></td></tr>
+                <tr><td translate="no">REQUIREMENTS COMPLETED</td><td translate="no">Operation</td><td>Do not touch — Operation processes the request</td></tr>
+                <tr><td translate="no">RISK TEAM TO REVIEW</td><td translate="no">Risk team</td><td>Do not touch</td></tr>
+                <tr><td translate="no">CHECKING WITH 3RD PARTIES</td><td translate="no">Operation / 3rd parties</td><td>Do not touch</td></tr>
+                <tr><td translate="no">SUPER ADMIN TO REVIEW</td><td translate="no">Board of directors</td><td>Do not touch</td></tr>
+                <tr style="background:rgba(99,102,241,0.06);"><td translate="no">RESULTS</td><td translate="no">CS</td><td>Read the result, email the customer, move to <span translate="no">COMPLETED</span></td></tr>
                 <tr><td translate="no">COMPLETED</td><td>—</td><td>Done</td></tr>
               </tbody>
             </table>
@@ -609,6 +609,15 @@ function _fixHubspotTerms() {
     }
     if (/[Ss]ân khấu/.test(t)) {
       t = t.replace(/Sân khấu/g, 'Giai đoạn').replace(/sân khấu/g, 'giai đoạn');
+      changed = true;
+    }
+    if (/[Vv]ận hành/.test(t)) {
+      t = t.replace(/Vận hành/g, 'Operation').replace(/vận hành/g, 'operation');
+      changed = true;
+    }
+    if (/mặt hàng khác/.test(t)) {
+      t = t.replace(/Các mặt hàng khác/g, 'Các chức năng khác')
+           .replace(/mặt hàng khác/g,     'chức năng khác');
       changed = true;
     }
     if (changed) node.textContent = t;
