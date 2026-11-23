@@ -9,9 +9,16 @@
   };
   window._setLang = function (lang) {
     localStorage.setItem('wmt_lang', lang);
-    _applyLang(lang);
-    _updateSwitcherUI(lang);
-    _gtApply(lang);
+    // When VI: let GT handle ALL translation — skip TreeWalker to avoid double-translate
+    // (TreeWalker → "Phương Thức Thanh Toán", then GT re-translates that → garbled)
+    if (lang === 'vi') {
+      _updateSwitcherUI('vi');
+      _gtApply('vi');
+    } else {
+      _applyLang('en');
+      _updateSwitcherUI('en');
+      _gtApply('en'); // clears cookie + reloads if GT was active
+    }
   };
 
   // ---- Dictionary ----
@@ -523,9 +530,12 @@
 
   function _applyWhenReady() {
     const lang = _getLang();
-    _applyLang(lang);
-    // Auto-apply GT on page load if VI was saved
-    if (lang === 'vi') _gtApply('vi');
+    if (lang === 'vi') {
+      // Let GT do all translation — don't run TreeWalker first (causes double-translate)
+      _gtApply('vi');
+    } else {
+      _applyLang('en');
+    }
   }
 
   if (document.readyState === 'loading') {
