@@ -603,8 +603,9 @@ function _fixHubspotTerms() {
     let t = node.textContent;
     let changed = false;
     if (/[Vv]é/.test(t)) {
-      t = t.replace(/\bVés\b/g, 'Tickets').replace(/\bvés\b/g, 'tickets')
-           .replace(/\bVé\b/g,  'Ticket') .replace(/\bvé\b/g,  'ticket');
+      // \b doesn't work with Unicode/Vietnamese chars — use plain replace
+      t = t.replace(/Vés/g, 'Tickets').replace(/vés/g, 'tickets')
+           .replace(/Vé/g,  'Ticket') .replace(/vé/g,  'ticket');
       changed = true;
     }
     if (/[Ss]ân khấu/.test(t)) {
@@ -623,9 +624,10 @@ function _fixHubspotTerms() {
     if (changed) node.textContent = t;
   });
 }
-// Run twice after GT has had time to translate (1.5 s and 3.5 s)
+// Run at 1.5 s, 3.5 s, and 7 s to catch slow GT loads
 setTimeout(_fixHubspotTerms, 1500);
 setTimeout(_fixHubspotTerms, 3500);
+setTimeout(_fixHubspotTerms, 7000);
 
 function markHubspotComplete() {
   const p = getProgress();
