@@ -491,9 +491,9 @@
         <div class="mark-complete-bar">
           <div class="mark-complete-text">
             <h4>Finished watching all videos?</h4>
-            <p>Click the button to mark this module as complete.</p>
+            <p id="hsGateMsg">You must spend at least 45 minutes on this page before marking complete.</p>
           </div>
-          <button class="btn btn-success" id="markCompleteBtn" onclick="markHubspotComplete()">✓ Mark as Complete</button>
+          <button class="btn btn-success" id="markCompleteBtn" onclick="markHubspotComplete()" disabled style="opacity:0.45;cursor:not-allowed;">⏳ <span id="hsTimerLabel">45:00</span> remaining</button>
           <div class="completed-check hidden" id="completedCheck">✅ Module Completed!</div>
         </div>
 
@@ -512,7 +512,8 @@
 document.getElementById('sidebar').innerHTML = getSidebarHTML('hubspot');
 updateSidebarProgress();
 
-// Department gate
+const HS_GATE_SECONDS = 45 * 60; // 45 minutes
+
 (function() {
   const user  = localStorage.getItem('wmt_user') || '';
   const users = getUsersDB();
@@ -531,14 +532,66 @@ updateSidebarProgress();
     return;
   }
 
-  // Check if already completed
+  // Already completed — skip gate entirely
   const p = getProgress();
   if (p['moduleHS_done']) {
     document.getElementById('markCompleteBtn').style.display = 'none';
     document.getElementById('completedCheck').classList.remove('hidden');
     document.getElementById('completedCheck').style.display = 'flex';
+    document.getElementById('hsGateMsg').textContent = 'You have already completed this module.';
+    return;
   }
+
+  // Admin/mod bypass — unlock immediately
+  if (role === 'admin' || role === 'mod') {
+    _hsUnlockBtn();
+    return;
+  }
+
+  // Time gate: record first visit timestamp per user
+  const storageKey = 'hs_start_' + user;
+  let startTs = parseInt(localStorage.getItem(storageKey) || '0', 10);
+  if (!startTs) {
+    startTs = Date.now();
+    localStorage.setItem(storageKey, startTs);
+  }
+
+  function _hsUnlockBtn() {
+    const btn = document.getElementById('markCompleteBtn');
+    btn.disabled = false;
+    btn.style.opacity = '';
+    btn.style.cursor = '';
+    btn.innerHTML = '✓ Mark as Complete';
+    document.getElementById('hsGateMsg').textContent = 'You\'ve spent 45 minutes on this page. Click to mark the module as complete.';
+  }
+
+  function _hsTick() {
+    const elapsed = Math.floor((Date.now() - startTs) / 1000);
+    const remaining = Math.max(0, HS_GATE_SECONDS - elapsed);
+
+    if (remaining === 0) {
+      clearInterval(_hsInterval);
+      _hsUnlockBtn();
+      return;
+    }
+
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    document.getElementById('hsTimerLabel').textContent =
+      m + ':' + String(s).padStart(2, '0');
+  }
+
+  _hsTick(); // run immediately so display is correct on load
+  const _hsInterval = setInterval(_hsTick, 1000);
 })();
+
+function _hsUnlockBtn() {
+  const btn = document.getElementById('markCompleteBtn');
+  btn.disabled = false;
+  btn.style.opacity = '';
+  btn.style.cursor = '';
+  btn.innerHTML = '✓ Mark as Complete';
+}
 
 function markHubspotComplete() {
   const p = getProgress();
