@@ -11,6 +11,7 @@
     localStorage.setItem('wmt_lang', lang);
     _applyLang(lang);
     _updateSwitcherUI(lang);
+    _gtApply(lang);
   };
 
   // ---- Dictionary ----
@@ -433,6 +434,78 @@
     else card.appendChild(viBlock);
   };
 
+  // ---- Google Translate — full content translation ----
+  // Our _VI dictionary handles UI strings instantly.
+  // Google Translate handles all remaining content (paragraphs, headings, etc.).
+  let _gtLoaded = false;
+  let _gtWidgetReady = false;
+
+  const _GT_HIDE_CSS =
+    '.goog-te-banner-frame{display:none!important}' +
+    'body{top:0!important;margin-top:0!important}' +
+    '#_wmtGTEl{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}';
+
+  function _gtTrigger() {
+    const sel = document.querySelector('.goog-te-combo');
+    if (!sel) { setTimeout(_gtTrigger, 300); return; }
+    const target = _getLang() === 'vi' ? 'vi' : '';
+    if (sel.value !== target) {
+      sel.value = target;
+      sel.dispatchEvent(new Event('change'));
+    }
+  }
+
+  function _gtApply(lang) {
+    if (lang === 'en') {
+      // If GT has translated the page, reload to restore English
+      if (document.documentElement.classList.contains('translated-ltr') ||
+          document.documentElement.classList.contains('translated-rtl')) {
+        // Clear GT cookie so reload shows English
+        ['', '.' + location.hostname].forEach(function (d) {
+          document.cookie = 'googtrans=;expires=Thu,01 Jan 1970 00:00:00 GMT;path=/;domain=' + (d || location.hostname);
+        });
+        window.location.reload();
+      }
+      return;
+    }
+
+    // lang === 'vi': load GT if first time, then trigger
+    if (!_gtLoaded) {
+      _gtLoaded = true;
+
+      // Add CSS to hide GT toolbar
+      if (!document.getElementById('_wmtGTCSS')) {
+        const st = document.createElement('style');
+        st.id = '_wmtGTCSS';
+        st.textContent = _GT_HIDE_CSS;
+        document.head.appendChild(st);
+      }
+
+      // Hidden container for the GT widget
+      if (!document.getElementById('_wmtGTEl')) {
+        const el = document.createElement('div');
+        el.id = '_wmtGTEl';
+        document.body.appendChild(el);
+      }
+
+      window.googleTranslateElementInit = function () {
+        new google.translate.TranslateElement({
+          pageLanguage: 'en',
+          includedLanguages: 'vi',
+          autoDisplay: false
+        }, '_wmtGTEl');
+        _gtWidgetReady = true;
+        _gtTrigger();
+      };
+
+      const sc = document.createElement('script');
+      sc.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      document.head.appendChild(sc);
+    } else if (_gtWidgetReady) {
+      _gtTrigger();
+    }
+  }
+
   // ---- Init ----
   // Inject the switcher button immediately (synchronous) — lang.js loads after
   // .top-bar is already in the DOM, so no need to wait for DOMContentLoaded.
@@ -442,7 +515,10 @@
   _updateSwitcherUI(_initLang);  // sync active state (handles static HTML case)
 
   function _applyWhenReady() {
-    _applyLang(_getLang());
+    const lang = _getLang();
+    _applyLang(lang);
+    // Auto-apply GT on page load if VI was saved
+    if (lang === 'vi') _gtApply('vi');
   }
 
   if (document.readyState === 'loading') {
