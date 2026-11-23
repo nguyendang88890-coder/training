@@ -61,6 +61,18 @@
     'BD & Sales Onboarding Guide': 'Tài Liệu BD & Sales Onboarding',
     'SharePoint Document':        'Tài Liệu SharePoint',
 
+    // ---- Module card titles ----
+    'WeMasterTrade Products':     'Sản Phẩm WeMasterTrade',
+    'Review Policy':              'Chính Sách Review',
+
+    // ---- Module card status badges ----
+    '✓ Completed':                '✓ Hoàn Thành',
+    '✓ Read':                     '✓ Đã Đọc',
+    '○ Not Started':              '○ Chưa Bắt Đầu',
+    '○ Not Read':                 '○ Chưa Đọc',
+    '● In Progress':              '● Đang Học',
+    '○ Reference':                '○ Tài Liệu Tham Khảo',
+
     // ---- Top bar / general ----
     '← Dashboard':                '← Trang Chủ',
     'Modules Done':               'Module Hoàn Thành',
@@ -72,7 +84,9 @@
     // ---- Dashboard ----
     'Complete all 7 modules and pass the final exam to become a certified WeMasterTrade Sales Partner.':
       'Hoàn thành 7 module và vượt qua bài thi cuối khoá để trở thành Đối Tác Sales WeMasterTrade được chứng nhận.',
+    'Welcome back,':              'Chào mừng trở lại,',
     'Welcome back':               'Chào mừng trở lại',
+    '! 👋':                       '! 👋',
     'Video Interview':            'Phỏng Vấn Video',
     'Training Evaluation':        'Đánh Giá Đào Tạo',
     'Book Your Interview':        'Đặt Lịch Phỏng Vấn',
@@ -80,6 +94,22 @@
     'Complete all modules to unlock the exam.': 'Hoàn thành tất cả module để mở khoá bài thi.',
     'Start Exam →':               'Bắt Đầu Thi →',
     'Book Interview →':           'Đặt Lịch Phỏng Vấn →',
+    '📝 Final Exam — 30 Questions':  '📝 Thi Cuối Khoá — 30 Câu Hỏi',
+    'Covers all 7 modules. Pass score:': 'Bao gồm 7 module. Điểm đạt:',
+    '(Attempt 1) /':              '(Lần 1) /',
+    '(Attempt 2). You have 2 attempts.': '(Lần 2). Bạn có 2 lần thử.',
+    '📋 Complete Your Evaluation':  '📋 Hoàn Thành Đánh Giá',
+    'Your interview is complete! Please fill in the training evaluation to finalise your onboarding.':
+      'Phỏng vấn của bạn đã xong! Vui lòng điền vào đánh giá đào tạo để hoàn tất quá trình onboarding.',
+    '⚠️ Required — must be completed to finalise onboarding':
+      '⚠️ Bắt buộc — phải hoàn thành để kết thúc quá trình onboarding',
+    'Start Evaluation →':         'Bắt Đầu Đánh Giá →',
+    '✅ Evaluation Completed':    '✅ Đã Hoàn Thành Đánh Giá',
+    'Thank you for your feedback! Your onboarding is now fully complete.':
+      'Cảm ơn phản hồi của bạn! Quá trình onboarding đã hoàn tất.',
+    'View Evaluation →':          'Xem Đánh Giá →',
+    'You passed the exam! Schedule your video interview with a WeMasterTrade trainer.':
+      'Bạn đã vượt qua bài thi! Hãy đặt lịch phỏng vấn video với trainer WeMasterTrade.',
 
     // ---- Module page ----
     'Module':                     'Module',
