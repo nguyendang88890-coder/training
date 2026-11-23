@@ -593,6 +593,27 @@ function _hsUnlockBtn() {
   btn.innerHTML = '✓ Mark as Complete';
 }
 
+// After Google Translate runs, restore "Ticket/Tickets" (GT translates to "Vé/vé")
+function _fixHubspotTerms() {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+  const nodes = [];
+  let n;
+  while ((n = walker.nextNode())) nodes.push(n);
+  nodes.forEach(function(node) {
+    const t = node.textContent;
+    if (/[Vv]é/.test(t)) {
+      node.textContent = t
+        .replace(/\bVé\b/g,  'Ticket')
+        .replace(/\bvé\b/g,  'ticket')
+        .replace(/\bVés\b/g, 'Tickets')
+        .replace(/\bvés\b/g, 'tickets');
+    }
+  });
+}
+// Run twice after GT has had time to translate (1.5 s and 3.5 s)
+setTimeout(_fixHubspotTerms, 1500);
+setTimeout(_fixHubspotTerms, 3500);
+
 function markHubspotComplete() {
   const p = getProgress();
   p['moduleHS_done'] = true;
