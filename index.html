@@ -310,7 +310,7 @@
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <span class="top-bar-title">Dashboard</span>
       <div class="top-bar-actions">
-        <div class="progress-pill" id="topProgressPill">0 / 7 Modules</div>
+        <div class="progress-pill" id="topProgressPill">0 / 8 Steps</div>
         <button class="notif-bell-btn hidden" id="notifBellDash" onclick="toggleDashNotifPanel()" title="Monthly Test Notifications">
           🔔 <span class="notif-badge hidden" id="notifBadgeDash">0</span>
         </button>
@@ -325,16 +325,16 @@
     <div class="page-content animate-in">
       <div class="welcome-banner">
         <h2>Welcome back, <span id="welcomeName">Trainee</span>! 👋</h2>
-        <p>Complete all 7 modules and pass the final exam to become a certified WeMasterTrade Sales Partner.</p>
+        <p>Complete all 7 training modules plus About WMT, then pass the final exam to become a certified WeMasterTrade Sales Partner.</p>
         <div class="overall-progress">
           <div class="progress-stats">
             <div class="stat-item">
               <span class="stat-value" id="statCompleted">0</span>
-              <span class="stat-label">Modules Done</span>
+              <span class="stat-label">Steps Done</span>
             </div>
             <div class="stat-item">
-              <span class="stat-value" id="statTotal">7</span>
-              <span class="stat-label" id="statTotalLabel">Total Modules</span>
+              <span class="stat-value" id="statTotal">8</span>
+              <span class="stat-label" id="statTotalLabel">Total Steps</span>
             </div>
             <div class="stat-item">
               <span class="stat-value" id="statAvgScore">—</span>
@@ -882,27 +882,29 @@ function initDashboard(user) {
       </a>`;
   });
 
-  // BD/CS trainees: add HubSpot card to the grid + count About WMT and HubSpot in total steps
+  // All trainees: About WMT is required and counts toward total progress
   const moduleCompletedCount = completedCount; // Module-only count — used for exam unlock
-  let totalSteps = 7;
-  if (isRegularBDCS) {
-    totalSteps = 9; // 7 modules + About WMT + HubSpot
 
-    // About WMT card
-    const abtDone = !!progress['moduleABT_done'];
-    grid.innerHTML += `
-      <a href="about.html" class="module-card ${abtDone ? 'completed' : ''}">
-        <div class="module-card-header">
-          <div class="module-number" style="font-size:1rem;">${abtDone ? '✓' : '🏢'}</div>
-          <div>
-            <div class="module-title">About WMT <span style="font-size:0.6rem;font-weight:700;background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.25);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">REQUIRED</span></div>
-            <div class="module-meta">
-              <span class="status-badge ${abtDone ? 'completed' : 'pending'}">${abtDone ? '✓ Read' : '○ Not Read'}</span>
-            </div>
+  // About WMT card — shown for all users
+  const abtDone = !!progress['moduleABT_done'];
+  grid.innerHTML += `
+    <a href="about.html" class="module-card ${abtDone ? 'completed' : ''}">
+      <div class="module-card-header">
+        <div class="module-number" style="font-size:1rem;">${abtDone ? '✓' : '🏢'}</div>
+        <div>
+          <div class="module-title">About WMT <span style="font-size:0.6rem;font-weight:700;background:rgba(255,215,0,0.12);color:#FFD700;border:1px solid rgba(255,215,0,0.25);border-radius:4px;padding:1px 5px;margin-left:4px;vertical-align:middle;white-space:nowrap;">REQUIRED</span></div>
+          <div class="module-meta">
+            <span class="status-badge ${abtDone ? 'completed' : 'pending'}">${abtDone ? '✓ Read' : '○ Not Read'}</span>
           </div>
         </div>
-      </a>`;
-    if (abtDone) completedCount++;
+      </div>
+    </a>`;
+  if (abtDone) completedCount++;
+
+  // BD/CS trainees: HubSpot is an additional required step
+  let totalSteps = 8; // 7 core modules + About WMT for everyone
+  if (isRegularBDCS) {
+    totalSteps = 9; // +HubSpot for BD/CS
 
     // HubSpot card
     const hsDone = !!progress['moduleHS_done'];
@@ -924,10 +926,10 @@ function initDashboard(user) {
   const pct = Math.round((completedCount / totalSteps) * 100);
   document.getElementById('statCompleted').textContent = completedCount;
   document.getElementById('statTotal').textContent = totalSteps;
-  if (isRegularBDCS) document.getElementById('statTotalLabel').textContent = 'Total Steps';
+  document.getElementById('statTotalLabel').textContent = 'Total Steps';
   document.getElementById('statPercent').textContent = pct + '%';
   document.getElementById('overallProgressBar').style.width = pct + '%';
-  document.getElementById('topProgressPill').textContent = `${completedCount} / ${totalSteps} ${totalSteps === 7 ? 'Modules' : 'Steps'}`;
+  document.getElementById('topProgressPill').textContent = `${completedCount} / ${totalSteps} Steps`;
   document.getElementById('statAvgScore').textContent = scoredModules > 0
     ? Math.round(totalScore / scoredModules) + '%' : '—';
 
