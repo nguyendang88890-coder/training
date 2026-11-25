@@ -214,7 +214,7 @@
 <script src="module-common.js"></script>
 <script src="lang.js?v=6"></script>
 <script>
-// ===== QUESTION BANK (103 questions) =====
+// ===== QUESTION BANK (55 questions) =====
 const QUESTION_BANK = [
   // ABOUT WMT
   { q: "What is the legal company name behind WeMasterTrade?", opts: ["WeMasterTrade Ltd.","WeCopy Fintech Inc.","WMT Global Corp.","MasterTrade Holdings"], module: 0 },
@@ -299,43 +299,6 @@ const QUESTION_BANK = [
   { q: "Which of these is a prohibited trading practice?", opts: ["Using stop losses","Hedging across accounts for guaranteed profit","Trading Gold","Using MT5 EAs"], module: 7 },
   { q: "When must KYC be completed?", opts: ["Before first trade","Within 7 days of signup","Before first payout request","KYC is optional"], module: 7 },
   { q: "Which of these trading practices is ALLOWED?", opts: ["Tick Scalping","Arbitrage","Using proper stop losses and risk management","Large Hedging across accounts"], module: 7 },
-
-  // MODULE 1 — Products (additional)
-  { q: "What is the one-time fee for a $10,000 Challenge account?", opts: ["$45","$74","$100","$175"], module: 1, _c: btoa('0') },
-  { q: "What is the trading leverage for Challenge Phase 1?", opts: ["1:100","1:50","1:33","1:10"], module: 1, _c: btoa('0') },
-  { q: "What is the maximum Profit Target that can be configured in a Customized Instant Funding plan?", opts: ["10%","12%","15%","20%"], module: 1, _c: btoa('0') },
-  { q: "Which Instant Funding plan exclusively supports Gold (XAU) trading on weekends?", opts: ["XAU247","51010","510Zero","Customized"], module: 1, _c: btoa('0') },
-  { q: "Which Instant Funding plan does NOT include a Scale-Up option?", opts: ["51010","NOPC","510Zero","XAU247"], module: 1, _c: btoa('1') },
-  { q: "What is the maximum Reset Discount available for loyal Instant Funding clients?", opts: ["10%","20%","30%","50%"], module: 1, _c: btoa('0') },
-
-  // MODULE 2 — Introducing Partner (additional)
-  { q: "What is the range of discount available through an Introducing Partner's personal referral discount code?", opts: ["20% to 30%","10% to 20%","5% to 15%","30% to 50%"], module: 2, _c: btoa('0') },
-  { q: "When a client has clicked two different IP referral links, who receives the commission?", opts: ["The IP whose link was clicked LAST (within 30 days)","The IP whose link was clicked first","Both IPs share the commission equally","Neither IP — commission is voided"], module: 2, _c: btoa('0') },
-
-  // MODULE 3 — Trading Rules (additional)
-  { q: "What is the profit share consequence for a FIRST offence of cross-account hedging?", opts: ["Profit share reduced to 10% on the next payout","Profit share reduced to 25% on the next payout","No profit share reduction — account reset only","Immediate account termination"], module: 3, _c: btoa('0') },
-  { q: "Which of the following types of hedging is PERMITTED at WeMasterTrade?", opts: ["Opposing positions within the same account","Opposing positions across two different WMT accounts","Hedging a WMT account against a position at another prop firm","A continuous series of opposing trades solely for risk control"], module: 3, _c: btoa('0') },
-  { q: "Under WeMasterTrade's device policy, which of the following is PERMITTED?", opts: ["Using multiple personal devices that all belong to you","Sharing a trading device with a family member","Using a device belonging to another trader","Logging in from a shared public computer"], module: 3, _c: btoa('0') },
-  { q: "Which of the following is an example of Profit Consistency Manipulation?", opts: ["Splitting trade closures across different days solely to shift profits into future periods","Placing stop-loss orders on every trade","Requesting a payout more than once per month","Opening a large position on a news event"], module: 3, _c: btoa('0') },
-  { q: "When a 51010 account's Profit Consistency Ratio is between 20% and 30%, what is the profit share consequence?", opts: ["Profit share reduced to 10% for that payout","Profit share reduced to 25% for that payout","Account is reset with no profit share impact","No consequence — 20–30% PCR is fully compliant"], module: 3, _c: btoa('0') },
-  { q: "Which statement correctly describes the Tick Scalping rule at WeMasterTrade?", opts: ["Casual scalping strategies are permitted; only abnormal frequency or exploiting quote latency is restricted","All forms of scalping are strictly prohibited","Scalping is allowed only on accounts above $50,000","Scalping is permitted if positions are held for at least 1 minute"], module: 3, _c: btoa('0') },
-
-  // MODULE 4 — Financial Products (additional)
-  { q: "What is the trading leverage for Stocks/Equities on Instant Funding accounts?", opts: ["1:20","1:100","1:50","1:10"], module: 4, _c: btoa('0') },
-  { q: "For a $200,000 51010 Instant Funding account specifically, what is the Forex leverage?", opts: ["1:50","1:100","1:33","1:200"], module: 4, _c: btoa('0') },
-
-  // MODULE 6 — Profit & Payouts (additional)
-  { q: "After a Challenge Funded trader withdraws a cumulative 6% profit, what two additional benefits are triggered?", opts: ["30% Phase 2 profit share AND a full refund of the one-time package fee","50% bonus payout AND a free upgrade to 51010","Only a full refund of the one-time fee — no additional profit share","Automatic scale-up to the next account tier"], module: 6, _c: btoa('0') },
-  { q: "Which WeMasterTrade certificate is issued to traders who successfully pass the Challenge evaluation?", opts: ["Challenge Certificate","Profit Split Certificate","Academy Certificate","Introducing Partner Certificate"], module: 6, _c: btoa('0') },
-  { q: "Which WeMasterTrade certificate is issued to traders who complete WMT education programs?", opts: ["Academy Certificate","Challenge Certificate","Profit Split Certificate","Introducing Partner Certificate"], module: 6, _c: btoa('0') },
-  { q: "What profit share does a 51010 Instant Funding trader receive on their SECOND payout?", opts: ["75%","50%","90%","60%"], module: 6, _c: btoa('0') },
-
-  // MODULE 7 — Compliance (additional)
-  { q: "Which document is acceptable as Proof of Address for KYC verification?", opts: ["A utility bill not older than 3 months","An employment contract","A school graduation certificate","A tax return form from more than 3 years ago"], module: 7, _c: btoa('0') },
-  { q: "What is the minimum legal age requirement for WeMasterTrade clients?", opts: ["18 years old","16 years old","21 years old","20 years old"], module: 7, _c: btoa('0') },
-  { q: "Which of the following describes Arbitrage, a prohibited trading practice at WeMasterTrade?", opts: ["Exploiting price discrepancies between different brokers or data feeds","Placing stop-losses to cap downside risk on every trade","Using a moving average EA strategy","Holding positions through major news events"], module: 7, _c: btoa('0') },
-  { q: "If an Introducing Partner onboards a client from a restricted country, what is the consequence?", opts: ["Account termination for both the client AND the introducing partner","Only the client account is terminated","Commission is reversed but no termination occurs","The IP receives one formal warning on the first offence"], module: 7, _c: btoa('0') },
-  { q: "What action should a sales partner take when unsure whether a prospective client's country is restricted?", opts: ["Escalate to the compliance team before proceeding","Accept the client and report to compliance afterward","Proceed if the country is not on any public sanctions list","Reject the client without escalating"], module: 7, _c: btoa('0') },
 
   // MODULE 8 — HubSpot (BD & CS only)
   { q: "What is the correct closing status for a resolved email ticket in HubSpot?", opts: ["Resolved","Closed","Done","Completed"], module: 8, _c: btoa('0') },
