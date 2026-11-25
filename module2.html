@@ -49,10 +49,10 @@
 
         <h4>When It Applies</h4>
         <ul>
-          <li><strong>Challenge Phase 2</strong> — PCR is enforced</li>
+          <li><strong>Challenge Phase 1</strong> — PCR is enforced (30% threshold)</li>
           <li><strong>51010 Instant Funding</strong> — PCR applies</li>
           <li><strong>510Zero</strong> — No profit target, PCR applied</li>
-          <li>Challenge Phase 1 &amp; Funded account — PCR is NOT enforced</li>
+          <li>Challenge Funded account — PCR is NOT enforced</li>
         </ul>
 
         <h4>Worked Example</h4>
@@ -104,8 +104,8 @@
         <div class="callout info">
           <span class="callout-icon">📢</span>
           <div class="callout-content">
-            <strong>Update: Risk Consistency Rule Removed from Challenge Phase 2</strong>
-            <p>The Risk Consistency Rule no longer applies to <strong>Challenge Phase 2</strong>. RCR remains in effect for <strong>51010</strong>, <strong>510Zero</strong>, and <strong>Funded/NOPC</strong> accounts. Violating RCR on a Funded account results in <strong>immediate termination</strong>.</p>
+            <strong>RCR &amp; Challenge Package</strong>
+            <p>The Risk Consistency Rule does <strong>not</strong> apply to <strong>Challenge Phase 1</strong>. It applies to the <strong>Challenge Funded account</strong> at 1% (immediate termination, no reset/reactivation). RCR also remains in effect for <strong>51010</strong>, <strong>510Zero</strong>, and <strong>NOPC</strong> Instant Funding accounts.</p>
           </div>
         </div>
       </div>
@@ -456,7 +456,7 @@ const questions = [
   {
     q: "What is the maximum risk per trade for Funded accounts?",
     opts: ["2%", "5%", "1%", "3%"],
-    explain: "Funded accounts have a stricter 1% max risk per trade. 51010 and 510Zero Instant Funding accounts apply a 2% RCR. Note: Challenge Phase 2 no longer applies the Risk Consistency Rule."
+    explain: "Funded accounts have a stricter 1% max risk per trade. 51010 and 510Zero Instant Funding accounts apply a 2% RCR. Challenge Phase 1 has no RCR; the Challenge Funded account applies 1% RCR with immediate termination on violation."
   },
   {
     q: "The Daily Loss Limit is calculated from which value?",
