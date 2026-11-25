@@ -106,7 +106,7 @@
       <div id="introView">
         <div class="exam-header">
           <h2>📝 WeMasterTrade Final Exam</h2>
-          <p>Test your knowledge across all 7 training modules. Answer 30 randomized questions.</p>
+          <p>Test your knowledge across all 7 training modules + About WMT. Answer 30 randomized questions.</p>
           <div class="exam-stats">
             <div class="exam-stat">
               <div class="exam-stat-value">30</div>
@@ -137,7 +137,7 @@
             <li>If you fail attempt 1, you must wait <strong>3 days</strong> before retrying</li>
             <li>If you fail attempt 2, you will be <strong>permanently disqualified</strong></li>
             <li>You have <strong>45 minutes</strong> to complete the exam — it will auto-submit when time runs out</li>
-            <li>Make sure you have completed all 7 modules before taking this exam</li>
+            <li>Make sure you have completed all 7 modules + About WMT before taking this exam</li>
           </ul>
           <div class="callout gold" style="margin-top:16px;">
             <span class="callout-icon">⭐</span>
@@ -153,8 +153,8 @@
             🚀 Start Final Exam
           </button>
           <div id="moduleWarning" class="hidden" style="margin-top:14px;padding:14px 18px;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.3);border-radius:10px;font-size:0.88rem;color:var(--danger);">
-            🔒 <strong>You have not completed all 7 Training Modules.</strong><br>
-            <span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all modules and submit each module quiz before taking the Final Exam.</span>
+            🔒 <strong>You have not completed all required steps (7 modules + About WMT).</strong><br>
+            <span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all 7 modules + About WMT and submit each module quiz before taking the Final Exam.</span>
           </div>
         </div>
       </div>
@@ -597,9 +597,10 @@ window.addEventListener('load', async function() {
   for (let i = 1; i <= 7; i++) {
     if (p[`module${i}_done`]) doneCnt++;
   }
+  if (p['moduleABT_done']) doneCnt++; // About WMT is required for all users
   const _bdcs = _isBDCS();
   if (_bdcs && p['moduleHS_done']) doneCnt++; // BD/CS must also complete HubSpot module
-  const requiredModules = _bdcs ? 8 : 7;
+  const requiredModules = _bdcs ? 9 : 8; // 7 core + About WMT [+ HubSpot for BD/CS]
   if (doneCnt < requiredModules) {
     document.getElementById('moduleWarning').classList.remove('hidden');
     const btn = document.getElementById('startExamBtn');
@@ -607,10 +608,13 @@ window.addEventListener('load', async function() {
     btn.style.opacity = '0.4';
     btn.style.cursor  = 'not-allowed';
     btn.onclick       = null;
-    btn.textContent   = `🔒 Locked (${doneCnt}/${requiredModules} modules done)`;
-    if (_bdcs && !p['moduleHS_done']) {
+    btn.textContent   = `🔒 Locked (${doneCnt}/${requiredModules} steps done)`;
+    if (_bdcs && !p['moduleHS_done'] && p['moduleABT_done']) {
       document.getElementById('moduleWarning').innerHTML =
-        '🔒 <strong>BD & CS: You must also complete the HubSpot Training module.</strong><br><span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all 7 core modules + HubSpot Training before taking the Final Exam.</span>';
+        '🔒 <strong>BD & CS: You must also complete the HubSpot Training module.</strong><br><span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all 7 core modules + About WMT + HubSpot Training before taking the Final Exam.</span>';
+    } else if (!p['moduleABT_done']) {
+      document.getElementById('moduleWarning').innerHTML =
+        '🔒 <strong>You must complete the About WMT module.</strong><br><span style="color:var(--text-muted);font-size:0.82rem;margin-top:4px;display:block;">Please complete all 7 core modules + About WMT before taking the Final Exam.</span>';
     }
     return; // stop here — don't process exam state while modules incomplete
   }
@@ -704,13 +708,14 @@ function startExam() {
   const _p = getProgress();
   let _done = 0;
   for (let i = 1; i <= 7; i++) { if (_p[`module${i}_done`]) _done++; }
+  if (_p['moduleABT_done']) _done++; // About WMT is required for all users
   const _isBD = _isBDCS();
   if (_isBD && _p['moduleHS_done']) _done++;
-  const _req = _isBD ? 8 : 7;
+  const _req = _isBD ? 9 : 8; // 7 core + About WMT [+ HubSpot for BD/CS]
   if (_done < _req) {
     alert(_isBD
-      ? '⚠️ BD & CS must complete all 7 core modules + HubSpot Training before taking the Final Exam.'
-      : '⚠️ You must complete all 7 Training Modules before taking the Final Exam.');
+      ? '⚠️ BD & CS must complete all 7 core modules + About WMT + HubSpot Training before taking the Final Exam.'
+      : '⚠️ You must complete all 7 Training Modules + About WMT before taking the Final Exam.');
     return;
   }
 

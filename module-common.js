@@ -851,6 +851,7 @@ function submitModProposal(pageInfo) {
     status:     'pending'
   };
   proposals.push(entry);
+  if (proposals.length > 200) proposals.splice(0, proposals.length - 200); // cap list size
   if (typeof dbWrite === 'function') {
     dbWrite('wmt_proposals', JSON.stringify(proposals));
   } else {

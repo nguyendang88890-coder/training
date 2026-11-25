@@ -377,8 +377,8 @@
       <div class="exam-ready-card" id="examCard">
         <div class="exam-ready-text">
           <h4>📝 Final Exam — 30 Questions</h4>
-          <p>Covers all 7 modules. Pass score: <strong>60%</strong> (Attempt 1) / <strong>80%</strong> (Attempt 2). You have 2 attempts.</p>
-          <div class="locked-msg" id="examLockMsg">Complete all modules to unlock the exam.</div>
+          <p>Covers all 7 modules + About WMT. Pass score: <strong>60%</strong> (Attempt 1) / <strong>80%</strong> (Attempt 2). You have 2 attempts.</p>
+          <div class="locked-msg" id="examLockMsg">Complete all 7 modules + About WMT to unlock the exam.</div>
         </div>
         <a href="exam.html" class="btn btn-primary" id="examBtn" style="display:none">Start Exam →</a>
       </div>
@@ -933,9 +933,11 @@ function initDashboard(user) {
   document.getElementById('statAvgScore').textContent = scoredModules > 0
     ? Math.round(totalScore / scoredModules) + '%' : '—';
 
-  if (moduleCompletedCount === 7) {
+  if (moduleCompletedCount === 7 && abtDone) {
     document.getElementById('examLockMsg').textContent = '🎉 All modules complete! You can now take the final exam.';
     document.getElementById('examBtn').style.display = 'inline-flex';
+  } else if (moduleCompletedCount === 7 && !abtDone) {
+    document.getElementById('examLockMsg').textContent = '7/7 modules done — complete About WMT to unlock the exam.';
   }
 
   // Interview card — show if exam passed
