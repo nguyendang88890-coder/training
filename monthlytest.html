@@ -3341,7 +3341,7 @@ function confirmApproveRs(un, m) {
   rs[m].status = 'approved';
   rs[m].rsDeadline = new Date(deadline).toISOString();
   rs[m].processedAt = new Date().toISOString();
-  rs[m].approvedBy = CUR_ADMIN || '';
+  rs[m].approvedBy = CUR_USER || '';
   saveRS(un, rs);
   document.getElementById('approveRsModal').remove();
   updateRsBadge(); renderRescheduleTab();
