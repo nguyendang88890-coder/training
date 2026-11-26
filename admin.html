@@ -2552,6 +2552,7 @@ function confirmApproveRs(un, m) {
   rs[m].status='approved';
   rs[m].rsDeadline=new Date(deadline).toISOString();
   rs[m].processedAt=new Date().toISOString();
+  rs[m].approvedBy=CUR_ADMIN||'';
   saveRS(un,rs);
   document.getElementById('approveRsModal').remove();
   updateRsBadge(); renderRescheduleTab();
