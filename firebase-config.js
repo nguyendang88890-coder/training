@@ -162,8 +162,11 @@ function _lsClean(force) {
       }
     }
 
-    // Admins/mods: remove ALL gentest (they use qbank, not gentest)
-    if (isPriv && /^wmt_gentest_/.test(k)) { remove.push(k); continue; }
+    // Admins/mods: remove old gentest only (keep recent months for status display)
+    if (isPriv && /^wmt_gentest_/.test(k)) {
+      const gm = k.match(/^wmt_gentest_\w+_(\d{4}-\d{2})$/);
+      if (!gm || gm[1] < cut) { remove.push(k); continue; }
+    }
 
     // Admins/mods: remove all quiz data (fetched on-demand via syncQuizOnly)
     if (isPriv && /^wmt_quiz_/.test(k)) { remove.push(k); continue; }
@@ -360,9 +363,9 @@ async function _syncCore() {
       } catch(e) { console.warn(`[Firebase] submissions sync failed (${u}):`, e.message); }
     }));
 
-    // ── Step 6: gentest — trainees only, current + previous month ──
-    // Admins/mods use qbank (full question bank), not gentest — skip to save space.
-    if (!isPriv) {
+    // ── Step 6: gentest — current + previous month for all roles ──
+    // Trainees get their group only; admins/mods get both groups (for status display in Setup tab).
+    {
       const now      = new Date();
       const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const months   = [
@@ -370,7 +373,7 @@ async function _syncCore() {
         `${prevDate.getFullYear()}-${String(prevDate.getMonth()+1).padStart(2,'0')}`,
       ];
       const myGroup = (JSON.parse(localStorage.getItem('wmt_users_db') || '{}')?.[curUser]?.testGroup) || 'others';
-      const groups  = myGroup === 'bdcs' ? ['bdcs'] : ['others'];
+      const groups  = isPriv ? ['bdcs', 'others'] : (myGroup === 'bdcs' ? ['bdcs'] : ['others']);
       await Promise.all(groups.flatMap(g =>
         months.map(async m => {
           try {
