@@ -3776,7 +3776,7 @@ function renderCurrentTestCard() {
   }[st] || '—';
 
   const maxSc     = myBDCS ? 300 : 100;
-  const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 60);
+  const passScore = myBDCS ? (cfg.passBDCS ?? 250) : (cfg.passOthers ?? 70);
 
   // Resolve score: use graded record if available, else fall back to submission data
   // (guards against Firebase sync race condition overwriting localStorage score)

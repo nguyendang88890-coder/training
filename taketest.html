@@ -891,9 +891,14 @@ function renderResult(sub, mc = {}) {
   }
   const isBDCSU     = sub.group === 'bdcs';
   const maxScore    = isBDCSU ? 300 : 100;
-  const lietMax     = mc.lietMax ?? 2;
+  const lietMax     = mc.lietMax ?? 10;
   // Show answers when: no deadline configured, OR deadline has passed
   const deadlinePassed = !_effectiveDeadline || Date.now() > new Date(_effectiveDeadline).getTime();
+
+  // For BDCS: resolve total score and pass/fail once essay is graded
+  const bdcsGraded  = isBDCSU && !sub.essayPending && sub.essayTotal !== undefined;
+  const bdcsTotal   = bdcsGraded ? (sub.mcqScore || 0) + (sub.essayTotal || 0) : null;
+  const displayScore = bdcsGraded ? bdcsTotal : sub.mcqScore;
 
   let statusHTML = '';
   if (isBDCSU && sub.essayPending) {
@@ -902,6 +907,9 @@ function renderResult(sub, mc = {}) {
         MCQ Score: <strong style="color:var(--gold)">${sub.mcqScore}</strong> pts.<br>
         Admin will grade the essay section and update your final score.
       </p>`;
+  } else if (bdcsGraded) {
+    const passed = bdcsTotal >= (mc.passBDCS ?? 250) && (sub.lietWrong || 0) <= lietMax;
+    statusHTML = `<div class="result-badge ${passed?'pass':'fail'}">${passed?'✓ PASS':'✗ FAIL'}</div>`;
   } else {
     const passed = sub.provisionalPassed;
     statusHTML = `<div class="result-badge ${passed?'pass':'fail'}">${passed?'✓ PASS':'✗ FAIL'}</div>`;
@@ -911,11 +919,15 @@ function renderResult(sub, mc = {}) {
   const essayCount = qs.filter(q=>q.type==='Essay').length;
   const correctMCQ = sub.mcqResults ? Object.values(sub.mcqResults).filter(r=>r.correct).length : '—';
 
+  const heroIcon = (isBDCSU && sub.essayPending) ? '📝'
+    : (bdcsGraded ? (bdcsTotal >= (mc.passBDCS ?? 250) && (sub.lietWrong || 0) <= lietMax ? '🏆' : '📋')
+    : (sub.provisionalPassed ? '🏆' : '📋'));
+
   document.getElementById('pageTitle').textContent = 'Test Results';
   document.getElementById('pageContent').innerHTML = `
     <div class="result-hero">
-      <div class="result-icon">${isBDCSU&&sub.essayPending ? '📝' : (sub.provisionalPassed?'🏆':'📋')}</div>
-      <div class="result-score">${sub.mcqScore}<span class="result-max">/${maxScore}${isBDCSU&&sub.essayPending?' (MCQ)':''}</span></div>
+      <div class="result-icon">${heroIcon}</div>
+      <div class="result-score">${displayScore}<span class="result-max">/${maxScore}${isBDCSU&&sub.essayPending?' (MCQ)':''}</span></div>
       ${statusHTML}
       <div class="result-details">
         <div class="result-detail"><strong>${correctMCQ}/${mcqCount}</strong><span>MCQ Correct</span></div>
