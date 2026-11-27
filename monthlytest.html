@@ -4003,8 +4003,9 @@ function renderTraineeReschedule() {
           <h4>🔄 Request Test Reschedule</h4>
           ${_prevMsg0}
           <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
-            ⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr0)}</strong>.<br>
-            <span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
+            ⏰ The <strong>${fmtMonth(m)}</strong> test has already started on <strong>${fmtDT(_startStr0)}</strong>.<br>
+            <span style="opacity:0.75;font-size:0.78rem;">Reschedule requests can only be submitted before the test begins.</span><br>
+            <span style="opacity:0.6;font-size:0.76rem;">Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr0)}</strong>. Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
           </div>
         </div>`;
         return;
@@ -4062,8 +4063,9 @@ function renderTraineeReschedule() {
     el.innerHTML=`<div class="reschedule-card">
       <h4>🔄 Request Test Reschedule</h4>
       <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
-        ⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr1)}</strong>.<br>
-        <span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
+        ⏰ The <strong>${fmtMonth(m)}</strong> test has already started on <strong>${fmtDT(_startStr1)}</strong>.<br>
+        <span style="opacity:0.75;font-size:0.78rem;">Reschedule requests can only be submitted before the test begins.</span><br>
+        <span style="opacity:0.6;font-size:0.76rem;">Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr1)}</strong>. Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>
       </div>
     </div>`;
     return;
