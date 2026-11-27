@@ -4082,24 +4082,6 @@ function submitReschedule(m, minDate, maxDate) {
     err.textContent = 'You have already completed the test for this month. Rescheduling is not available.';
     return;
   }
-  // Block requests after the test day has ended (end of deadline day)
-  const cfg=getMC()[m]||{};
-  const isUserBDCS = isBDCS(ALL_USERS[CUR_USER]||{});
-  // Block if test has already started
-  const _startStr3 = isUserBDCS ? cfg.startDateBDCS : cfg.startDateOthers;
-  if (_startStr3 && new Date() >= new Date(_startStr3)) {
-    err.textContent = 'Kỳ thi đã bắt đầu. Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi khai mạc.';
-    return;
-  }
-  const deadlineStr = isUserBDCS ? cfg.deadlineBDCS : cfg.deadlineOthers;
-  if (deadlineStr) {
-    const deadlineEnd = new Date(deadlineStr);
-    deadlineEnd.setHours(23,59,59,999);
-    if (new Date() > deadlineEnd) {
-      err.textContent='The test period has ended. Reschedule requests are no longer accepted for this month.';
-      return;
-    }
-  }
   const rs=getRS(CUR_USER);
   const rsStart = new Date(`${date}T${time}`).toISOString();
   rs[m]={ rsStart, newDate:date, newTime:time, reason, requestedAt:new Date().toISOString(), status:'pending', processedAt:null };
