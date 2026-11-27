@@ -3992,24 +3992,6 @@ function renderTraineeReschedule() {
     // If rejected OR approved window has already passed → show status note then fall through
     // to the request form so the user can submit a new request.
     if (existing.status === 'rejected' || approvedWindowExpired) {
-      // Block new request if test has already started
-      const _isBdcs0 = isBDCS(ALL_USERS[CUR_USER] || {});
-      const _startStr0 = _isBdcs0 ? cfg.startDateBDCS : cfg.startDateOthers;
-      if (_startStr0 && Date.now() >= new Date(_startStr0).getTime()) {
-        const _prevMsg0 = existing.status==='rejected'
-          ? `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:12px;color:var(--danger);">✗ Yêu cầu dời lịch trước đã bị từ chối${existing.rejectReason?' — '+existing.rejectReason:''}</div>`
-          : `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:6px;margin-bottom:12px;color:var(--warning);">⌛ Khung giờ dời lịch đã được phê duyệt kết thúc (${fmtDT(existing.rsDeadline)})</div>`;
-        el.innerHTML=`<div class="reschedule-card">
-          <h4>🔄 Request Test Reschedule</h4>
-          ${_prevMsg0}
-          <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
-            ${(window._getLang&&window._getLang()==='vi')
-              ? `⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr0)}</strong>.<br><span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>`
-              : `⏰ The <strong>${fmtMonth(m)}</strong> test has already started on <strong>${fmtDT(_startStr0)}</strong>.<br><span style="opacity:0.75;font-size:0.78rem;">Reschedule requests can only be submitted before the test begins.</span>`}
-          </div>
-        </div>`;
-        return;
-      }
       const prevNote = existing.status==='rejected'
         ? `<div style="font-size:0.82rem;padding:8px 12px;background:rgba(255,61,113,0.07);border:1px solid rgba(255,61,113,0.2);border-radius:6px;margin-bottom:14px;color:var(--danger);">
             ✗ Previous request rejected${existing.rejectReason?' — '+existing.rejectReason:''}<br>
@@ -4019,10 +4001,11 @@ function renderTraineeReschedule() {
             ⌛ Previous approved window ended (${fmtDT(existing.rsDeadline)})<br>
             <span style="opacity:0.75;">You may submit a new request below.</span>
            </div>`;
-      // Fall through to show form — but prepend the note via a wrapper
-      const testStatus = getStatus(cfg);
+      const testStatus = getStatusFor(cfg, isBDCS(ALL_USERS[CUR_USER]||{}));
       const statusNote = testStatus==='expired'
         ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ The test window for <strong>${fmtMonth(m)}</strong> has ended. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
+        : testStatus==='active'
+        ? `<div style="font-size:0.78rem;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--warning);">⏰ The <strong>${fmtMonth(m)}</strong> test is currently ongoing. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
         : testStatus==='upcoming'
         ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ The <strong>${fmtMonth(m)}</strong> test hasn't started yet. You can still submit an early reschedule request if needed.</div>`
         : '';
@@ -4056,24 +4039,14 @@ function renderTraineeReschedule() {
     return;
   }
 
-  // Block form if test has already started
-  const _isBdcs1 = isBDCS(ALL_USERS[CUR_USER] || {});
-  const _startStr1 = _isBdcs1 ? cfg.startDateBDCS : cfg.startDateOthers;
-  if (_startStr1 && Date.now() >= new Date(_startStr1).getTime()) {
-    el.innerHTML=`<div class="reschedule-card">
-      <h4>🔄 Request Test Reschedule</h4>
-      <div style="font-size:0.85rem;padding:10px 14px;background:rgba(255,170,0,0.07);border:1px solid rgba(255,170,0,0.2);border-radius:8px;color:var(--warning);line-height:1.6;">
-        ${(window._getLang&&window._getLang()==='vi')
-          ? `⏰ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> đã khai mạc từ <strong>${fmtDT(_startStr1)}</strong>.<br><span style="opacity:0.75;font-size:0.78rem;">Yêu cầu dời lịch chỉ có thể gửi trước khi kỳ thi bắt đầu.</span>`
-          : `⏰ The <strong>${fmtMonth(m)}</strong> test has already started on <strong>${fmtDT(_startStr1)}</strong>.<br><span style="opacity:0.75;font-size:0.78rem;">Reschedule requests can only be submitted before the test begins.</span>`}
-      </div>
-    </div>`;
-    return;
-  }
-
-  const testStatus = getStatus(cfg);
-  const statusNote = testStatus === 'upcoming'
-    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ Kỳ thi tháng <strong>${fmtMonth(m)}</strong> chưa bắt đầu. Bạn có thể gửi yêu cầu dời lịch ngay bây giờ.</div>`
+  const _rsUserIsBdcs = isBDCS(ALL_USERS[CUR_USER] || {});
+  const testStatus = getStatusFor(cfg, _rsUserIsBdcs);
+  const statusNote = testStatus === 'expired'
+    ? `<div style="font-size:0.78rem;background:rgba(255,61,113,0.08);border:1px solid rgba(255,61,113,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--danger);">⌛ The test window for <strong>${fmtMonth(m)}</strong> has ended. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
+    : testStatus === 'active'
+    ? `<div style="font-size:0.78rem;background:rgba(255,170,0,0.08);border:1px solid rgba(255,170,0,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:var(--warning);">⏰ The <strong>${fmtMonth(m)}</strong> test is currently ongoing. You can still submit a reschedule request — Admin will review it and open a personal test window for you.</div>`
+    : testStatus === 'upcoming'
+    ? `<div style="font-size:0.78rem;background:rgba(100,150,255,0.08);border:1px solid rgba(100,150,255,0.2);border-radius:6px;padding:7px 12px;margin-bottom:14px;color:#6496ff;">⏳ The <strong>${fmtMonth(m)}</strong> test hasn't started yet. You can submit an early reschedule request if needed.</div>`
     : '';
 
   el.innerHTML=`
